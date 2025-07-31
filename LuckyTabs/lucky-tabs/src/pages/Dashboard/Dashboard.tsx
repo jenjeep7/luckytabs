@@ -11,10 +11,12 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { useNavigate } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
+import { useTheme } from '@mui/material/styles';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-   const [displayName, setDisplayName] = useState<string | null>(null);
+  const theme = useTheme();
+  const [displayName, setDisplayName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -47,7 +49,14 @@ export const Dashboard: React.FC = () => {
   return (
     <>
       {/* Hero Section */}
-      <Box sx={{ bgcolor: 'primary.main', color: 'white', py: 10, textAlign: 'center' }}>
+      <Box
+        sx={{
+          bgcolor: theme.palette.primary.main,
+          color: theme.palette.primary.contrastText,
+          py: 10,
+          textAlign: 'center',
+        }}
+      >
         <Container>
           {displayName && <Typography variant="h4" gutterBottom>
             Welcome, {displayName}!
@@ -77,7 +86,14 @@ export const Dashboard: React.FC = () => {
       </Box>
 
       {/* Features Section */}
-      <Box id="features" sx={{ py: 10, bgcolor: 'white' }}>
+      <Box
+        id="features"
+        sx={{
+          py: 10,
+          bgcolor: theme.palette.background.paper,
+          color: theme.palette.text.primary,
+        }}
+      >
         <Container>
           <Typography variant="h4" align="center" fontWeight="bold" gutterBottom>
             Key Features: Better Together
@@ -111,7 +127,14 @@ export const Dashboard: React.FC = () => {
       </Box>
 
       {/* How It Works Section */}
-      <Box id="how-it-works" sx={{ py: 10, bgcolor: 'grey.100' }}>
+      <Box
+        id="how-it-works"
+        sx={{
+          py: 10,
+          bgcolor: theme.palette.background.default,
+          color: theme.palette.text.primary,
+        }}
+      >
         <Container>
           <Typography variant="h4" align="center" fontWeight="bold" gutterBottom>
             How It Works: Join the Community
@@ -166,7 +189,14 @@ export const Dashboard: React.FC = () => {
       </Box>
 
       {/* Testimonials Section */}
-      <Box id="testimonials" sx={{ py: 10, bgcolor: 'white' }}>
+      <Box
+        id="testimonials"
+        sx={{
+          py: 10,
+          bgcolor: theme.palette.background.paper,
+          color: theme.palette.text.primary,
+        }}
+      >
         <Container>
           <Typography variant="h4" align="center" fontWeight="bold" gutterBottom>
             Hear From Our Community
@@ -198,7 +228,15 @@ export const Dashboard: React.FC = () => {
       </Box>
 
       {/* Responsible Gaming Section */}
-      <Box id="responsible-gaming" sx={{ py: 10, bgcolor: 'grey.100', textAlign: 'center' }}>
+      <Box
+        id="responsible-gaming"
+        sx={{
+          py: 10,
+          bgcolor: theme.palette.background.default,
+          textAlign: 'center',
+          color: theme.palette.text.primary,
+        }}
+      >
         <Container>
           <Typography variant="h4" fontWeight="bold" gutterBottom>
             Play Responsibly, Together
@@ -213,7 +251,16 @@ export const Dashboard: React.FC = () => {
       </Box>
 
       {/* Final Call to Action Section */}
-      <Box sx={{ bgcolor: 'primary.main', color: 'white', py: 10, textAlign: 'center', borderTopLeftRadius: 32, borderTopRightRadius: 32 }}>
+      <Box
+        sx={{
+          bgcolor: theme.palette.primary.main,
+          py: 10,
+          textAlign: 'center',
+          borderTopLeftRadius: 32,
+          borderTopRightRadius: 32,
+          color: theme.palette.primary.contrastText,
+        }}
+      >
         <Container>
           <Typography variant="h4" fontWeight="bold" gutterBottom>
             Ready to Join the Pull Tab Community?
@@ -221,20 +268,41 @@ export const Dashboard: React.FC = () => {
           <Typography variant="h6" maxWidth={600} mx="auto" mb={4}>
             Connect with fellow enthusiasts, share insights, and elevate your pull tab experience today.
           </Typography>
-          <Button variant="contained" sx={{ bgcolor: 'white', color: 'primary.main', '&:hover': { bgcolor: 'grey.100' } }}>
+          <Button
+            variant="contained"
+            sx={{
+              bgcolor: theme.palette.background.paper,
+              color: theme.palette.primary.main,
+              '&:hover': { bgcolor: theme.palette.background.default },
+            }}
+          >
             Download the App
           </Button>
         </Container>
       </Box>
 
       {/* Footer Section */}
-      <Box id="contact" sx={{ bgcolor: 'grey.900', color: 'grey.300', py: 6, textAlign: 'center' }}>
-        <Typography variant="h6" color="white" gutterBottom>
+      <Box
+        id="contact"
+        sx={{
+          bgcolor: theme.palette.background.paper,
+          py: 6,
+          textAlign: 'center',
+          color: theme.palette.text.primary,
+        }}
+      >
+        <Typography variant="h6" gutterBottom>
           Pull Tab Community
         </Typography>
         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 4, flexWrap: 'wrap', mb: 2 }}>
           {['Features', 'How It Works', 'Testimonials', 'Responsible Gaming', 'Privacy Policy'].map((item) => (
-            <Button key={item} href={`#${item.toLowerCase().replace(/ /g, '-')}`} sx={{ color: 'inherit' }}>
+            <Button
+              key={item}
+              href={`#${item.toLowerCase().replace(/ /g, '-')}`}
+              sx={{
+                color: theme.palette.text.primary,
+              }}
+            >
               {item}
             </Button>
           ))}

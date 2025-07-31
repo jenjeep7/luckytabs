@@ -43,9 +43,18 @@ function App() {
           mode: darkMode ? 'dark' : 'light',
           primary: {
             main: '#38065aff',
+            light: '#6d3e8cff', // add a light variant for use in Dashboard
           },
           secondary: {
             main: '#cf81e2ff',
+          },
+          background: {
+            default: darkMode ? '#181820' : '#f5f5f5',
+            paper: darkMode ? '#23232b' : '#fff',
+          },
+          text: {
+            primary: darkMode ? '#fff' : '#222',
+            secondary: darkMode ? '#aaa' : '#555',
           },
         },
       }),
@@ -98,7 +107,7 @@ function App() {
       <CssBaseline />
       <BrowserRouter>
         <Box sx={{ display: 'flex' }}>
-          <AppBar component="nav" position="static">
+          <AppBar component="nav" position="fixed">
             <Toolbar>
               <IconButton
                 color="inherit"
