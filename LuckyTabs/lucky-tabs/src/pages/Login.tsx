@@ -1,8 +1,17 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { auth } from '../firebase';
 import { useNavigate } from 'react-router-dom';
+import {
+  Box,
+  Button,
+  Container,
+  TextField,
+  Typography,
+  Alert,
+  Paper,
+} from '@mui/material';
 
 interface LoginFormInputs {
   email: string;
@@ -18,73 +27,62 @@ const Login: React.FC = () => {
     try {
       await signInWithEmailAndPassword(auth, data.email, data.password);
       setError('');
-      navigate('/'); // Redirect to dashboard or homepage
+      navigate('/');
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const signInWithGoogle = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      setError('');
+      navigate('/');
     } catch (err: any) {
       setError(err.message);
     }
   };
 
   return (
-    <div style={styles.container}>
-      <h2>Login</h2>
-      <form onSubmit={handleSubmit(onSubmit)} style={styles.form}>
-        <input
-          type="email"
-          placeholder="Email"
-          {...register('email')}
-          required
-          style={styles.input}
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          {...register('password')}
-          required
-          style={styles.input}
-        />
-        <button type="submit" style={styles.button}>Login</button>
-      </form>
-      <button onClick={() => navigate('/signup')}>Sign Up</button>
-
-      {error && <p style={styles.error}>{error}</p>}
-    </div>
+    <Container maxWidth="sm">
+      <Paper elevation={3} sx={{ mt: 10, p: 4, textAlign: 'center' }}>
+        <Typography variant="h4" gutterBottom>
+          Login
+        </Typography>
+        <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <TextField
+            label="Email"
+            type="email"
+            fullWidth
+            {...register('email')}
+            required
+          />
+          <TextField
+            label="Password"
+            type="password"
+            fullWidth
+            {...register('password')}
+            required
+          />
+          <Button variant="contained" color="primary" type="submit">
+            Login
+          </Button>
+          <Button variant="outlined" onClick={signInWithGoogle}>
+            Sign in with Google
+          </Button>
+          <Button onClick={() => navigate('/signup')}>
+            Sign Up
+          </Button>
+        </Box>
+        {error && (
+          <Alert severity="error" sx={{ mt: 2 }}>
+            {error}
+          </Alert>
+        )}
+      </Paper>
+    </Container>
   );
-};
-
-const styles: { [key: string]: React.CSSProperties } = {
-  container: {
-    maxWidth: 400,
-    margin: '100px auto',
-    padding: 20,
-    textAlign: 'center',
-    border: '1px solid #ccc',
-    borderRadius: 8,
-    backgroundColor: '#fafafa',
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 12,
-  },
-  input: {
-    padding: 10,
-    fontSize: 16,
-    borderRadius: 4,
-    border: '1px solid #ccc',
-  },
-  button: {
-    padding: 10,
-    backgroundColor: '#1976d2',
-    color: '#fff',
-    fontSize: 16,
-    border: 'none',
-    borderRadius: 4,
-    cursor: 'pointer',
-  },
-  error: {
-    color: 'red',
-    marginTop: 12,
-  },
 };
 
 export default Login;
