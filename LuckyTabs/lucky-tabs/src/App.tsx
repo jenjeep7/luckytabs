@@ -1,4 +1,3 @@
-// src/App.tsx
 import { useMemo, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -35,10 +34,10 @@ function App() {
         palette: {
           mode: darkMode ? 'dark' : 'light',
           primary: {
-            main: '#1976d2',
+            main: '#38065aff',
           },
           secondary: {
-            main: '#f50057',
+            main: '#cf81e2ff',
           },
         },
       }),
@@ -46,10 +45,7 @@ function App() {
   );
 
   const handleToggleDarkMode = () => setDarkMode((prev) => !prev);
-
-  const handleLogout = async () => {
-    await auth.signOut();
-  };
+  const handleLogout = async () => await auth.signOut();
 
   if (loading) {
     return (
@@ -69,32 +65,35 @@ function App() {
         <AppBar position="static">
           <Toolbar>
             <Typography variant="h6" sx={{ flexGrow: 1 }}>
-              My PWA App
+              Pull Tab Community
             </Typography>
+            <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 2 }}>
+              {['Features', 'How It Works', 'Testimonials', 'Responsible Gaming', 'Contact'].map((item) => (
+                <Button key={item} href={`#${item.toLowerCase().replace(/ /g, '-')}`} color="inherit">
+                  {item}
+                </Button>
+              ))}
+            </Box>
             <IconButton color="inherit" onClick={handleToggleDarkMode}>
               {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
             </IconButton>
-            {user && (
+            {user ? (
               <IconButton color="inherit" onClick={handleLogout}>
                 <LogoutIcon />
               </IconButton>
+            ) : (
+              <Button color="inherit" href="/login">
+                Login
+              </Button>
             )}
           </Toolbar>
         </AppBar>
 
         <Routes>
-          {user ? (
-            <>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="*" element={<Navigate to="/" />} />
-            </>
-          ) : (
-            <>
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="*" element={<Navigate to="/login" />} />
-            </>
-          )}
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>
