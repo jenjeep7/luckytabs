@@ -1,24 +1,24 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebase';
 import { useNavigate } from 'react-router-dom';
 
-interface LoginFormInputs {
+interface SignupFormInputs {
   email: string;
   password: string;
 }
 
-const Login: React.FC = () => {
-  const { register, handleSubmit } = useForm<LoginFormInputs>();
+const Signup: React.FC = () => {
+  const { register, handleSubmit } = useForm<SignupFormInputs>();
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const onSubmit = async (data: LoginFormInputs) => {
+  const onSubmit = async (data: SignupFormInputs) => {
     try {
-      await signInWithEmailAndPassword(auth, data.email, data.password);
+      await createUserWithEmailAndPassword(auth, data.email, data.password);
       setError('');
-      navigate('/'); // Redirect to dashboard or homepage
+      navigate('/'); // Go to dashboard or homepage
     } catch (err: any) {
       setError(err.message);
     }
@@ -26,7 +26,7 @@ const Login: React.FC = () => {
 
   return (
     <div style={styles.container}>
-      <h2>Login</h2>
+      <h2>Sign Up</h2>
       <form onSubmit={handleSubmit(onSubmit)} style={styles.form}>
         <input
           type="email"
@@ -42,11 +42,12 @@ const Login: React.FC = () => {
           required
           style={styles.input}
         />
-        <button type="submit" style={styles.button}>Login</button>
+        <button type="submit" style={styles.button}>Create Account</button>
       </form>
-      <button onClick={() => navigate('/signup')}>Sign Up</button>
-
       {error && <p style={styles.error}>{error}</p>}
+      <button style={styles.link} onClick={() => navigate('/login')}>
+        Already have an account? Log in
+      </button>
     </div>
   );
 };
@@ -74,7 +75,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   button: {
     padding: 10,
-    backgroundColor: '#1976d2',
+    backgroundColor: '#388e3c',
     color: '#fff',
     fontSize: 16,
     border: 'none',
@@ -85,6 +86,15 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: 'red',
     marginTop: 12,
   },
+  link: {
+    marginTop: 20,
+    color: '#1976d2',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    textDecoration: 'underline',
+    fontSize: 14,
+  },
 };
 
-export default Login;
+export default Signup;
