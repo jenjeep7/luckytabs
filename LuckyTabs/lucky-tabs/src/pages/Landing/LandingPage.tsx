@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
 
-export const Dashboard: React.FC = () => {
+export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
    const [displayName, setDisplayName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -93,16 +93,16 @@ export const Dashboard: React.FC = () => {
           <Grid container spacing={4} mt={4}>
             {[
               {
-                title: 'Collective Wisdom',
-                desc: 'Track your wins/losses and contribute to a powerful database. Discover trending games nearby.',
+                title: 'Probability Insights',
+                desc: 'The app will use AI models, custom-trained, to help users understand the odds of winning pull tabs. Users will be able to input pull tab box data and the system will create and rank to determine the best odds. ',
               },
               {
-                title: 'Shared Insights',
-                desc: 'See community stats and charts to compare your gameplay and trends.',
+                title: 'Customizable User Profiles and Social Features',
+                desc: 'The app will allow users to create a profile to track their personal budgeting and winning history. They can choose to keep this data private, share it publicly, or only with a group of friends, creating a social element around the pull tab game.',
               },
               {
-                title: 'Connect & Compete',
-                desc: 'Form groups, share wins, and join friendly leaderboards and achievements.',
+                title: 'Dedicated Profiles for Businesses and Non-profits',
+                desc: `The app will feature a system where businesses (like bars) can create profiles to showcase their available pull tab boxes, highlight what's new and what's popular, and push this information out to the public. Non-profits can also create profiles to display all of their sponsored locations.`,
               },
             ].map(({ title, desc }) => (
               <Grid key={title} size={{ xs: 12, md: 4 }}>
@@ -121,25 +121,25 @@ export const Dashboard: React.FC = () => {
       {/* How It Works Section */}
       <Box id="how-it-works" sx={{ py: 10, bgcolor: 'grey.100' }}>
         <Container>
-          <Typography variant="h4" align="center" fontWeight="bold" gutterBottom>
+          <Typography variant="h4" align="center" fontWeight="bold" color='primary.main' gutterBottom>
             How It Works: Join the Community
           </Typography>
           <Grid container spacing={4} mt={4}>
             {[
               {
                 step: '1',
-                title: 'Track Your Play',
-                desc: 'Log the Date, Time, Game Name, Location, Amount Spent, Prize, and Notes with a simple interface.',
+                title: 'Smart Play Tracking ',
+                desc: 'Users can effortlessly record their play details—including box name, box data, location, and amounts spent—using a simple, intuitive interface. The app automatically organizes this data to help players visualize their history, identify patterns in their play, and track their profit and loss over time.',
               },
               {
                 step: '2',
-                title: 'Share & Discover',
-                desc: 'Share your logs anonymously or with friends to help the community find trending games.',
+                title: 'Community-Powered Game Insights ',
+                desc: 'Users can contribute their anonymized data to a communal pool, which the app then uses to generate real-time insights. The "Share & Discover" feature becomes a dynamic dashboard where the community can see which games are "hot" or "cold" at various locations. ',
               },
               {
                 step: '3',
-                title: 'Connect & Engage',
-                desc: 'Join groups, share wins, and enjoy friendly competition with leaderboards and achievements.',
+                title: 'Interactive & Competitive Community ',
+                desc: 'The app moves beyond simple sharing to create an active, competitive environment. Users can join virtual leagues, compete for top spots on a leaderboard for most wins or highest profit, and earn badges or achievements for milestone victories. This gamified approach turns individual play into a shared social event, encouraging users to return to the app and engage with the community.',
               },
             ].map(({ step, title, desc }) => (
               <Grid key={title} size={{ xs: 12, md: 4 }}>
@@ -149,7 +149,7 @@ export const Dashboard: React.FC = () => {
                       width: 64,
                       height: 64,
                       bgcolor: 'primary.main',
-                      color: 'background.default',
+                      color: 'text.primary',
                       borderRadius: '50%',
                       display: 'flex',
                       alignItems: 'center',
@@ -176,7 +176,7 @@ export const Dashboard: React.FC = () => {
       {/* Testimonials Section */}
       <Box id="testimonials" sx={{ py: 10, bgcolor: 'white' }}>
         <Container>
-          <Typography variant="h4" align="center" fontWeight="bold" gutterBottom>
+          <Typography variant="h4" align="center" fontWeight="bold" color='primary.main' gutterBottom>
             Hear From Our Community
           </Typography>
           <Grid container spacing={4} mt={4}>
@@ -191,11 +191,11 @@ export const Dashboard: React.FC = () => {
               },
             ].map(({ quote, name }) => (
               <Grid key={name} size={{ xs: 12, md: 6 }}>
-                <Paper elevation={2} sx={{ p: 4 }}>
+                <Paper elevation={2} sx={{ p: 4 }} color="text.secondary">
                   <Typography variant="body1" fontStyle="italic" gutterBottom>
                     "{quote}"
                   </Typography>
-                  <Typography variant="subtitle1" color="primary">
+                  <Typography variant="subtitle1" color="text.primary" fontWeight="bold">
                     - {name}
                   </Typography>
                 </Paper>
@@ -206,7 +206,7 @@ export const Dashboard: React.FC = () => {
       </Box>
 
       {/* Responsible Gaming Section */}
-      <Box id="responsible-gaming" sx={{ py: 10, bgcolor: 'grey.100', textAlign: 'center' }}>
+      <Box id="responsible-gaming" sx={{ py: 10, bgcolor: 'grey.100', textAlign: 'center', color: 'primary.main' }}>
         <Container>
           <Typography variant="h4" fontWeight="bold" gutterBottom>
             Play Responsibly, Together
@@ -229,7 +229,7 @@ export const Dashboard: React.FC = () => {
           <Typography variant="h6" maxWidth={600} mx="auto" mb={4}>
             Connect with fellow enthusiasts, share insights, and elevate your pull tab experience today.
           </Typography>
-          <Button variant="contained" sx={{ bgcolor: 'white', color: 'primary.main', '&:hover': { bgcolor: 'grey.100' } }}>
+          <Button variant="contained" sx={{ bgcolor: 'secondary.main', color: 'primary.main', '&:hover': { bgcolor: 'grey.100' } }}>
             Download the App
           </Button>
         </Container>
@@ -242,7 +242,7 @@ export const Dashboard: React.FC = () => {
         </Typography>
         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 4, flexWrap: 'wrap', mb: 2 }}>
           {['Features', 'How It Works', 'Testimonials', 'Responsible Gaming', 'Privacy Policy'].map((item) => (
-            <Button key={item} href={`#${item.toLowerCase().replace(/ /g, '-')}`} sx={{ color: 'inherit' }}>
+            <Button key={item} href={`#${item.toLowerCase().replace(/ /g, '-')}`} sx={{ color: 'secondary.main' }}>
               {item}
             </Button>
           ))}
@@ -255,4 +255,4 @@ export const Dashboard: React.FC = () => {
   );
 };
 
-export default Dashboard;
+export default LandingPage;

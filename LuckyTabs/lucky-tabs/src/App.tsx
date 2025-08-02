@@ -2,7 +2,6 @@ import { useMemo, useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from './firebase';
-import Dashboard from './pages/Dashboard/Dashboard';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 
@@ -28,32 +27,8 @@ import {
 import LogoutIcon from '@mui/icons-material/Logout';
 import MenuIcon from '@mui/icons-material/Menu';
 import { getDesignTokens } from './theme';
-
-function Landing() {
-  return (
-    <Box
-      minHeight="100vh"
-      display="flex"
-      flexDirection="column"
-      alignItems="center"
-      bgcolor="primary.main"
-    >
-      <img
-        src="/Tabsy Wins Logo.png"
-        alt="Tabsy Wins Logo"
-        style={{ height: 300, margin: 32 }}
-      />
-      <Button
-        variant="contained"
-        color="secondary"
-        size="large"
-        href="/login"
-      >
-        Login
-      </Button>
-    </Box>
-  );
-}
+import { LandingPage } from './pages/Landing/LandingPage';
+import LandingTemporary from './pages/Landing/LandingTemporary';
 
 function App() {
   const [user, loading] = useAuthState(auth);
@@ -167,13 +142,13 @@ function App() {
           <Route
             path="/"
             element={
-              user ? <Navigate to="/dashboard" replace /> : <Landing />
+              user ? <Navigate to="/dashboard" replace /> : <LandingTemporary />
             }
           />
           <Route
             path="/dashboard"
             element={
-              user ? <Dashboard /> : <Navigate to="/" replace />
+              user ? <LandingPage /> : <Navigate to="/" replace />
             }
           />
           <Route
