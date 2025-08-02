@@ -98,7 +98,7 @@ function App() {
       <CssBaseline />
       <BrowserRouter>
         <Box sx={{ display: 'flex' }}>
-          <AppBar component="nav" position="static">
+          <AppBar component="nav" position="fixed">
             <Toolbar>
               <IconButton
                 color="inherit"
