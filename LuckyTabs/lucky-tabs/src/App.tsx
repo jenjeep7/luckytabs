@@ -90,39 +90,45 @@ function App() {
         {user && (
           <Box sx={{ display: 'flex' }}>
             <AppBar component="nav" position="fixed">
-              <Toolbar>
-                <IconButton
-                  color="inherit"
-                  aria-label="open drawer"
-                  edge="start"
-                  onClick={handleDrawerToggle}
-                  sx={{ mr: 2, display: { md: 'none' } }}
-                >
-                  <MenuIcon />
-                </IconButton>
-                <Typography variant="h6" sx={{ flexGrow: 1, display: { xs: 'none', md: 'block' } }}>
-                  Pull Tab Community
-                </Typography>
-                <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 2 }}>
-                  {navItems.map((item) => (
-                    <Button key={item} href={`#${item.toLowerCase().replace(/ /g, '-')}`} color="inherit">
-                      {item}
-                    </Button>
-                  ))}
-                </Box>
-                {/* <IconButton color="inherit" onClick={handleToggleDarkMode}>
-                  {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
-                </IconButton> */}
-                {user ? (
-                  <IconButton color="inherit" onClick={handleLogout}>
-                    <LogoutIcon />
-                  </IconButton>
-                ) : (
-                  <Button color="inherit" href="/login">
-                    Login
-                  </Button>
-                )}
-              </Toolbar>
+            <Toolbar>
+  <IconButton
+    color="inherit"
+    aria-label="open drawer"
+    edge="start"
+    onClick={handleDrawerToggle}
+    sx={{ mr: 2, display: { md: 'none' } }}
+  >
+    <MenuIcon />
+  </IconButton>
+
+  <Typography
+    variant="h6"
+    sx={{ flexGrow: 1, display: { xs: 'none', md: 'block' } }}
+  >
+    Tabsy's Community
+  </Typography>
+
+  <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 2 }}>
+    {navItems.map((item) => (
+      <Button key={item} href={`#${item.toLowerCase().replace(/ /g, '-')}`} color="inherit">
+        {item}
+      </Button>
+    ))}
+  </Box>
+
+  <Box sx={{ ml: 'auto' }}>
+    {user ? (
+      <IconButton color="inherit" onClick={handleLogout}>
+        <LogoutIcon />
+      </IconButton>
+    ) : (
+      <Button color="inherit" href="/login">
+        Login
+      </Button>
+    )}
+  </Box>
+</Toolbar>
+
             </AppBar>
             <Box component="nav">
               <Drawer

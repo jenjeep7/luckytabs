@@ -10,18 +10,21 @@ export const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => ({
             main: '#1a1a1a',
           },
           secondary: {
-            main: '#e4ac00',
+            main: '#f81da8ff',
           },
           background: {
             default: '#f5f5f5',
             paper: '#ffffff',
+            contrast: '#1a1a1a',
           },
           text: {
             primary: '#1a1a1a',
             secondary: '#333333',
+            contrast: '#ffffff',
+            light: '#ffffff'
           },
           success: {
-            main: '#1c741fff',
+            main: '#03fd0bff',
           }
         }
       : {
@@ -29,18 +32,21 @@ export const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => ({
             main: '#1a1a1a',
           },
           secondary: {
-            main: '#e4ac00',
+            main: '#f81da8ff',
           },
           background: {
             default: '#1d1d1d',
             paper: '#1d1d1d',
+            contrast: '#ffffff',
           },
           text: {
             primary: '#ffffff',
             secondary: '#bbbbbb',
+            contrast: '#1d1d1d',
+            light: '#ffffff'
           },
            success: {
-            main: '#1c741fff',
+            main: '#03fd0bff',
           }
         }),
   },

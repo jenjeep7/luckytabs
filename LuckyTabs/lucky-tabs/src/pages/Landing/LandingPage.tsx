@@ -14,7 +14,7 @@ import { auth, db } from '../../firebase';
 
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
-   const [displayName, setDisplayName] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -52,21 +52,18 @@ export const LandingPage: React.FC = () => {
           <Box> <img
                 src="/Tabsy Wins Logo.png"
                 alt="Tabsy Wins Logo"
-                style={{ height: 150, marginRight: 16 }}
+                style={{ height: 150, marginRight: 16, paddingBottom: 16 }}
               /></Box>
-          {displayName && <Typography variant="h4" gutterBottom>
-            Welcome, {displayName}!
-          </Typography>}
           
-          <Typography variant="h3" fontWeight="bold" gutterBottom>
-            Ready to turn your Pull Tab passion into a solo or shared{' '}
-            <Box component="span" sx={{ color: 'success.main', display: 'inline', fontWeight: 'bold' }}>
+          <Typography variant="h2" fontWeight="bold" gutterBottom>
+            Ready to turn your pull tab passion into a {' '}
+            <Box component="span" sx={{ color: 'success.main', display: 'block', fontWeight: 'bold' }}>
               WINNING
             </Box>{' '}
             adventure?
           </Typography>
           <Typography variant="h6" maxWidth={600} mx="auto" gutterBottom>
-            Introducing a new Pull Tab Community Player Experience – where every win, every game, and every insight is better together!           </Typography>
+            Introducing a new pull tab community player experience – where every win, every game, and every insight is better together!           </Typography>
           <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap' }}>
             <Button
               variant="contained"
@@ -75,7 +72,7 @@ export const LandingPage: React.FC = () => {
               endIcon={<ArrowForwardIcon />}
               onClick={() => navigate('/signup')}
             >
-              Get Started Today
+              Join Tabsy Today
             </Button>
             <Button variant="outlined" color="inherit" size="large" href="#features">
               Explore Features
@@ -85,10 +82,10 @@ export const LandingPage: React.FC = () => {
       </Box>
 
       {/* Features Section */}
-      <Box id="features" sx={{ py: 10, bgcolor: 'background.default' }}>
+      <Box id="features" sx={{ py: 5,bgcolor: 'background.default' }}>
         <Container>
           <Typography variant="h4" align="center" fontWeight="bold" gutterBottom>
-            Key Features: Better Together
+            Key Features
           </Typography>
           <Grid container spacing={4} mt={4}>
             {[
@@ -122,7 +119,7 @@ export const LandingPage: React.FC = () => {
       <Box id="how-it-works" sx={{ py: 10, bgcolor: 'grey.100' }}>
         <Container>
           <Typography variant="h4" align="center" fontWeight="bold" color='primary.main' gutterBottom>
-            How It Works: Join the Community
+            How It Works
           </Typography>
           <Grid container spacing={4} mt={4}>
             {[
@@ -149,7 +146,7 @@ export const LandingPage: React.FC = () => {
                       width: 64,
                       height: 64,
                       bgcolor: 'primary.main',
-                      color: 'text.primary',
+                      color: 'text.light',
                       borderRadius: '50%',
                       display: 'flex',
                       alignItems: 'center',
@@ -174,9 +171,9 @@ export const LandingPage: React.FC = () => {
       </Box>
 
       {/* Testimonials Section */}
-      <Box id="testimonials" sx={{ py: 10, bgcolor: 'white' }}>
+      <Box id="testimonials" sx={{ py: 10, bgcolor: 'primary.main' }}>
         <Container>
-          <Typography variant="h4" align="center" fontWeight="bold" color='primary.main' gutterBottom>
+          <Typography variant="h4" align="center" fontWeight="bold" color='text.light' gutterBottom>
             Hear From Our Community
           </Typography>
           <Grid container spacing={4} mt={4}>
@@ -206,7 +203,7 @@ export const LandingPage: React.FC = () => {
       </Box>
 
       {/* Responsible Gaming Section */}
-      <Box id="responsible-gaming" sx={{ py: 10, bgcolor: 'grey.100', textAlign: 'center', color: 'primary.main' }}>
+      <Box id="responsible-gaming" sx={{ py: 10, bgcolor: 'background.default', textAlign: 'center', color: 'text.primary' }}>
         <Container>
           <Typography variant="h4" fontWeight="bold" gutterBottom>
             Play Responsibly, Together
@@ -214,23 +211,23 @@ export const LandingPage: React.FC = () => {
           <Typography variant="h6" maxWidth={600} mx="auto" mb={4}>
             Use budget tools and access community-driven resources to maintain healthy play habits.
           </Typography>
-          <Button variant="contained" color="primary">
+          <Button variant="contained" sx={{ bgcolor: 'background.contrast', color: 'text.contrast' }}>
             Learn About Responsible Gaming
           </Button>
         </Container>
       </Box>
 
       {/* Final Call to Action Section */}
-      <Box sx={{ bgcolor: 'primary.main', color: 'white', py: 10, textAlign: 'center', borderTopLeftRadius: 32, borderTopRightRadius: 32 }}>
+      <Box sx={{ bgcolor: 'primary.main', color: 'white', py: 10, textAlign: 'center' }}>
         <Container>
           <Typography variant="h4" fontWeight="bold" gutterBottom>
-            Ready to Join the Pull Tab Community?
+            Ready to join Tabsy's community?
           </Typography>
           <Typography variant="h6" maxWidth={600} mx="auto" mb={4}>
             Connect with fellow enthusiasts, share insights, and elevate your pull tab experience today.
           </Typography>
           <Button variant="contained" sx={{ bgcolor: 'secondary.main', color: 'primary.main', '&:hover': { bgcolor: 'grey.100' } }}>
-            Download the App
+            Join Now
           </Button>
         </Container>
       </Box>
@@ -238,17 +235,17 @@ export const LandingPage: React.FC = () => {
       {/* Footer Section */}
       <Box id="contact" sx={{ bgcolor: 'grey.900', color: 'grey.300', py: 6, textAlign: 'center' }}>
         <Typography variant="h6" color="white" gutterBottom>
-          Pull Tab Community
+          Tabsy's Community
         </Typography>
         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 4, flexWrap: 'wrap', mb: 2 }}>
           {['Features', 'How It Works', 'Testimonials', 'Responsible Gaming', 'Privacy Policy'].map((item) => (
-            <Button key={item} href={`#${item.toLowerCase().replace(/ /g, '-')}`} sx={{ color: 'secondary.main' }}>
+            <Button key={item} href={`#${item.toLowerCase().replace(/ /g, '-')}`} sx={{ color: '#ffffff' }}>
               {item}
             </Button>
           ))}
         </Box>
         <Typography variant="caption">
-          &copy; 2025 Pull Tab Community. All rights reserved. For entertainment purposes only. Please play responsibly.
+          &copy; 2025 Tabsy's Community. All rights reserved. For entertainment purposes only. Please play responsibly.
         </Typography>
       </Box>
     </>
