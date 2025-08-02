@@ -68,12 +68,12 @@ const Login: React.FC = () => {
           <Button variant="contained" color="primary" type="submit">
             Login
           </Button>
-          <Button variant="outlined" onClick={signInWithGoogle}>
+          {/* <Button variant="outlined" onClick={signInWithGoogle}>
             Sign in with Google
           </Button>
           <Button onClick={() => navigate('/signup')}>
             Sign Up
-          </Button>
+          </Button> */}
         </Box>
         {error && (
           <Alert severity="error" sx={{ mt: 2 }}>
