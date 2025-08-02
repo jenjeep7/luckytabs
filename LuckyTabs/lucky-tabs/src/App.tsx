@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from './firebase';
@@ -25,11 +25,35 @@ import {
   ListItemText,
   Divider,
 } from '@mui/material';
-import Brightness4Icon from '@mui/icons-material/Brightness4';
-import Brightness7Icon from '@mui/icons-material/Brightness7';
 import LogoutIcon from '@mui/icons-material/Logout';
 import MenuIcon from '@mui/icons-material/Menu';
 import { getDesignTokens } from './theme';
+
+function Landing() {
+  return (
+    <Box
+      minHeight="100vh"
+      display="flex"
+      flexDirection="column"
+      alignItems="center"
+      bgcolor="primary.main"
+    >
+      <img
+        src="/Tabsy Wins Logo.png"
+        alt="Tabsy Wins Logo"
+        style={{ height: 300, margin: 32 }}
+      />
+      <Button
+        variant="contained"
+        color="secondary"
+        size="large"
+        href="/login"
+      >
+        Login
+      </Button>
+    </Box>
+  );
+}
 
 function App() {
   const [user, loading] = useAuthState(auth);
@@ -87,59 +111,83 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <BrowserRouter>
-        <Box sx={{ display: 'flex' }}>
-          <AppBar component="nav" position="fixed">
-            <Toolbar>
-              <IconButton
-                color="inherit"
-                aria-label="open drawer"
-                edge="start"
-                onClick={handleDrawerToggle}
-                sx={{ mr: 2, display: { md: 'none' } }}
-              >
-                <MenuIcon />
-              </IconButton>
-              <Typography variant="h6" sx={{ flexGrow: 1, display: { xs: 'none', md: 'block' } }}>
-                Pull Tab Community
-              </Typography>
-              <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 2 }}>
-                {navItems.map((item) => (
-                  <Button key={item} href={`#${item.toLowerCase().replace(/ /g, '-')}`} color="inherit">
-                    {item}
-                  </Button>
-                ))}
-              </Box>
-              {/* <IconButton color="inherit" onClick={handleToggleDarkMode}>
-                {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
-              </IconButton> */}
-              {user ? (
-                <IconButton color="inherit" onClick={handleLogout}>
-                  <LogoutIcon />
+        {/* Only show AppBar and nav if user is logged in */}
+        {user && (
+          <Box sx={{ display: 'flex' }}>
+            <AppBar component="nav" position="fixed">
+              <Toolbar>
+                <IconButton
+                  color="inherit"
+                  aria-label="open drawer"
+                  edge="start"
+                  onClick={handleDrawerToggle}
+                  sx={{ mr: 2, display: { md: 'none' } }}
+                >
+                  <MenuIcon />
                 </IconButton>
-              ) : (
-                <Button color="inherit" href="/login">
-                  Login
-                </Button>
-              )}
-            </Toolbar>
-          </AppBar>
-          <Box component="nav">
-            <Drawer
-              variant="temporary"
-              open={mobileOpen}
-              onClose={handleDrawerToggle}
-              ModalProps={{ keepMounted: true }}
-              sx={{ display: { xs: 'block', md: 'none' }, '& .MuiDrawer-paper': { boxSizing: 'border-box', width: 240 } }}
-            >
-              {drawer}
-            </Drawer>
+                <Typography variant="h6" sx={{ flexGrow: 1, display: { xs: 'none', md: 'block' } }}>
+                  Pull Tab Community
+                </Typography>
+                <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 2 }}>
+                  {navItems.map((item) => (
+                    <Button key={item} href={`#${item.toLowerCase().replace(/ /g, '-')}`} color="inherit">
+                      {item}
+                    </Button>
+                  ))}
+                </Box>
+                {/* <IconButton color="inherit" onClick={handleToggleDarkMode}>
+                  {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
+                </IconButton> */}
+                {user ? (
+                  <IconButton color="inherit" onClick={handleLogout}>
+                    <LogoutIcon />
+                  </IconButton>
+                ) : (
+                  <Button color="inherit" href="/login">
+                    Login
+                  </Button>
+                )}
+              </Toolbar>
+            </AppBar>
+            <Box component="nav">
+              <Drawer
+                variant="temporary"
+                open={mobileOpen}
+                onClose={handleDrawerToggle}
+                ModalProps={{ keepMounted: true }}
+                sx={{ display: { xs: 'block', md: 'none' }, '& .MuiDrawer-paper': { boxSizing: 'border-box', width: 240 } }}
+              >
+                {drawer}
+              </Drawer>
+            </Box>
           </Box>
-        </Box>
+        )}
 
         <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
+          <Route
+            path="/"
+            element={
+              user ? <Navigate to="/dashboard" replace /> : <Landing />
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              user ? <Dashboard /> : <Navigate to="/" replace />
+            }
+          />
+          <Route
+            path="/login"
+            element={
+              user ? <Navigate to="/dashboard" replace /> : <Login />
+            }
+          />
+          <Route
+            path="/signup"
+            element={
+              user ? <Navigate to="/dashboard" replace /> : <Signup />
+            }
+          />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </BrowserRouter>

@@ -7,7 +7,7 @@ export const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => ({
     ...(mode === 'light'
       ? {
           primary: {
-            main: '#00114a',
+            main: '#1a1a1a',
           },
           secondary: {
             main: '#e4ac00',
@@ -20,22 +20,28 @@ export const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => ({
             primary: '#1a1a1a',
             secondary: '#333333',
           },
+          success: {
+            main: '#1c741fff',
+          }
         }
       : {
           primary: {
-            main: '#110c48ff',
+            main: '#1a1a1a',
           },
           secondary: {
-            main: '#38065a',
+            main: '#e4ac00',
           },
           background: {
-            default: '#110c48ff',
+            default: '#1d1d1d',
             paper: '#1d1d1d',
           },
           text: {
             primary: '#ffffff',
             secondary: '#bbbbbb',
           },
+           success: {
+            main: '#1c741fff',
+          }
         }),
   },
   typography: {
