@@ -1,0 +1,97 @@
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { createUserWithEmailAndPassword, updateProfile, User, onAuthStateChanged } from 'firebase/auth';
+import { auth, db } from '../firebase';
+import { doc, setDoc } from 'firebase/firestore';
+import { useNavigate } from 'react-router-dom';
+import {
+  Box,
+  Button,
+  Container,
+  TextField,
+  Typography,
+  Alert,
+  Paper,
+} from '@mui/material';
+
+interface SignupFormInputs {
+  email: string;
+  password: string;
+  username: string;
+}
+
+const waitForAuth = (): Promise<User> =>
+  new Promise((resolve, reject) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        unsubscribe();
+        resolve(user);
+      } else {
+        reject(new Error('User not authenticated'));
+      }
+    });
+  });
+
+const Signup: React.FC = () => {
+  const { register, handleSubmit } = useForm<SignupFormInputs>();
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
+
+  const onSubmit = async (data: SignupFormInputs) => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        data.email,
+        data.password
+      );
+
+      await updateProfile(userCredential.user, {
+        displayName: data.username,
+      });
+
+      const confirmedUser = await waitForAuth();
+
+      await setDoc(doc(db, 'users', confirmedUser.uid), {
+        uid: confirmedUser.uid,
+        email: confirmedUser.email,
+        username: data.username,
+        displayName: data.username,
+        createdAt: new Date(),
+      });
+
+      setError('');
+      navigate('/');
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  return (
+    <Container maxWidth="sm">
+      <Paper elevation={3} sx={{ mt: 10, p: 4, textAlign: 'center' }}>
+        <Typography variant="h4" gutterBottom>
+          Sign Up
+        </Typography>
+        <Box
+          component="form"
+          onSubmit={handleSubmit(onSubmit)}
+          sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+        >
+          <TextField label="Username" fullWidth {...register('username')} required />
+          <TextField label="Email" type="email" fullWidth {...register('email')} required />
+          <TextField label="Password" type="password" fullWidth {...register('password')} required />
+          <Button variant="contained" color="primary" type="submit">
+            Sign Up
+          </Button>
+        </Box>
+        {error && (
+          <Alert severity="error" sx={{ mt: 2 }}>
+            {error}
+          </Alert>
+        )}
+      </Paper>
+    </Container>
+  );
+};
+
+export default Signup;
