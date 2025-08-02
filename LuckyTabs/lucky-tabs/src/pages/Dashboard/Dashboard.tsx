@@ -49,6 +49,11 @@ export const Dashboard: React.FC = () => {
       {/* Hero Section */}
       <Box sx={{ bgcolor: 'primary.main', color: 'white', py: 10, textAlign: 'center' }}>
         <Container>
+          <Box> <img
+                src="/Tabsy Wins Logo.png"
+                alt="Tabsy Wins Logo"
+                style={{ height: 150, marginRight: 16 }}
+              /></Box>
           {displayName && <Typography variant="h4" gutterBottom>
             Welcome, {displayName}!
           </Typography>}
@@ -77,7 +82,7 @@ export const Dashboard: React.FC = () => {
       </Box>
 
       {/* Features Section */}
-      <Box id="features" sx={{ py: 10, bgcolor: 'white' }}>
+      <Box id="features" sx={{ py: 10, bgcolor: 'background.default' }}>
         <Container>
           <Typography variant="h4" align="center" fontWeight="bold" gutterBottom>
             Key Features: Better Together
@@ -140,8 +145,8 @@ export const Dashboard: React.FC = () => {
                     sx={{
                       width: 64,
                       height: 64,
-                      bgcolor: 'primary.light',
-                      color: 'primary.main',
+                      bgcolor: 'primary.main',
+                      color: 'background.default',
                       borderRadius: '50%',
                       display: 'flex',
                       alignItems: 'center',
