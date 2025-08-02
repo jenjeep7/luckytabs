@@ -59,11 +59,14 @@ export const Dashboard: React.FC = () => {
           </Typography>}
           
           <Typography variant="h3" fontWeight="bold" gutterBottom>
-            Turn Your Pull Tab Passion into a Shared Adventure
+            Ready to turn your Pull Tab passion into a solo or shared{' '}
+            <Box component="span" sx={{ color: 'success.main', display: 'inline', fontWeight: 'bold' }}>
+              WINNING
+            </Box>{' '}
+            adventure?
           </Typography>
           <Typography variant="h6" maxWidth={600} mx="auto" gutterBottom>
-            Introducing the Pull Tab Community Player App – where every win, every game, and every insight is better together!
-          </Typography>
+            Introducing a new Pull Tab Community Player Experience – where every win, every game, and every insight is better together!           </Typography>
           <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap' }}>
             <Button
               variant="contained"
