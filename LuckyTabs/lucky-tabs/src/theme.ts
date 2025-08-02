@@ -1,5 +1,5 @@
 // theme.ts
-import { createTheme, ThemeOptions } from '@mui/material/styles';
+import { ThemeOptions } from '@mui/material/styles';
 
 export const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => ({
   palette: {

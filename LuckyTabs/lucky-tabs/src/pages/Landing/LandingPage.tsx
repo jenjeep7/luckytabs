@@ -98,41 +98,20 @@ export const LandingPage: React.FC = () => {
           <Grid container spacing={4} mt={4}>
             {[
               {
-                step: '1',
                 title: `🔥 The Pull Pulse `,
                 desc: 'Tabsy taps into the hive mind of pull-tab pros! Share your data anonymously and watch the magic unfold as the community dashboard lights up with “hot” and “cold” boxes near you—real-time vibes, no guesswork',
               },
               {
-                step: '2',
                 title: `🎮 Tabsy’s League of Legends`,
                 desc: 'Why pull solo when you can compete with the pros? Tabsy turns the playroom into a battleground—join virtual leagues, climb the win board, rack up shiny badges, and chase profit glory. Every milestone is a flex, every game a social spark.',
               },
               {
-                step: '3',
                 title: `🎯 Behind the Pulls: Tabsy’s Playlog  `,
                 desc: 'Tabsy’s got the goods on every game you play. Like your own luck analyst, it maps your moves, logs your box hits, and highlights your high-roller moments—so you can play smarter and flex harder.',
               },
-            ].map(({ step, title, desc }) => (
+            ].map(({ title, desc }) => (
               <Grid key={title} size={{ xs: 12, md: 4 }}>
                 <Paper elevation={2} sx={{ p: 4, textAlign: 'center' }}>
-                  <Box
-                    sx={{
-                      width: 64,
-                      height: 64,
-                      bgcolor: 'primary.main',
-                      color: 'text.light',
-                      borderRadius: '50%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      mx: 'auto',
-                      mb: 2,
-                      fontSize: 24,
-                      fontWeight: 'bold',
-                    }}
-                  >
-                    {step}
-                  </Box>
                   <Typography variant="h6" fontWeight="bold" gutterBottom>
                     {title}
                   </Typography>
@@ -232,7 +211,7 @@ export const LandingPage: React.FC = () => {
             <FacebookIcon />
           </IconButton>
           <IconButton
-            href="https://instagram.com/tabsyscommunity"
+            href="https://www.instagram.com/tabsy_wins/"
             target="_blank"
             rel="noopener noreferrer"
             sx={{ color: 'grey.300', '&:hover': { color: '#E4405F' } }}
@@ -248,7 +227,7 @@ export const LandingPage: React.FC = () => {
             <TwitterIcon />
           </IconButton>
           <IconButton
-            href="https://youtube.com/tabsyscommunity"
+            href="https://www.youtube.com/@TabsyWins"
             target="_blank"
             rel="noopener noreferrer"
             sx={{ color: 'grey.300', '&:hover': { color: '#FF0000' } }}
