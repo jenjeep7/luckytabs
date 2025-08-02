@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React  from 'react';
 import {
   Box,
   Button,
@@ -6,43 +6,17 @@ import {
   Grid,
   Typography,
   Paper,
+  IconButton,
 } from '@mui/material';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import FacebookIcon from '@mui/icons-material/Facebook';
+import InstagramIcon from '@mui/icons-material/Instagram';
+import TwitterIcon from '@mui/icons-material/Twitter';
+import YouTubeIcon from '@mui/icons-material/YouTube';
 import { useNavigate } from 'react-router-dom';
-import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../../firebase';
 
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
-  const [displayName, setDisplayName] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchUserInfo = async () => {
-      try {
-        const user = auth.currentUser;
-        if (user) {
-          const userRef = doc(db, 'users', user.uid);
-          const userSnap = await getDoc(userRef);
-
-          if (userSnap.exists()) {
-            const data = userSnap.data();
-            setDisplayName(data.displayName || data.username || 'User');
-          } else {
-            setDisplayName(user.displayName || 'User');
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching user info:', error);
-        setDisplayName('User');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUserInfo();
-  }, []);
-
 
   return (
     <>
@@ -85,21 +59,21 @@ export const LandingPage: React.FC = () => {
       <Box id="features" sx={{ py: 5,bgcolor: 'background.default' }}>
         <Container>
           <Typography variant="h4" align="center" fontWeight="bold" gutterBottom>
-            Key Features
+            Features
           </Typography>
           <Grid container spacing={4} mt={4}>
             {[
               {
-                title: 'Probability Insights',
-                desc: 'The app will use AI models, custom-trained, to help users understand the odds of winning pull tabs. Users will be able to input pull tab box data and the system will create and rank to determine the best odds. ',
+                title: '🎯 Outsmart the Odds! ',
+                desc: 'Enter in box information, and Tabsy’s clever system ranks your pull  tab chances with the juiciest odds—so you play smart, not random.',
               },
               {
-                title: 'Customizable User Profiles and Social Features',
-                desc: 'The app will allow users to create a profile to track their personal budgeting and winning history. They can choose to keep this data private, share it publicly, or only with a group of friends, creating a social element around the pull tab game.',
+                title: `🕹️ Tabsy's Player Pad `,
+                desc: 'Track your pulls, flex your wins, and choose who gets the backstage pass—just you, your crew, or the whole tab-loving world.',
               },
               {
-                title: 'Dedicated Profiles for Businesses and Non-profits',
-                desc: `The app will feature a system where businesses (like bars) can create profiles to showcase their available pull tab boxes, highlight what's new and what's popular, and push this information out to the public. Non-profits can also create profiles to display all of their sponsored locations.`,
+                title: `📍 Tabsy's Hotspot Hub `,
+                desc: `Bars and non-profits get their own profiles to flaunt fresh pull tab boxes, spotlight crowd favorites, and show off where the action is. It’s like a VIP pass for players hunting the best spots to play.`,
               },
             ].map(({ title, desc }) => (
               <Grid key={title} size={{ xs: 12, md: 4 }}>
@@ -119,24 +93,24 @@ export const LandingPage: React.FC = () => {
       <Box id="how-it-works" sx={{ py: 10, bgcolor: 'grey.100' }}>
         <Container>
           <Typography variant="h4" align="center" fontWeight="bold" color='primary.main' gutterBottom>
-            How It Works
+            How the Luck Lines Up 
           </Typography>
           <Grid container spacing={4} mt={4}>
             {[
               {
                 step: '1',
-                title: 'Smart Play Tracking ',
-                desc: 'Users can effortlessly record their play details—including box name, box data, location, and amounts spent—using a simple, intuitive interface. The app automatically organizes this data to help players visualize their history, identify patterns in their play, and track their profit and loss over time.',
+                title: `🔥 The Pull Pulse `,
+                desc: 'Tabsy taps into the hive mind of pull-tab pros! Share your data anonymously and watch the magic unfold as the community dashboard lights up with “hot” and “cold” boxes near you—real-time vibes, no guesswork',
               },
               {
                 step: '2',
-                title: 'Community-Powered Game Insights ',
-                desc: 'Users can contribute their anonymized data to a communal pool, which the app then uses to generate real-time insights. The "Share & Discover" feature becomes a dynamic dashboard where the community can see which games are "hot" or "cold" at various locations. ',
+                title: `🎮 Tabsy’s League of Legends`,
+                desc: 'Why pull solo when you can compete with the pros? Tabsy turns the playroom into a battleground—join virtual leagues, climb the win board, rack up shiny badges, and chase profit glory. Every milestone is a flex, every game a social spark.',
               },
               {
                 step: '3',
-                title: 'Interactive & Competitive Community ',
-                desc: 'The app moves beyond simple sharing to create an active, competitive environment. Users can join virtual leagues, compete for top spots on a leaderboard for most wins or highest profit, and earn badges or achievements for milestone victories. This gamified approach turns individual play into a shared social event, encouraging users to return to the app and engage with the community.',
+                title: `🎯 Behind the Pulls: Tabsy’s Playlog  `,
+                desc: 'Tabsy’s got the goods on every game you play. Like your own luck analyst, it maps your moves, logs your box hits, and highlights your high-roller moments—so you can play smarter and flex harder.',
               },
             ].map(({ step, title, desc }) => (
               <Grid key={title} size={{ xs: 12, md: 4 }}>
@@ -174,8 +148,10 @@ export const LandingPage: React.FC = () => {
       <Box id="testimonials" sx={{ py: 10, bgcolor: 'primary.main' }}>
         <Container>
           <Typography variant="h4" align="center" fontWeight="bold" color='text.light' gutterBottom>
-            Hear From Our Community
+            📣 Pulled & Proud  
           </Typography>
+          <Typography variant="h6" align="center" color='text.light' maxWidth={600} mx="auto" mb={4}>
+            From first-timers to high-rollers, Tabsy fans spill the beans on their big moments, fave features, and what keeps ‘em coming back. </Typography>
           <Grid container spacing={4} mt={4}>
             {[
               {
@@ -206,10 +182,10 @@ export const LandingPage: React.FC = () => {
       <Box id="responsible-gaming" sx={{ py: 10, bgcolor: 'background.default', textAlign: 'center', color: 'text.primary' }}>
         <Container>
           <Typography variant="h4" fontWeight="bold" gutterBottom>
-            Play Responsibly, Together
+            🫱 Tabsy’s Support Circle  
           </Typography>
           <Typography variant="h6" maxWidth={600} mx="auto" mb={4}>
-            Use budget tools and access community-driven resources to maintain healthy play habits.
+           Whether you're chasing wins or playing just for kicks, Tabsy’s got your back. Lean on budget tools and community tips to stay grounded and game wisely.
           </Typography>
           <Button variant="contained" sx={{ bgcolor: 'background.contrast', color: 'text.contrast' }}>
             Learn About Responsible Gaming
@@ -244,6 +220,43 @@ export const LandingPage: React.FC = () => {
             </Button>
           ))}
         </Box>
+        
+        {/* Social Media Icons */}
+        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, my: 3 }}>
+          <IconButton
+            href="https://facebook.com/tabsyscommunity"
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{ color: 'grey.300', '&:hover': { color: '#1877F2' } }}
+          >
+            <FacebookIcon />
+          </IconButton>
+          <IconButton
+            href="https://instagram.com/tabsyscommunity"
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{ color: 'grey.300', '&:hover': { color: '#E4405F' } }}
+          >
+            <InstagramIcon />
+          </IconButton>
+          <IconButton
+            href="https://twitter.com/tabsyscommunity"
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{ color: 'grey.300', '&:hover': { color: '#1DA1F2' } }}
+          >
+            <TwitterIcon />
+          </IconButton>
+          <IconButton
+            href="https://youtube.com/tabsyscommunity"
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{ color: 'grey.300', '&:hover': { color: '#FF0000' } }}
+          >
+            <YouTubeIcon />
+          </IconButton>
+        </Box>
+        
         <Typography variant="caption">
           &copy; 2025 Tabsy's Community. All rights reserved. For entertainment purposes only. Please play responsibly.
         </Typography>
