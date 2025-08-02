@@ -29,6 +29,7 @@ import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import LogoutIcon from '@mui/icons-material/Logout';
 import MenuIcon from '@mui/icons-material/Menu';
+import { getDesignTokens } from './theme';
 
 function App() {
   const [user, loading] = useAuthState(auth);
@@ -37,18 +38,7 @@ function App() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const theme = useMemo(
-    () =>
-      createTheme({
-        palette: {
-          mode: darkMode ? 'dark' : 'light',
-          primary: {
-            main: '#38065aff',
-          },
-          secondary: {
-            main: '#cf81e2ff',
-          },
-        },
-      }),
+    () => createTheme(getDesignTokens(darkMode ? 'dark' : 'light')),
     [darkMode]
   );
 
@@ -119,9 +109,9 @@ function App() {
                   </Button>
                 ))}
               </Box>
-              <IconButton color="inherit" onClick={handleToggleDarkMode}>
+              {/* <IconButton color="inherit" onClick={handleToggleDarkMode}>
                 {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
-              </IconButton>
+              </IconButton> */}
               {user ? (
                 <IconButton color="inherit" onClick={handleLogout}>
                   <LogoutIcon />
