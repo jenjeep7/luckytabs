@@ -1,0 +1,28 @@
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": null,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "typescript.preferences.indentStyle": "spaces",
+  "javascript.preferences.indentStyle": "spaces",
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false,
+  "prettier.requireConfig": true,
+  "[typescript]": {
+    "editor.defaultFormatter": null
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": null
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": null
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": null
+  },
+  "[json]": {
+    "editor.defaultFormatter": null
+  }
+}
