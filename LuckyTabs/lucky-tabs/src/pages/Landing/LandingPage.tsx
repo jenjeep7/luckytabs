@@ -170,7 +170,7 @@ export const LandingPage: React.FC = () => {
       >
         <Container>
           <Typography variant="h4" fontWeight="bold" gutterBottom>
-            {`🫱 Tabsy’s Support Circle`}
+            {`💡 Helping Hands, Winning Plans`}
           </Typography>
           <Typography variant="h6" maxWidth={600} mx="auto" mb={4}>
             {`Whether you're chasing wins or playing just for kicks, Tabsy’s got your back. Lean on budget tools and community tips to stay grounded and game wisely.`}

@@ -4,13 +4,12 @@ import {
   Box,
   Container,
   Typography,
-  Button,
   Accordion,
   AccordionSummary,
   AccordionDetails,
   Paper,
 } from '@mui/material';
-import { ExpandMore, Groups } from '@mui/icons-material';
+import { ExpandMore } from '@mui/icons-material';
 
 export const SupportCircle = () => {
   useEffect(() => {
@@ -29,20 +28,6 @@ export const SupportCircle = () => {
             {`Whether you're chasing wins or playing just for kicks, Tabsy's got your back.
             Lean on budget tools and community tips to stay grounded and game wisely.`}
           </Typography>
-          <Button
-            variant="contained"
-            size="large"
-            sx={{
-              bgcolor: 'secondary.main',
-              color: 'primary.main',
-              fontWeight: 'bold',
-              px: 4,
-              py: 1.5,
-              '&:hover': { bgcolor: 'secondary.light' },
-            }}
-          >
-            💡 Helping Hands, Winning Plans
-          </Button>
         </Container>
       </Box>
 
@@ -51,10 +36,10 @@ export const SupportCircle = () => {
         <Box sx={{ maxWidth: 800, mx: 'auto' }}>
           {/* 1. Player Wellness Hub */}
           <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ mt: 4, mb: 2 }}>
-            1. 🎧 Player Wellness Hub
+            {`1. 🎧 Player Wellness Hub`}
           </Typography>
           <Typography paragraph>
-            Self-check tools for players to assess mood, habits, and motivation behind play
+            {`Self-check tools for players to assess mood, habits, and motivation behind play`}
           </Typography>
           <Typography paragraph>
             {`Brief mindfulness audios with Tabsy's cheerful voice to help players reset`}
@@ -65,10 +50,10 @@ export const SupportCircle = () => {
 
           {/* 2. Smart Play Toolkit */}
           <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ mt: 4, mb: 2 }}>
-            2. 🧠 Smart Play Toolkit
+            {`2. 🧠 Smart Play Toolkit`}
           </Typography>
           <Typography paragraph>
-            Downloadable budget planners and goal-setting worksheets tailored for pull-tab players
+            {`Downloadable budget planners and goal-setting worksheets tailored for pull-tab players`}
           </Typography>
           <Typography paragraph>
             {`A "Know Your Odds" guide explaining pull-tab probabilities in a friendly, visual way`}
@@ -79,7 +64,7 @@ export const SupportCircle = () => {
 
           {/* 3. Uplift & Reflect Stories */}
           <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ mt: 4, mb: 2 }}>
-            3. 🌟 Uplift & Reflect Stories
+            {`3. 🌟 Uplift & Reflect Stories`}
           </Typography>
           <Typography paragraph>
             {`Short user-submitted reflections like "How I Knew I Needed a Break" or "Playing With a Purpose"`}
@@ -88,23 +73,23 @@ export const SupportCircle = () => {
             {`Tabsy's gentle commentary on player journeys and tips for staying balanced`}
           </Typography>
           <Typography paragraph>
-            A rotating spotlight feature celebrating healthy play habits in the community
+            {`A rotating spotlight feature celebrating healthy play habits in the community`}
           </Typography>
 
           {/* 4. Help & Resources Section */}
           <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ mt: 4, mb: 2 }}>
-            4. 🛟 Help & Resources Section
+            {`4. 🛟 Help & Resources Section`}
           </Typography>
           <Box sx={{ textAlign: 'left', maxWidth: 600, mx: 'auto', mb: 3 }}>
             <ul>
-              <li>Helplines, counseling services, and local support</li>
-              <li>Financial counseling and debt/spending recovery tools</li>
+              <li>{`Helplines, counseling services, and local support`}</li>
+              <li>{`Financial counseling and debt/spending recovery tools`}</li>
             </ul>
           </Box>
           <Box sx={{ maxWidth: 600, mx: 'auto' }}>
             <Accordion>
               <AccordionSummary expandIcon={<ExpandMore />}>
-                <Typography>What to do if I feel out of control?</Typography>
+                <Typography>{`What to do if I feel out of control?`}</Typography>
               </AccordionSummary>
               <AccordionDetails>
                 <Typography>
@@ -114,11 +99,11 @@ export const SupportCircle = () => {
             </Accordion>
             <Accordion>
               <AccordionSummary expandIcon={<ExpandMore />}>
-                <Typography>How can I set play limits?</Typography>
+                <Typography>{`How can I set play limits?`}</Typography>
               </AccordionSummary>
               <AccordionDetails>
                 <Typography>
-                  Use our planner tools and reminders to stay within safe play boundaries.
+                  {`Use our planner tools and reminders to stay within safe play boundaries.`}
                 </Typography>
               </AccordionDetails>
             </Accordion>
@@ -127,7 +112,7 @@ export const SupportCircle = () => {
           {/* 5. Tabsy Talks: Community Q&A */}
           <Paper elevation={3} sx={{ p: 4, mt: 6, textAlign: 'center' }}>
             <Typography variant="h5" fontWeight="bold" gutterBottom>
-              💬 Tabsy Talks: Community Q&A
+              {`💬 Tabsy Talks: Community Q&A`}
             </Typography>
             <Box sx={{ textAlign: 'left', maxWidth: 600, mx: 'auto' }}>
               <ul>
@@ -136,9 +121,9 @@ export const SupportCircle = () => {
                 <li>{`Anonymous Q&A answered by experts or Tabsy`}</li>
               </ul>
             </Box>
-            <Button variant="outlined" startIcon={<Groups />} sx={{ mt: 2 }}>
+            {/* <Button variant="outlined" startIcon={<Groups />} sx={{ mt: 2 }}>
               Join the Conversation
-            </Button>
+            </Button> */}
           </Paper>
         </Box>
       </Container>
