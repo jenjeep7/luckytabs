@@ -1,4 +1,6 @@
-import React  from 'react';
+/* eslint-disable @typescript-eslint/no-misused-promises */
+/* eslint-disable @typescript-eslint/no-floating-promises */
+import React from 'react';
 import {
   Box,
   Button,
@@ -23,28 +25,31 @@ export const LandingPage: React.FC = () => {
       {/* Hero Section */}
       <Box sx={{ bgcolor: 'primary.main', color: 'white', py: 10, textAlign: 'center' }}>
         <Container>
-          <Box> <img
-                src="/Tabsy Wins Logo.png"
-                alt="Tabsy Wins Logo"
-                style={{ height: 150, marginRight: 16, paddingBottom: 16 }}
-              /></Box>
-          
+          <Box>
+            <img
+              src="/Tabsy Wins Logo.png"
+              alt="Tabsy Wins Logo"
+              style={{ height: 300, marginRight: 16, paddingBottom: 16 }}
+            />
+          </Box>
+
           <Typography variant="h2" fontWeight="bold" gutterBottom>
-            Ready to turn your pull tab passion into a {' '}
+            Ready to turn your pull tab passion into a{' '}
             <Box component="span" sx={{ color: 'success.main', display: 'block', fontWeight: 'bold' }}>
               WINNING
             </Box>{' '}
             adventure?
           </Typography>
           <Typography variant="h6" maxWidth={600} mx="auto" gutterBottom>
-            Introducing a new pull tab community player experience – where every win, every game, and every insight is better together!           </Typography>
+            Introducing a new pull tab community player experience – where every win, every game, and every insight is better together!
+          </Typography>
           <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap' }}>
             <Button
               variant="contained"
               color="secondary"
               size="large"
               endIcon={<ArrowForwardIcon />}
-              onClick={() => navigate('/signup')}
+              onClick={() => { navigate('/signup'); }}
             >
               Join Tabsy Today
             </Button>
@@ -56,7 +61,7 @@ export const LandingPage: React.FC = () => {
       </Box>
 
       {/* Features Section */}
-      <Box id="features" sx={{ py: 5,bgcolor: 'background.default' }}>
+      <Box id="features" sx={{ py: 5, bgcolor: 'background.default' }}>
         <Container>
           <Typography variant="h4" align="center" fontWeight="bold" gutterBottom>
             Features
@@ -65,7 +70,7 @@ export const LandingPage: React.FC = () => {
             {[
               {
                 title: '🎯 Outsmart the Odds! ',
-                desc: 'Enter in box information, and Tabsy’s clever system ranks your pull  tab chances with the juiciest odds—so you play smart, not random.',
+                desc: 'Enter in box information, and Tabsy’s clever system ranks your pull tab chances with the juiciest odds—so you play smart, not random.',
               },
               {
                 title: `🕹️ Tabsy's Player Pad `,
@@ -76,7 +81,7 @@ export const LandingPage: React.FC = () => {
                 desc: `Bars and non-profits get their own profiles to flaunt fresh pull tab boxes, spotlight crowd favorites, and show off where the action is. It’s like a VIP pass for players hunting the best spots to play.`,
               },
             ].map(({ title, desc }) => (
-              <Grid key={title} size={{ xs: 12, md: 4 }}>
+              <Grid key={title} item xs={12} md={4}>
                 <Paper elevation={3} sx={{ p: 4, textAlign: 'center' }}>
                   <Typography variant="h6" fontWeight="bold" gutterBottom>
                     {title}
@@ -92,8 +97,8 @@ export const LandingPage: React.FC = () => {
       {/* How It Works Section */}
       <Box id="how-it-works" sx={{ py: 10, bgcolor: 'grey.100' }}>
         <Container>
-          <Typography variant="h4" align="center" fontWeight="bold" color='primary.main' gutterBottom>
-            How the Luck Lines Up 
+          <Typography variant="h4" align="center" fontWeight="bold" color="primary.main" gutterBottom>
+            How the Luck Lines Up
           </Typography>
           <Grid container spacing={4} mt={4}>
             {[
@@ -110,7 +115,7 @@ export const LandingPage: React.FC = () => {
                 desc: 'Tabsy’s got the goods on every game you play. Like your own luck analyst, it maps your moves, logs your box hits, and highlights your high-roller moments—so you can play smarter and flex harder.',
               },
             ].map(({ title, desc }) => (
-              <Grid key={title} size={{ xs: 12, md: 4 }}>
+              <Grid key={title} item xs={12} md={4}>
                 <Paper elevation={2} sx={{ p: 4, textAlign: 'center' }}>
                   <Typography variant="h6" fontWeight="bold" gutterBottom>
                     {title}
@@ -126,26 +131,27 @@ export const LandingPage: React.FC = () => {
       {/* Testimonials Section */}
       <Box id="testimonials" sx={{ py: 10, bgcolor: 'primary.main' }}>
         <Container>
-          <Typography variant="h4" align="center" fontWeight="bold" color='text.light' gutterBottom>
-            📣 Pulled & Proud  
+          <Typography variant="h4" align="center" fontWeight="bold" color="text.light" gutterBottom>
+            📣 Pulled & Proud
           </Typography>
-          <Typography variant="h6" align="center" color='text.light' maxWidth={600} mx="auto" mb={4}>
-            From first-timers to high-rollers, Tabsy fans spill the beans on their big moments, fave features, and what keeps ‘em coming back. </Typography>
+          <Typography variant="h6" align="center" color="text.light" maxWidth={600} mx="auto" mb={4}>
+            From first-timers to high-rollers, Tabsy fans spill the beans on their big moments, fave features, and what keeps ‘em coming back.
+          </Typography>
           <Grid container spacing={4} mt={4}>
             {[
               {
-                quote: 'The Pull Tab Community app has transformed my playing. It\'s awesome to see what others are playing and connect with friends!',
-                name: 'Sarah L., Pull Tab Fan',
+                quote: `Tabsy Wins has transformed my playing. It's awesome to see what others are playing and connect with friends!`,
+                name: 'Kylie M., Pull Tab Fan',
               },
               {
                 quote: 'I love being able to track my games and see community trends. It adds a whole new layer of fun to pull tabs!',
-                name: 'David C., Community Member',
+                name: 'Cody J., Community Member',
               },
             ].map(({ quote, name }) => (
-              <Grid key={name} size={{ xs: 12, md: 6 }}>
+              <Grid key={name} item xs={12} md={6}>
                 <Paper elevation={2} sx={{ p: 4 }} color="text.secondary">
                   <Typography variant="body1" fontStyle="italic" gutterBottom>
-                    "{quote}"
+                    &quot;{quote}&quot;
                   </Typography>
                   <Typography variant="subtitle1" color="text.primary" fontWeight="bold">
                     - {name}
@@ -158,15 +164,22 @@ export const LandingPage: React.FC = () => {
       </Box>
 
       {/* Responsible Gaming Section */}
-      <Box id="responsible-gaming" sx={{ py: 10, bgcolor: 'background.default', textAlign: 'center', color: 'text.primary' }}>
+      <Box
+        id="responsible-gaming"
+        sx={{ py: 10, bgcolor: 'background.default', textAlign: 'center', color: 'text.primary' }}
+      >
         <Container>
           <Typography variant="h4" fontWeight="bold" gutterBottom>
-            🫱 Tabsy’s Support Circle  
+            {`💡 Helping Hands, Winning Plans`}
           </Typography>
           <Typography variant="h6" maxWidth={600} mx="auto" mb={4}>
-           Whether you're chasing wins or playing just for kicks, Tabsy’s got your back. Lean on budget tools and community tips to stay grounded and game wisely.
+            {`Whether you're chasing wins or playing just for kicks, Tabsy’s got your back. Lean on budget tools and community tips to stay grounded and game wisely.`}
           </Typography>
-          <Button variant="contained" sx={{ bgcolor: 'background.contrast', color: 'text.contrast' }}>
+          <Button
+            variant="contained"
+            sx={{ bgcolor: 'background.contrast', color: 'text.contrast' }}
+            onClick={() => navigate('/support-circle')}
+          >
             Learn About Responsible Gaming
           </Button>
         </Container>
@@ -176,7 +189,7 @@ export const LandingPage: React.FC = () => {
       <Box sx={{ bgcolor: 'primary.main', color: 'white', py: 10, textAlign: 'center' }}>
         <Container>
           <Typography variant="h4" fontWeight="bold" gutterBottom>
-            Ready to join Tabsy's community?
+            {`Ready to join Tabsy's community?`}
           </Typography>
           <Typography variant="h6" maxWidth={600} mx="auto" mb={4}>
             Connect with fellow enthusiasts, share insights, and elevate your pull tab experience today.
@@ -190,7 +203,7 @@ export const LandingPage: React.FC = () => {
       {/* Footer Section */}
       <Box id="contact" sx={{ bgcolor: 'grey.900', color: 'grey.300', py: 6, textAlign: 'center' }}>
         <Typography variant="h6" color="white" gutterBottom>
-          Tabsy's Community
+          {`Tabsy's Community`}
         </Typography>
         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 4, flexWrap: 'wrap', mb: 2 }}>
           {['Features', 'How It Works', 'Testimonials', 'Responsible Gaming', 'Privacy Policy'].map((item) => (
@@ -199,7 +212,7 @@ export const LandingPage: React.FC = () => {
             </Button>
           ))}
         </Box>
-        
+
         {/* Social Media Icons */}
         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, my: 3 }}>
           <IconButton
@@ -235,9 +248,9 @@ export const LandingPage: React.FC = () => {
             <YouTubeIcon />
           </IconButton>
         </Box>
-        
+
         <Typography variant="caption">
-          &copy; 2025 Tabsy's Community. All rights reserved. For entertainment purposes only. Please play responsibly.
+          {`© 2025 Tabsy's Community. All rights reserved. For entertainment purposes only. Please play responsibly.`}
         </Typography>
       </Box>
     </>
