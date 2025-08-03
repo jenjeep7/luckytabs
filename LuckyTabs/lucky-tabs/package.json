@@ -5,8 +5,9 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
-    "@mui/icons-material": "^7.2.0",
-    "@mui/material": "^7.2.0",
+   "@mui/material": "5.18.0",
+"@mui/system": "5.18.0",
+"@mui/icons-material": "5.18.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.6.4",
     "@testing-library/react": "^16.3.0",
@@ -25,7 +26,6 @@
     "react-router-dom": "^7.7.1",
     "react-scripts": "5.0.1",
     "tailwindcss": "^4.1.11",
-    "typescript": "^4.9.5",
     "web-vitals": "^2.1.4",
     "zod": "^4.0.14"
   },
@@ -52,5 +52,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "typescript": "^4.9.5"
   }
 }

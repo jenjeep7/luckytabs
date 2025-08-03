@@ -1,5 +1,5 @@
-import { useMemo, useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from './firebase';
 import Login from './pages/Login';
@@ -29,6 +29,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import { getDesignTokens } from './theme';
 import { LandingPage } from './pages/Landing/LandingPage';
 import LandingTemporary from './pages/Landing/LandingTemporary';
+import { SupportCircle } from './pages/Support/SupportCircle';
 
 function App() {
   const [user, loading] = useAuthState(auth);
@@ -41,7 +42,7 @@ function App() {
     [darkMode]
   );
 
-  const handleToggleDarkMode = () => setDarkMode((prev) => !prev);
+  // const handleToggleDarkMode = () => setDarkMode((prev) => !prev);
   const handleLogout = async () => await auth.signOut();
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
 
@@ -167,6 +168,12 @@ function App() {
             path="/signup"
             element={
               user ? <Navigate to="/dashboard" replace /> : <Signup />
+            }
+          />
+          <Route
+            path="/support-circle"
+            element={
+              user ? <SupportCircle /> : <Navigate to="/" replace />
             }
           />
           <Route path="*" element={<Navigate to="/" />} />
