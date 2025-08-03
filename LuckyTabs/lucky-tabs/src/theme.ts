@@ -1,7 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // theme.ts
-import { ThemeOptions } from '@mui/material/styles';
-
-export const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => ({
+export const getDesignTokens = (mode: 'light' | 'dark'): any => ({
   palette: {
     mode,
     ...(mode === 'light'
