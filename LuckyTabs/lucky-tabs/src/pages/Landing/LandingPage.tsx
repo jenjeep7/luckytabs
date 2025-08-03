@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-misused-promises */
+/* eslint-disable @typescript-eslint/no-floating-promises */
 import React from 'react';
 import {
   Box,
@@ -47,7 +49,7 @@ export const LandingPage: React.FC = () => {
               color="secondary"
               size="large"
               endIcon={<ArrowForwardIcon />}
-              onClick={() => navigate('/signup')}
+              onClick={() => { navigate('/signup'); }}
             >
               Join Tabsy Today
             </Button>
@@ -149,7 +151,7 @@ export const LandingPage: React.FC = () => {
               <Grid key={name} item xs={12} md={6}>
                 <Paper elevation={2} sx={{ p: 4 }} color="text.secondary">
                   <Typography variant="body1" fontStyle="italic" gutterBottom>
-                    "{quote}"
+                    &quot;{quote}&quot;
                   </Typography>
                   <Typography variant="subtitle1" color="text.primary" fontWeight="bold">
                     - {name}
@@ -168,10 +170,10 @@ export const LandingPage: React.FC = () => {
       >
         <Container>
           <Typography variant="h4" fontWeight="bold" gutterBottom>
-            🫱 Tabsy’s Support Circle
+            {`🫱 Tabsy’s Support Circle`}
           </Typography>
           <Typography variant="h6" maxWidth={600} mx="auto" mb={4}>
-            Whether you're chasing wins or playing just for kicks, Tabsy’s got your back. Lean on budget tools and community tips to stay grounded and game wisely.
+            {`Whether you're chasing wins or playing just for kicks, Tabsy’s got your back. Lean on budget tools and community tips to stay grounded and game wisely.`}
           </Typography>
           <Button
             variant="contained"
@@ -187,7 +189,7 @@ export const LandingPage: React.FC = () => {
       <Box sx={{ bgcolor: 'primary.main', color: 'white', py: 10, textAlign: 'center' }}>
         <Container>
           <Typography variant="h4" fontWeight="bold" gutterBottom>
-            Ready to join Tabsy's community?
+            {`Ready to join Tabsy's community?`}
           </Typography>
           <Typography variant="h6" maxWidth={600} mx="auto" mb={4}>
             Connect with fellow enthusiasts, share insights, and elevate your pull tab experience today.
@@ -201,7 +203,7 @@ export const LandingPage: React.FC = () => {
       {/* Footer Section */}
       <Box id="contact" sx={{ bgcolor: 'grey.900', color: 'grey.300', py: 6, textAlign: 'center' }}>
         <Typography variant="h6" color="white" gutterBottom>
-          Tabsy's Community
+          {`Tabsy's Community`}
         </Typography>
         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 4, flexWrap: 'wrap', mb: 2 }}>
           {['Features', 'How It Works', 'Testimonials', 'Responsible Gaming', 'Privacy Policy'].map((item) => (
@@ -248,7 +250,7 @@ export const LandingPage: React.FC = () => {
         </Box>
 
         <Typography variant="caption">
-          &copy; 2025 Tabsy's Community. All rights reserved. For entertainment purposes only. Please play responsibly.
+          {`© 2025 Tabsy's Community. All rights reserved. For entertainment purposes only. Please play responsibly.`}
         </Typography>
       </Box>
     </>

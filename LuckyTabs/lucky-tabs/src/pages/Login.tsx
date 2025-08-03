@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-misused-promises */
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
@@ -27,9 +28,13 @@ const Login: React.FC = () => {
     try {
       await signInWithEmailAndPassword(auth, data.email, data.password);
       setError('');
-      navigate('/');
-    } catch (err: any) {
-      setError(err.message);
+      void navigate('/');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unknown error occurred.');
+      }
     }
   };
 
@@ -38,9 +43,13 @@ const Login: React.FC = () => {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
       setError('');
-      navigate('/');
-    } catch (err: any) {
-      setError(err.message);
+      void navigate('/');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unknown error occurred.');
+      }
     }
   };
 
