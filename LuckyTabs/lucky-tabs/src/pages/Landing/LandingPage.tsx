@@ -41,7 +41,7 @@ export const LandingPage: React.FC = () => {
             adventure?
           </Typography>
           <Typography variant="h6" maxWidth={600} mx="auto" gutterBottom>
-            Introducing a new pull tab community player experience – where every win, every game, and every insight is better together!
+            {`Introducing a new pull tab community player experience – where every win, every game, and every insight is better together!`}
           </Typography>
           <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap' }}>
             <Button
@@ -81,7 +81,7 @@ export const LandingPage: React.FC = () => {
                 desc: `Bars and non-profits get their own profiles to flaunt fresh pull tab boxes, spotlight crowd favorites, and show off where the action is. It’s like a VIP pass for players hunting the best spots to play.`,
               },
             ].map(({ title, desc }) => (
-              <Grid key={title} item xs={12} md={4}>
+              <Grid key={title} size={{ xs: 12, md: 4 }}>
                 <Paper elevation={3} sx={{ p: 4, textAlign: 'center' }}>
                   <Typography variant="h6" fontWeight="bold" gutterBottom>
                     {title}
@@ -115,7 +115,7 @@ export const LandingPage: React.FC = () => {
                 desc: 'Tabsy’s got the goods on every game you play. Like your own luck analyst, it maps your moves, logs your box hits, and highlights your high-roller moments—so you can play smarter and flex harder.',
               },
             ].map(({ title, desc }) => (
-              <Grid key={title} item xs={12} md={4}>
+              <Grid key={title} size={{ xs: 12, md: 4 }}>
                 <Paper elevation={2} sx={{ p: 4, textAlign: 'center' }}>
                   <Typography variant="h6" fontWeight="bold" gutterBottom>
                     {title}
@@ -148,7 +148,7 @@ export const LandingPage: React.FC = () => {
                 name: 'Cody J., Community Member',
               },
             ].map(({ quote, name }) => (
-              <Grid key={name} item xs={12} md={6}>
+              <Grid key={name} size={{ xs: 12, md: 6 }}>
                 <Paper elevation={2} sx={{ p: 4 }} color="text.secondary">
                   <Typography variant="body1" fontStyle="italic" gutterBottom>
                     &quot;{quote}&quot;
