@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-misused-promises */
 import { useMemo, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -106,7 +107,7 @@ function App() {
     variant="h6"
     sx={{ flexGrow: 1, display: { xs: 'none', md: 'block' } }}
   >
-    Tabsy's Community
+    {`Tabsy's Community`}
   </Typography>
 
   <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 2 }}>

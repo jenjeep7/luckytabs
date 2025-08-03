@@ -23,11 +23,11 @@ export const SupportCircle = () => {
       <Box sx={{ bgcolor: 'primary.main', color: 'white', py: 8, textAlign: 'center' }}>
         <Container>
           <Typography variant="h3" fontWeight="bold" gutterBottom>
-            🫱 Tabsy's Support Circle
+            {`🫱 Tabsy's Support Circle`}
           </Typography>
           <Typography variant="h6" maxWidth={700} mx="auto" mb={4}>
-            Whether you're chasing wins or playing just for kicks, Tabsy's got your back.
-            Lean on budget tools and community tips to stay grounded and game wisely.
+            {`Whether you're chasing wins or playing just for kicks, Tabsy's got your back.
+            Lean on budget tools and community tips to stay grounded and game wisely.`}
           </Typography>
           <Button
             variant="contained"
@@ -57,10 +57,10 @@ export const SupportCircle = () => {
             Self-check tools for players to assess mood, habits, and motivation behind play
           </Typography>
           <Typography paragraph>
-            Brief mindfulness audios with Tabsy's cheerful voice to help players reset
+            {`Brief mindfulness audios with Tabsy's cheerful voice to help players reset`}
           </Typography>
           <Typography paragraph>
-            Encouraging messages reminding players that it's okay to pause and take breaks
+            {`Encouraging messages reminding players that it's okay to pause and take breaks`}
           </Typography>
 
           {/* 2. Smart Play Toolkit */}
@@ -71,10 +71,10 @@ export const SupportCircle = () => {
             Downloadable budget planners and goal-setting worksheets tailored for pull-tab players
           </Typography>
           <Typography paragraph>
-            A "Know Your Odds" guide explaining pull-tab probabilities in a friendly, visual way
+            {`A "Know Your Odds" guide explaining pull-tab probabilities in a friendly, visual way`}
           </Typography>
           <Typography paragraph>
-            Articles on how to recognize compulsive behaviors and resources for seeking help
+            {`Articles on how to recognize compulsive behaviors and resources for seeking help`}
           </Typography>
 
           {/* 3. Uplift & Reflect Stories */}
@@ -82,10 +82,10 @@ export const SupportCircle = () => {
             3. 🌟 Uplift & Reflect Stories
           </Typography>
           <Typography paragraph>
-            Short user-submitted reflections like "How I Knew I Needed a Break" or "Playing With a Purpose"
+            {`Short user-submitted reflections like "How I Knew I Needed a Break" or "Playing With a Purpose"`}
           </Typography>
           <Typography paragraph>
-            Tabsy's gentle commentary on player journeys and tips for staying balanced
+            {`Tabsy's gentle commentary on player journeys and tips for staying balanced`}
           </Typography>
           <Typography paragraph>
             A rotating spotlight feature celebrating healthy play habits in the community
@@ -108,7 +108,7 @@ export const SupportCircle = () => {
               </AccordionSummary>
               <AccordionDetails>
                 <Typography>
-                  Reach out to support services immediately. You're not alone.
+                  {`Reach out to support services immediately. You're not alone.`}
                 </Typography>
               </AccordionDetails>
             </Accordion>
@@ -131,9 +131,9 @@ export const SupportCircle = () => {
             </Typography>
             <Box sx={{ textAlign: 'left', maxWidth: 600, mx: 'auto' }}>
               <ul>
-                <li>Moderated discussion board with weekly topics</li>
-                <li>Wellness challenge rewards (like a "Pause & Reflect" badge)</li>
-                <li>Anonymous Q&A answered by experts or Tabsy</li>
+                <li>{`Moderated discussion board with weekly topics`}</li>
+                <li>{`Wellness challenge rewards (like a "Pause & Reflect" badge)`}</li>
+                <li>{`Anonymous Q&A answered by experts or Tabsy`}</li>
               </ul>
             </Box>
             <Button variant="outlined" startIcon={<Groups />} sx={{ mt: 2 }}>
