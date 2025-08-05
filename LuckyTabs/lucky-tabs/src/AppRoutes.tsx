@@ -8,7 +8,6 @@ import { LandingPage } from './pages/Landing/LandingPage';
 import LandingTemporary from './pages/Landing/LandingTemporary';
 import { SupportCircle } from './pages/Support/SupportCircle';
 import Layout from './Layout';
-import { Play } from './pages/Play/Play';
 
 function AppRoutes() {
   const [user, loading] = useAuthState(auth);
@@ -21,7 +20,6 @@ function AppRoutes() {
       <Route element={user ? <Layout /> : <Navigate to="/" />}> {/* Protected Routes */}
         <Route path="/dashboard" element={<LandingPage />} />
         <Route path="/support-circle" element={<SupportCircle />} />
-        <Route path="/play" element={<Play />} />
       </Route>
       <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <Login />} />
       <Route path="/signup" element={user ? <Navigate to="/dashboard" /> : <Signup />} />

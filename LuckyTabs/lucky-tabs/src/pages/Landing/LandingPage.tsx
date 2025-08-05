@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 /* eslint-disable @typescript-eslint/no-floating-promises */
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Box,
   Button,
@@ -15,43 +15,12 @@ import FacebookIcon from '@mui/icons-material/Facebook';
 import InstagramIcon from '@mui/icons-material/Instagram';
 import TwitterIcon from '@mui/icons-material/Twitter';
 import YouTubeIcon from '@mui/icons-material/YouTube';
+import HandshakeIcon from '@mui/icons-material/Handshake';
 import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism';
 import { useNavigate } from 'react-router-dom';
-import { collection, getDocs } from 'firebase/firestore';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { db, auth } from '../../firebase';
 
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
-  const [user] = useAuthState(auth);
-  const [userCount, setUserCount] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-
-  useEffect(() => {
-    if (!user) {
-      setIsLoading(false);
-      return;
-    }
-
-    const fetchUserCount = async () => {
-      try {
-        const usersSnapshot = await getDocs(collection(db, 'users'));
-        setUserCount(usersSnapshot.size);
-      } catch (error) {
-        if (typeof error === 'object' && error !== null) {
-          console.error('Error details:', {
-            message: (error as { message?: string }).message,
-            code: (error as { code?: string }).code,
-            stack: (error as { stack?: string }).stack
-          });
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    void fetchUserCount();
-  }, [user])
 
   return (
     <>
@@ -90,14 +59,6 @@ export const LandingPage: React.FC = () => {
               Explore Features
             </Button>
           </Box>
-          {userCount !== null && !isLoading && (
-            <Box sx={{ mt: 3, textAlign: 'center' }}>
-              <Typography variant="body2" color="grey.300">
-                {`Join ${userCount} players already signed up!`}
-              </Typography>
-            </Box>
-          )}
-       
         </Container>
       </Box>
 
