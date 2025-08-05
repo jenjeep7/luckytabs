@@ -15,6 +15,8 @@ import FacebookIcon from '@mui/icons-material/Facebook';
 import InstagramIcon from '@mui/icons-material/Instagram';
 import TwitterIcon from '@mui/icons-material/Twitter';
 import YouTubeIcon from '@mui/icons-material/YouTube';
+import HandshakeIcon from '@mui/icons-material/Handshake';
+import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism';
 import { useNavigate } from 'react-router-dom';
 
 export const LandingPage: React.FC = () => {
@@ -27,20 +29,20 @@ export const LandingPage: React.FC = () => {
         <Container>
           <Box>
             <img
-              src="/Tabsy Wins Logo.png"
+              src="/TabsyNew.png"
               alt="Tabsy Wins Logo"
-              style={{ height: 300, marginRight: 16, paddingBottom: 16 }}
+              style={{ height: 250, marginRight: 16, paddingBottom: 16 }}
             />
           </Box>
 
-          <Typography variant="h2" fontWeight="bold" gutterBottom>
+          <Typography variant="h5" fontWeight="bold" gutterBottom>
             Ready to turn your pull tab passion into a{' '}
             <Box component="span" sx={{ color: 'success.main', display: 'block', fontWeight: 'bold' }}>
               WINNING
             </Box>{' '}
             adventure?
           </Typography>
-          <Typography variant="h6" maxWidth={600} mx="auto" gutterBottom>
+          <Typography variant="body1" maxWidth={600} mx="auto" gutterBottom>
             {`Introducing a new pull tab community player experience – where every win, every game, and every insight is better together!`}
           </Typography>
           <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap' }}>
@@ -146,7 +148,7 @@ export const LandingPage: React.FC = () => {
               {
                 quote: 'I love being able to track my games and see community trends. It adds a whole new layer of fun to pull tabs!',
                 name: 'Cody J., Community Member',
-              },
+              },              
             ].map(({ quote, name }) => (
               <Grid key={name} size={{ xs: 12, md: 6 }}>
                 <Paper elevation={2} sx={{ p: 4 }} color="text.secondary">
@@ -169,18 +171,21 @@ export const LandingPage: React.FC = () => {
         sx={{ py: 10, bgcolor: 'background.default', textAlign: 'center', color: 'text.primary' }}
       >
         <Container>
-          <Typography variant="h4" fontWeight="bold" gutterBottom>
-            {`💡 Helping Hands, Winning Plans`}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, mb: 2 }}>
+            <VolunteerActivismIcon sx={{ fontSize: '2rem', color: 'error.main' }} />
+            <Typography variant="h4" fontWeight="bold">
+              {`Helping Hands, Winning Plans`}
+            </Typography>
+          </Box>
           <Typography variant="h6" maxWidth={600} mx="auto" mb={4}>
             {`Whether you're chasing wins or playing just for kicks, Tabsy’s got your back. Lean on budget tools and community tips to stay grounded and game wisely.`}
           </Typography>
           <Button
             variant="contained"
-            sx={{ bgcolor: 'background.contrast', color: 'text.contrast' }}
+            sx={{ bgcolor: 'error.main', color: 'white' }}
             onClick={() => navigate('/support-circle')}
           >
-            Learn About Responsible Gaming
+            {`Tabsy's Play it Cool Guide`}
           </Button>
         </Container>
       </Box>
@@ -189,12 +194,12 @@ export const LandingPage: React.FC = () => {
       <Box sx={{ bgcolor: 'primary.main', color: 'white', py: 10, textAlign: 'center' }}>
         <Container>
           <Typography variant="h4" fontWeight="bold" gutterBottom>
-            {`Ready to join Tabsy's community?`}
+            {`Ready to Join Tabsy's Community?`}
           </Typography>
           <Typography variant="h6" maxWidth={600} mx="auto" mb={4}>
             Connect with fellow enthusiasts, share insights, and elevate your pull tab experience today.
           </Typography>
-          <Button variant="contained" sx={{ bgcolor: 'secondary.main', color: 'primary.main', '&:hover': { bgcolor: 'grey.100' } }}>
+          <Button variant="contained" sx={{ bgcolor: 'brand.main', color: 'primary.main', '&:hover': { bgcolor: 'grey.100' } }}>
             Join Now
           </Button>
         </Container>
