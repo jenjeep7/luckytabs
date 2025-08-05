@@ -9,4 +9,24 @@ declare module '@mui/material/styles' {
     contrast: string;
     light: string;
   }
+
+  interface Palette {
+    alert: Palette['primary'];
+    brand: {
+      main: string;
+      dark: string;
+      light: string;
+      contrastText: string;
+    };
+  }
+
+  interface PaletteOptions {
+    alert?: PaletteOptions['primary'];
+    brand?: {
+      main: string;
+      dark: string;
+      light: string;
+      contrastText: string;
+    };
+  }
 }

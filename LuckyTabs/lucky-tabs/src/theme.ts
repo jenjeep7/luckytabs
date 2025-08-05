@@ -1,6 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-// theme.ts
-export const getDesignTokens = (mode: 'light' | 'dark'): any => ({
+import { ThemeOptions } from '@mui/material/styles';
+
+export const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => ({
   palette: {
     mode,
     ...(mode === 'light'
@@ -24,6 +24,12 @@ export const getDesignTokens = (mode: 'light' | 'dark'): any => ({
           },
           success: {
             main: '#03fd0bff',
+          },
+          brand: {
+            main: '#0169c5',
+            dark: '#e64a19',
+            light: '#ff8a65',
+            contrastText: '#ffffff',
           }
         }
       : {
@@ -46,6 +52,12 @@ export const getDesignTokens = (mode: 'light' | 'dark'): any => ({
           },
            success: {
             main: '#03fd0bff',
+          },
+          brand: {
+            main: '#0169c5',
+            dark: '#e64a19',
+            light: '#ff8a65',
+            contrastText: '#ffffff',
           }
         }),
   },
@@ -77,3 +89,4 @@ export const getDesignTokens = (mode: 'light' | 'dark'): any => ({
     },
   },
 });
+    

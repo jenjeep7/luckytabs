@@ -12,7 +12,7 @@ const LandingTemporary: React.FC = () => {
       bgcolor="primary.main"
     >
       <img
-        src="/Tabsy Wins Logo.png"
+        src="/TabsyNew.png"
         alt="Tabsy Wins Logo"
         style={{ height: 300, margin: 32 }}
       />
