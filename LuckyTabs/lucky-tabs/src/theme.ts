@@ -1,4 +1,3 @@
-// theme.ts
 import { ThemeOptions } from '@mui/material/styles';
 
 export const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => ({
@@ -25,6 +24,12 @@ export const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => ({
           },
           success: {
             main: '#03fd0bff',
+          },
+          brand: {
+            main: '#0169c5',
+            dark: '#e64a19',
+            light: '#ff8a65',
+            contrastText: '#ffffff',
           }
         }
       : {
@@ -47,6 +52,12 @@ export const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => ({
           },
            success: {
             main: '#03fd0bff',
+          },
+          brand: {
+            main: '#0169c5',
+            dark: '#e64a19',
+            light: '#ff8a65',
+            contrastText: '#ffffff',
           }
         }),
   },
@@ -78,3 +89,4 @@ export const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => ({
     },
   },
 });
+    
