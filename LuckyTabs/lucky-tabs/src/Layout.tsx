@@ -16,39 +16,28 @@ import {
 import MenuIcon from '@mui/icons-material/Menu';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useState } from 'react';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { auth } from './firebase';
 
 const navItems = [
   { label: 'Home', route: '/dashboard' },
-  { label: 'How It Works', anchor: 'how-it-works' },
-  { label: 'Testimonials', anchor: 'testimonials' },
-  { label: 'Responsible Gaming', anchor: 'responsible-gaming' },
-  { label: 'Contact', anchor: 'contact' },
+  { label: 'Play', route: '/play' },
+  { label: 'Responsible Gaming', route: '/support-circle' },
+  { label: 'Contact', email: 'tabsywins@gmail.com' },
 ];
 
 function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
-
   const handleLogout = async () => await auth.signOut();
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
 
   const handleNavItemClick = (item: typeof navItems[number]) => {
     if (item.route) {
       void navigate(item.route);
-    } else if (item.anchor) {
-      const anchor = `#${item.anchor}`;
-      if (location.pathname !== '/dashboard') {
-        void navigate('/dashboard');
-        setTimeout(() => {
-          document.querySelector(anchor)?.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
-      } else {
-        document.querySelector(anchor)?.scrollIntoView({ behavior: 'smooth' });
-      }
-    }
+    } else if (item.email) {
+      window.location.href = `mailto:${item.email}?subject=Inquiry from Tabsy's Community`;
+    } 
   };
 
   const drawer = (

@@ -23,6 +23,7 @@
   "include": [
     "src",
     "src/types",
-    "prettier.config.js"
+    "prettier.config.js",
+    "scripts"
   ]
 }
