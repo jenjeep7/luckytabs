@@ -21,9 +21,7 @@ import { auth } from './firebase';
 
 const navItems = [
   { label: 'Home', route: '/dashboard' },
-  { label: 'How It Works', anchor: 'how-it-works' },
-  { label: 'Testimonials', anchor: 'testimonials' },
-  { label: 'Responsible Gaming', anchor: 'responsible-gaming' },
+  { label: 'Play', route: '/play' }, 
   { label: 'Contact', anchor: 'contact' },
 ];
 
