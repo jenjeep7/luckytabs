@@ -21,7 +21,7 @@ import { auth } from './firebase';
 
 const navItems = [
   { label: 'Home', route: '/dashboard' },
-  { label: 'Play', route: '/play' },
+  { label: 'Play', route: '/play' }, 
   { label: 'Contact', anchor: 'contact' },
 ];
 
