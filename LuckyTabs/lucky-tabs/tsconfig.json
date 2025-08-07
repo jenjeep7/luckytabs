@@ -18,11 +18,18 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "types": ["react", "react-dom", "node", "jest"]
   },
   "include": [
-    "src",
-    "src/types",
-    "prettier.config.js"
+    "src"
+  ],
+  "exclude": [
+    "node_modules",
+    "build",
+    "dist",
+    "craco.config.js",
+    "prettier.config.js",
+    "scripts"
   ]
 }
