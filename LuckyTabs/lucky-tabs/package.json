@@ -29,8 +29,8 @@
     "zod": "^4.0.14"
   },
   "scripts": {
-    "start": "NODE_OPTIONS=\"--max-old-space-size=4096\" craco start",
-    "build": "NODE_OPTIONS=\"--max-old-space-size=4096\" craco build",
+  "start": "node --max-old-space-size=4096 node_modules/.bin/react-scripts start",
+  "build": "node --max-old-space-size=4096 node_modules/.bin/react-scripts build",
     "test": "craco test",
     "eject": "react-scripts eject"
   },

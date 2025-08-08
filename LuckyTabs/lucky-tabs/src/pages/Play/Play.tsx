@@ -165,7 +165,7 @@ export const Play: React.FC = () => {
 
       <Button
         variant="contained"
-        sx={{ mt: 3 }}
+        sx={{ mt: 3, bgcolor: 'secondary.main' }}
         disabled={!selectedLocation}
         onClick={() => setOpenCreateBox(true)}
       >

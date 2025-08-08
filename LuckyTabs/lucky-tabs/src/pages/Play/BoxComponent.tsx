@@ -11,6 +11,7 @@ import {
   DialogContentText, 
   DialogActions,
   IconButton,
+  TextField,
 } from '@mui/material';
 import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
@@ -73,6 +74,7 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
   });
 
   const [userDisplayNames, setUserDisplayNames] = useState<{ [userId: string]: string }>({});
+  const [remainingTicketsInput, setRemainingTicketsInput] = useState<{ [boxId: string]: string }>({});
 
   useEffect(() => {
     const fetchUserDisplayNames = async () => {
@@ -203,6 +205,120 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
     }, 0);
   };
 
+  const calculateRemainingWinningTickets = (box: BoxItem): number => {
+    if (!box.winningTickets || !Array.isArray(box.winningTickets)) {
+      return 0;
+    }
+
+    return box.winningTickets.reduce((total: number, ticket: WinningTicket) => {
+      const totalPrizes = Number(ticket.totalPrizes) || 0;
+      const claimedTotal = Number(ticket.claimedTotal) || 0;
+      return total + (totalPrizes - claimedTotal);
+    }, 0);
+  };
+
+  const calculateTotalRemainingPrizeValue = (box: BoxItem): number => {
+    if (!box.winningTickets || !Array.isArray(box.winningTickets)) {
+      return 0;
+    }
+
+    return box.winningTickets.reduce((total: number, ticket: WinningTicket) => {
+      const totalPrizes = Number(ticket.totalPrizes) || 0;
+      const claimedTotal = Number(ticket.claimedTotal) || 0;
+      const prizeValue = Number(ticket.prize) || 0;
+      const remainingTickets = totalPrizes - claimedTotal;
+      return total + (remainingTickets * prizeValue);
+    }, 0);
+  };
+
+  const calculatePayoutPercentage = (boxId: string, box: BoxItem): string => {
+    const inputValue = remainingTicketsInput[boxId];
+    const remainingTickets = Number(inputValue);
+    const pricePerTicket = Number(box.pricePerTicket) || 0;
+    
+    if (!inputValue || remainingTickets <= 0 || pricePerTicket <= 0) {
+      return '0.00%';
+    }
+
+    // Total value of remaining winners (remaining prize value)
+    const totalRemainingPrizeValue = calculateTotalRemainingPrizeValue(box);
+    
+    // Total value of remaining tickets (remaining tickets × price per ticket)
+    const totalValueOfRemainingTickets = remainingTickets * pricePerTicket;
+    
+    if (totalValueOfRemainingTickets === 0) {
+      return '0.00%';
+    }
+
+    const payoutPercentage = (totalRemainingPrizeValue / totalValueOfRemainingTickets) * 100;
+    
+    return `${payoutPercentage.toFixed(2)}%`;
+  };
+
+  const getPayoutColor = (boxId: string, box: BoxItem): string => {
+    const inputValue = remainingTicketsInput[boxId];
+    const remainingTickets = Number(inputValue);
+    const pricePerTicket = Number(box.pricePerTicket) || 0;
+    
+    if (!inputValue || remainingTickets <= 0 || pricePerTicket <= 0) {
+      return 'text.primary';
+    }
+
+    const totalRemainingPrizeValue = calculateTotalRemainingPrizeValue(box);
+    const totalValueOfRemainingTickets = remainingTickets * pricePerTicket;
+    
+    if (totalValueOfRemainingTickets === 0) {
+      return 'text.primary';
+    }
+
+    const payoutPercentage = (totalRemainingPrizeValue / totalValueOfRemainingTickets) * 100;
+    
+    return payoutPercentage >= 100 ? 'success.main' : 'error.main';
+  };
+
+  const calculateChancePercentage = (boxId: string, box: BoxItem): string => {
+    const inputValue = remainingTicketsInput[boxId];
+    const remainingTickets = Number(inputValue);
+    
+    if (!inputValue || remainingTickets <= 0) {
+      return '0.00%';
+    }
+
+    const remainingWinningTickets = calculateRemainingWinningTickets(box);
+    const chancePercentage = (remainingWinningTickets / remainingTickets) * 100;
+    
+    return `${chancePercentage.toFixed(2)}%`;
+  };
+
+  const calculateOneInXChances = (boxId: string, box: BoxItem): string => {
+    const inputValue = remainingTicketsInput[boxId];
+    const remainingTickets = Number(inputValue);
+    
+    if (!inputValue || remainingTickets <= 0) {
+      return '1 in ∞';
+    }
+
+    const remainingWinningTickets = calculateRemainingWinningTickets(box);
+    
+    if (remainingWinningTickets === 0) {
+      return '1 in ∞';
+    }
+
+    const oneInX = remainingTickets / remainingWinningTickets;
+    
+    return `1 in ${oneInX.toFixed(1)}`;
+  };
+
+  const handleRemainingTicketsChange = (boxId: string, value: string) => {
+    // Only allow positive numbers
+    if (value === '' || (/^\d+$/.test(value) && Number(value) >= 0)) {
+      setRemainingTicketsInput(prev => ({
+        ...prev,
+        [boxId]: value
+      }));
+    }
+  };
+
   const renderPrizeButtons = (box: BoxItem) => {
     if (!box.winningTickets) return null;
 
@@ -257,7 +373,7 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
           return (
             <Paper
               key={box.id}
-              sx={{ p: 3, mb: 3, position: 'relative' }}
+              sx={{ p: 3, mb: 3, position: 'relative'}}
             >
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                 <Box sx={{ textAlign: 'center', flex: 1 }}>
@@ -274,11 +390,39 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
                   {showOwner && (
                     <Typography><strong>Created By:</strong> {userDisplayNames[box.ownerId] || 'Loading...'}</Typography>
                   )}
+                  
+                  {/* Remaining Tickets Input and Chance Calculation */}
+                  <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                    <TextField
+                      label="Estimated Remaining Tickets"
+                      type="number"
+                      size="small"
+                      value={remainingTicketsInput[box.id] || ''}
+                      onChange={(e) => handleRemainingTicketsChange(box.id, e.target.value)}
+                      sx={{ maxWidth: 200 }}
+                    />
+                    {remainingTicketsInput[box.id] && (
+                      <>
+                        <Typography sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+                          <strong>Winning Chance Per Ticket:</strong> {calculateChancePercentage(box.id, box)}
+                        </Typography>
+                        <Typography sx={{ fontWeight: 'bold', color: 'secondary.main' }}>
+                          <strong>Odds:</strong> {calculateOneInXChances(box.id, box)} chance
+                        </Typography>
+                        <Typography sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                          <strong>Total Remaining Prize Value:</strong> ${calculateTotalRemainingPrizeValue(box)}
+                        </Typography>
+                        <Typography sx={{ fontWeight: 'bold', color: getPayoutColor(box.id, box) }}>
+                          <strong>Percent to buyout:</strong> {calculatePayoutPercentage(box.id, box)}
+                        </Typography>
+                      </>
+                    )}
+                  </Box>
                 </Box>
                 
                 <Box sx={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 1 }}>
                   <IconButton
-                    color="primary"
+                    color="info"
                     size="small"
                     onClick={(e) => handleEditClick(e, box)}
                   >

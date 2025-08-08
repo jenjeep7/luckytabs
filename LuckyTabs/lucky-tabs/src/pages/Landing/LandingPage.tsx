@@ -130,12 +130,12 @@ export const LandingPage: React.FC = () => {
       </Box>
 
       {/* Testimonials Section */}
-      <Box id="testimonials" sx={{ py: 10, bgcolor: 'primary.main' }}>
+      <Box id="testimonials" sx={{ py: 10, bgcolor: 'primary.main', color: 'white', textAlign: 'center' }}>
         <Container>
-          <Typography variant="h4" align="center" fontWeight="bold" color="text.light" gutterBottom>
+          <Typography variant="h4" align="center" fontWeight="bold"gutterBottom>
             📣 Pulled & Proud
           </Typography>
-          <Typography variant="h6" align="center" color="text.light" maxWidth={600} mx="auto" mb={4}>
+          <Typography variant="h6" align="center" maxWidth={600} mx="auto" mb={4}>
             From first-timers to high-rollers, Tabsy fans spill the beans on their big moments, fave features, and what keeps ‘em coming back.
           </Typography>
           <Grid container spacing={4} mt={4}>

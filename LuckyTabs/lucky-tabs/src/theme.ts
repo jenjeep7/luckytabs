@@ -6,77 +6,67 @@ export const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => ({
     ...(mode === 'light'
       ? {
           primary: {
-            main: '#1a1a1a',
+            main: '#000000ff',
           },
           secondary: {
-            main: '#f81da8ff',
+            main: '#e140a1ff',
           },
           background: {
-            default: '#f5f5f5',
+            default: '#f9f9fb',
             paper: '#ffffff',
-            contrast: '#1a1a1a',
           },
           text: {
             primary: '#1a1a1a',
-            secondary: '#333333',
-            contrast: '#ffffff',
-            light: '#ffffff'
+            secondary: '#555555',
           },
           success: {
-            main: '#03fd0bff',
+            main: '#4CAF50',
           },
-          brand: {
-            main: '#0169c5',
-            dark: '#e64a19',
-            light: '#ff8a65',
-            contrastText: '#ffffff',
-          }
         }
       : {
           primary: {
-            main: '#1a1a1a',
+            main: '#000000ff',
           },
           secondary: {
-            main: '#f81da8ff',
+            main: '#e140a1ff',
           },
           background: {
-            default: '#1d1d1d',
-            paper: '#1d1d1d',
-            contrast: '#ffffff',
+            default: '#121212',
+            paper: '#1e1e1e',
           },
           text: {
             primary: '#ffffff',
-            secondary: '#bbbbbb',
-            contrast: '#1d1d1d',
-            light: '#ffffff'
+            secondary: '#aaaaaa',
           },
-           success: {
-            main: '#03fd0bff',
+          success: {
+            main: '#81C784',
           },
-          brand: {
-            main: '#0169c5',
-            dark: '#e64a19',
-            light: '#ff8a65',
-            contrastText: '#ffffff',
-          }
         }),
   },
   typography: {
     fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
     h1: {
-      fontSize: '2.5rem',
+      fontSize: '2.4rem',
       fontWeight: 700,
     },
     h2: {
       fontSize: '2rem',
       fontWeight: 600,
     },
+    h3: {
+      fontSize: '1.75rem',
+      fontWeight: 600,
+    },
     body1: {
       fontSize: '1rem',
+      fontWeight: 400,
+    },
+    button: {
+      fontWeight: 500,
     },
   },
   shape: {
-    borderRadius: 12,
+    borderRadius: 10,
   },
   components: {
     MuiButton: {
@@ -87,6 +77,12 @@ export const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => ({
         },
       },
     },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          backgroundImage: 'none', // remove elevation background
+        },
+      },
+    },
   },
 });
-    
