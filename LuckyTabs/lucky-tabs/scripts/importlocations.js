@@ -40,14 +40,11 @@ async function importLocations() {
       },
       { merge: true } // merge to update without overwriting entire doc
     );
-
-    console.log(`✅ Imported/Updated: ${location.name}`);
   }
 }
 
 importLocations()
   .then(() => {
-    console.log('🎉 All locations imported or updated successfully!');
     process.exit(0);
   })
   .catch((err) => {

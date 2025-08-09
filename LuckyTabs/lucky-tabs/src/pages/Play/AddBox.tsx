@@ -31,16 +31,17 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
   const [boxName, setBoxName] = useState("");
   const [boxNumber, setBoxNumber] = useState("");
   const [pricePerTicket, setPricePerTicket] = useState("");
-  const [user, loading] = useAuthState(auth);
+  const [startingTickets, setStartingTickets] = useState("");
+  const [user] = useAuthState(auth);
   const [winningTickets, setWinningTickets] = useState<Prize[]>([
     { prize: "", totalPrizes: 0, claimedTotal: 0 },
   ]);
-console.log("user", user);
   const handleSubmit = async () => {
     interface Box {
       boxName: string;
       boxNumber: string;
       pricePerTicket: string;
+      startingTickets: number;
       type: "wall" | "bar box";
       createdAt: any;
       lastUpdated: any;
@@ -56,6 +57,7 @@ console.log("user", user);
       boxName: boxName || `Box ${boxNumber}`,
       boxNumber,
       pricePerTicket,
+      startingTickets: Number(startingTickets) || 0,
       type,
       createdAt: serverTimestamp(),
       lastUpdated: serverTimestamp(),
@@ -90,7 +92,7 @@ console.log("user", user);
     const updated: Prize[] = [...winningTickets];
     updated[index] = {
       ...updated[index],
-      [field]: field === "prize" ? String(value) : Number(value),
+      [field]: field === "prize" ? String(value) : (value === "" ? 0 : Number(value)),
     };
     setWinningTickets(updated);
   };
@@ -120,16 +122,18 @@ console.log("user", user);
       </Box>
 
       <Grid container spacing={2}>
-        <Grid size={{ xs: 12, sm: 4 }}>
+        <Grid size={{ xs: 12, sm: 3 }}>
           <TextField
+            size="small"
             label="Box Name"
             fullWidth
             value={boxName}
             onChange={(e) => setBoxName(e.target.value)}
           />
         </Grid>
-        <Grid size={{ xs: 12, sm: 4 }}>
+        <Grid size={{ xs: 12, sm: 3 }}>
           <TextField
+            size="small"
             label="Box Number"
             fullWidth
             value={boxNumber}
@@ -137,12 +141,24 @@ console.log("user", user);
             required
           />
         </Grid>
-        <Grid size={{ xs: 12, sm: 4 }}>
+        <Grid size={{ xs: 12, sm: 3 }}>
           <TextField
+            size="small"
             label="Price Per Ticket"
             fullWidth
             value={pricePerTicket}
             onChange={(e) => setPricePerTicket(e.target.value)}
+            required
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 3 }}>
+          <TextField
+            size="small"
+            label="Starting # of Tickets"
+            type="number"
+            fullWidth
+            value={startingTickets}
+            onChange={(e) => setStartingTickets(e.target.value)}
             required
           />
         </Grid>
@@ -152,41 +168,34 @@ console.log("user", user);
         <Typography variant="subtitle1">Prizes</Typography>
         {winningTickets.map((prize, idx) => (
           <Grid container spacing={1} key={idx} sx={{ mt: 1 }}>
-            <Grid size={{ xs: 12, sm: 4 }}>
+            <Grid size={{ xs: 6, sm: 6 }}>
               <TextField
                 label="Prize Amount"
                 value={prize.prize}
                 onChange={(e) => handlePrizeChange(idx, "prize", e.target.value)}
                 fullWidth
+                size="small"
                 required
               />
             </Grid>
-            <Grid size={{ xs: 12, sm: 4 }}>
+            <Grid size={{ xs: 6, sm: 6 }}>
               <TextField
                 label="Total"
                 type="number"
-                value={prize.totalPrizes}
+                value={prize.totalPrizes || ""}
                 onChange={(e) => handlePrizeChange(idx, "totalPrizes", e.target.value)}
                 fullWidth
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 4 }}>
-              <TextField
-                label="Already Claimed Total"
-                type="number"
-                value={prize.claimedTotal}
-                onChange={(e) => handlePrizeChange(idx, "claimedTotal", e.target.value)}
-                fullWidth
+                size="small"
               />
             </Grid>
           </Grid>
         ))}
-        <Button variant="contained" color="info" onClick={addPrize} sx={{ mt: 2 }}>
+        <Button size="small" variant="contained" color="info" onClick={addPrize} sx={{ mt: 2 }}>
           Add Another
         </Button>
       </Box>
 
-      <Button variant="contained" onClick={() => { void handleSubmit(); }} sx={{ mt: 4 }}>
+      <Button size="small" variant="contained" onClick={() => { void handleSubmit(); }} sx={{ mt: 4 }}>
         Submit Box
       </Button>
     </Box>

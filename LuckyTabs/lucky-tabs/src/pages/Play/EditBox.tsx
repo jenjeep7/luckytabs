@@ -23,6 +23,7 @@ type BoxType = {
   type: "wall" | "bar box";
   boxNumber: string | number;
   pricePerTicket: string | number;
+  startingTickets?: number;
   boxName: string;
   winningTickets?: WinningTicket[];
   [key: string]: any;
@@ -32,6 +33,7 @@ export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onCl
   const [type, setType] = useState<"wall" | "bar box">(box.type);
   const [boxNumber, setBoxNumber] = useState<string | number>(box.boxNumber);
   const [pricePerTicket, setPricePerTicket] = useState<string | number>(box.pricePerTicket);
+  const [startingTickets, setStartingTickets] = useState<string>(box.startingTickets ? box.startingTickets.toString() : "");
   const [winningTickets, setWinningTickets] = useState<WinningTicket[]>(box.winningTickets || []);
 
   const handleSubmit = async () => {
@@ -40,6 +42,7 @@ export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onCl
       type,
       boxNumber,
       pricePerTicket,
+      startingTickets: startingTickets ? Number(startingTickets) : 0,
       winningTickets,
       lastUpdated: serverTimestamp(),
     };
@@ -48,6 +51,7 @@ export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onCl
       const docRef = doc(db, "boxes", box.id);
       await setDoc(docRef, updatedBox, { merge: true });
       onBoxUpdated?.();
+      onClose(); // Close the dialog after successful save
     } catch (err) {
       console.error("Error updating box:", err);
     }
@@ -57,7 +61,7 @@ export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onCl
     const updated = [...winningTickets];
     updated[index] = {
       ...updated[index],
-      [field]: field === "prize" ? String(value) : Number(value),
+      [field]: field === "prize" ? String(value) : (value === "" ? 0 : Number(value)),
     };
     setWinningTickets(updated);
   };
@@ -81,7 +85,7 @@ export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onCl
       </ToggleButtonGroup>
 
       <Grid container spacing={2}>
-        <Grid size={6}>
+        <Grid size={4}>
           <TextField
             label="Box Number"
             fullWidth
@@ -89,12 +93,21 @@ export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onCl
             onChange={(e) => setBoxNumber(e.target.value)}
           />
         </Grid>
-        <Grid size={6}>
+        <Grid size={4}>
           <TextField
             label="Price Per Ticket"
             fullWidth
             value={pricePerTicket}
             onChange={(e) => setPricePerTicket(e.target.value)}
+          />
+        </Grid>
+        <Grid size={4}>
+          <TextField
+            label="Starting # of Tickets"
+            type="number"
+            fullWidth
+            value={startingTickets}
+            onChange={(e) => setStartingTickets(e.target.value)}
           />
         </Grid>
       </Grid>
@@ -115,7 +128,7 @@ export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onCl
               <TextField
                 label="Total Prizes"
                 type="number"
-                value={prize.totalPrizes}
+                value={prize.totalPrizes || ""}
                 onChange={(e) => handlePrizeChange(idx, "totalPrizes", e.target.value)}
                 fullWidth
               />
@@ -124,7 +137,7 @@ export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onCl
               <TextField
                 label="Claimed Total"
                 type="number"
-                value={prize.claimedTotal}
+                value={prize.claimedTotal || ""}
                 onChange={(e) => handlePrizeChange(idx, "claimedTotal", e.target.value)}
                 fullWidth
               />

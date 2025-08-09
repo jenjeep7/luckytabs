@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react/prop-types */
 
@@ -14,15 +16,17 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  Paper,
   IconButton,
 } from "@mui/material";
 import CloseIcon from '@mui/icons-material/Close';
+import PlaceIcon from '@mui/icons-material/Place';
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../firebase";
 import { CreateBoxForm } from "./AddBox";
 import { EditBoxForm } from "./EditBox";
 import { BoxComponent } from "./BoxComponent";
+import { LocationManager } from "./LocationManager";
+import { LocationsMapSafe } from "./LocationsMapSafe";
 
 interface Location {
   id: string;
@@ -47,16 +51,30 @@ export const Play: React.FC = () => {
   const [selectedLocation, setSelectedLocation] = useState<string>("");
   const [boxes, setBoxes] = useState<BoxItem[]>([]);
   const [openCreateBox, setOpenCreateBox] = useState(false);
+  const [openLocationManager, setOpenLocationManager] = useState(false);
   const [editBox, setEditBox] = useState<BoxItem | null>(null);
 
   useEffect(() => {
     const fetchLocations = async () => {
       try {
         const snapshot = await getDocs(collection(db, "locations"));
-        const data = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Location[];
+        const data: Location[] = snapshot.docs.map((doc) => {
+          const docData = doc.data();
+          return {
+            id: doc.id,
+            name: (docData.name as string) || '',
+            address: (docData.address as string) || '',
+            type: (docData.type as "restaurant" | "bar") || 'bar',
+            placeId: docData.placeId as string,
+            coordinates: docData.coordinates ? {
+              lat: docData.coordinates.lat || (docData.coordinates._lat as number),
+              lng: docData.coordinates.lng || (docData.coordinates._long as number)
+            } : (docData.geo ? {
+              lat: docData.geo.latitude,
+              lng: docData.geo.longitude
+            } : undefined),
+          };
+        });
         setLocations(data);
       } catch (error) {
         console.error("Error fetching locations:", error);
@@ -134,6 +152,32 @@ export const Play: React.FC = () => {
     }
   };
 
+  const refreshLocations = async () => {
+    try {
+      const snapshot = await getDocs(collection(db, "locations"));
+      const data: Location[] = snapshot.docs.map((doc) => {
+        const docData = doc.data();
+        return {
+          id: doc.id,
+          name: (docData.name as string) || '',
+          address: (docData.address as string) || '',
+          type: (docData.type as "restaurant" | "bar") || 'bar',
+          placeId: docData.placeId as string,
+          coordinates: docData.coordinates ? {
+            lat: docData.coordinates.lat || (docData.coordinates._lat as number),
+            lng: docData.coordinates.lng || (docData.coordinates._long as number)
+          } : (docData.geo ? {
+            lat: docData.geo.latitude,
+            lng: docData.geo.longitude
+          } : undefined),
+        };
+      });
+      setLocations(data);
+    } catch (error) {
+      console.error("Error fetching locations:", error);
+    }
+  };
+
   const selectedLocationObj = locations.find((loc) => loc.id === selectedLocation);
   const wallBoxes = boxes.filter((box) => box.type === "wall");
   const barBoxes = boxes.filter((box) => box.type === "bar box");
@@ -146,6 +190,16 @@ export const Play: React.FC = () => {
       <Typography paragraph>
         This is the play area where users can engage with the game.
       </Typography>
+
+      {/* Locations Map */}
+      {locations.length > 0 && (
+        <LocationsMapSafe
+          locations={locations}
+          selectedLocationId={selectedLocation}
+          onLocationSelect={setSelectedLocation}
+          height={400}
+        />
+      )}
 
       <FormControl fullWidth sx={{ mt: 4 }}>
         <InputLabel id="location-select-label">Select Location</InputLabel>
@@ -163,14 +217,25 @@ export const Play: React.FC = () => {
         </Select>
       </FormControl>
 
-      <Button
-        variant="contained"
-        sx={{ mt: 3 }}
-        disabled={!selectedLocation}
-        onClick={() => setOpenCreateBox(true)}
-      >
-        Create Box for Location
-      </Button>
+      <Box sx={{ mt: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+        <Button
+          variant="contained"
+          sx={{ bgcolor: 'secondary.main' }}
+          disabled={!selectedLocation}
+          onClick={() => setOpenCreateBox(true)}
+        >
+          Create Box for Location
+        </Button>
+        
+        <Button
+          variant="outlined"
+          color="secondary"
+          startIcon={<PlaceIcon />}
+          onClick={() => setOpenLocationManager(true)}
+        >
+          Manage Locations
+        </Button>
+      </Box>
 
       {/* Create Box Modal */}
       <Dialog open={openCreateBox} onClose={() => setOpenCreateBox(false)} maxWidth="md" fullWidth>
@@ -241,6 +306,14 @@ export const Play: React.FC = () => {
           )}
         </Box>
       )}
+
+      {/* Location Manager Dialog */}
+      <LocationManager
+        open={openLocationManager}
+        onClose={() => setOpenLocationManager(false)}
+        locations={locations}
+        onLocationAdded={() => { void refreshLocations(); }}
+      />
     </Box>
   );
 };
