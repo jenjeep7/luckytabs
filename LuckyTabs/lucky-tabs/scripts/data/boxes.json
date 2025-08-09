@@ -1,0 +1,62 @@
+[
+  {
+    "boxName": "LuckyTabs",
+    "boxNumber": "1",
+    "pricePerTicket": "1",
+    "type": "wall",
+    "lastUpdated": "2023-10-01T12:00:00Z",
+    "createdAt": "2023-10-01T12:00:00Z",
+    "locationId": "ChIJ8-AcvYwP9ocR2Mx-0rxMDSU",
+    "ownerId": "user123",
+    "isActive": true,
+    "tags": ["pull tab", "lucky tabs"],
+
+    "rows": [
+      {
+        "rowNumber": 1,
+        "estimatedTicketsRemaining": 10000
+      },
+      {
+        "rowNumber": 2,
+        "estimatedTicketsRemaining": 10000
+      },
+      {
+        "rowNumber": 3,
+        "estimatedTicketsRemaining": 4000
+      },
+      {
+        "rowNumber": 4,
+        "estimatedTicketsRemaining": 2000
+      }
+    ],
+    "totalTickets": 3200,
+    "estimatedTicketsRemaining": 1500,
+    "winningTickets": [
+      {
+        "prize": "1000",
+        "totalPrizes": 5,
+        "claimedTotal": 1
+      },
+      {
+        "prize": "500",
+        "totalPrizes": 5,
+        "claimedTotal": 1
+      },
+      {
+        "prize": "250",
+        "totalPrizes": 5,
+        "claimedTotal": 0
+      },
+      {
+        "prize": "100",
+        "totalPrizes": 5,
+        "claimedTotal": 1
+      },
+      {
+        "prize": "50",
+        "totalPrizes": 10,
+        "claimedTotal": 2
+      }
+    ]
+  }
+]
