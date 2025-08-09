@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react/prop-types */
 
@@ -24,6 +26,7 @@ import { CreateBoxForm } from "./AddBox";
 import { EditBoxForm } from "./EditBox";
 import { BoxComponent } from "./BoxComponent";
 import { LocationManager } from "./LocationManager";
+import { LocationsMapSafe } from "./LocationsMapSafe";
 
 interface Location {
   id: string;
@@ -55,10 +58,23 @@ export const Play: React.FC = () => {
     const fetchLocations = async () => {
       try {
         const snapshot = await getDocs(collection(db, "locations"));
-        const data = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Location[];
+        const data: Location[] = snapshot.docs.map((doc) => {
+          const docData = doc.data();
+          return {
+            id: doc.id,
+            name: (docData.name as string) || '',
+            address: (docData.address as string) || '',
+            type: (docData.type as "restaurant" | "bar") || 'bar',
+            placeId: docData.placeId as string,
+            coordinates: docData.coordinates ? {
+              lat: docData.coordinates.lat || (docData.coordinates._lat as number),
+              lng: docData.coordinates.lng || (docData.coordinates._long as number)
+            } : (docData.geo ? {
+              lat: docData.geo.latitude,
+              lng: docData.geo.longitude
+            } : undefined),
+          };
+        });
         setLocations(data);
       } catch (error) {
         console.error("Error fetching locations:", error);
@@ -147,6 +163,13 @@ export const Play: React.FC = () => {
           address: (docData.address as string) || '',
           type: (docData.type as "restaurant" | "bar") || 'bar',
           placeId: docData.placeId as string,
+          coordinates: docData.coordinates ? {
+            lat: docData.coordinates.lat || (docData.coordinates._lat as number),
+            lng: docData.coordinates.lng || (docData.coordinates._long as number)
+          } : (docData.geo ? {
+            lat: docData.geo.latitude,
+            lng: docData.geo.longitude
+          } : undefined),
         };
       });
       setLocations(data);
@@ -167,6 +190,16 @@ export const Play: React.FC = () => {
       <Typography paragraph>
         This is the play area where users can engage with the game.
       </Typography>
+
+      {/* Locations Map */}
+      {locations.length > 0 && (
+        <LocationsMapSafe
+          locations={locations}
+          selectedLocationId={selectedLocation}
+          onLocationSelect={setSelectedLocation}
+          height={400}
+        />
+      )}
 
       <FormControl fullWidth sx={{ mt: 4 }}>
         <InputLabel id="location-select-label">Select Location</InputLabel>

@@ -17,7 +17,6 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemSecondaryAction,
   IconButton,
   Alert,
   Chip,
@@ -68,36 +67,29 @@ export const LocationManager: React.FC<LocationManagerProps> = ({
   const [user] = useAuthState(auth);
 
   useEffect(() => {
-    console.log('🔄 LocationManager useEffect triggered - open:', open);
     if (open) {
       // Add a small delay to ensure the input ref is available
       const timer = setTimeout(() => {
         if (inputRef.current) {
-          console.log('✅ Input ref available, initializing Google Maps...');
           void initializeGoogleMaps();
-        } else {
-          console.log('❌ Input ref still not available after delay');
         }
       }, 100);
       
       return () => clearTimeout(timer);
+    } else {
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
     }
   }, [open]);
 
   const initializeGoogleMaps = async () => {
     try {
       const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
-      console.log('🗝️ API Key being used:', apiKey);
-      console.log('🌍 Current URL:', window.location.href);
-      console.log('🏠 Current hostname:', window.location.hostname);
-      console.log('🚪 Current port:', window.location.port);
       
       if (!apiKey) {
         throw new Error('Google Maps API key is missing. Please check your .env file.');
       }
-      
-      // Try a simple test first
-      console.log('🧪 Testing API key with a simple request...');
       
       const loader = new Loader({
         apiKey: apiKey,
@@ -105,16 +97,12 @@ export const LocationManager: React.FC<LocationManagerProps> = ({
         libraries: ['places'],
       });
 
-      console.log('⏳ Loading Google Maps API...');
       await loader.load();
-      console.log('✅ Google Maps API loaded successfully');
 
       if (!inputRef.current) {
         throw new Error('Input element not found');
       }
 
-      console.log('🔧 Creating Autocomplete instance (legacy API - still supported)...');
-      
       // Suppress the deprecation warning temporarily
       const originalWarn = console.warn;
       console.warn = (...args: any[]) => {
@@ -126,7 +114,6 @@ export const LocationManager: React.FC<LocationManagerProps> = ({
       
       // Get the input element directly (now it's a plain HTML input)
       const inputElement = inputRef.current;
-      console.log('🎯 Input element found:', inputElement?.tagName, inputElement instanceof HTMLInputElement);
       
       if (!inputElement || !(inputElement instanceof HTMLInputElement)) {
         throw new Error('Valid HTML input element not found');
@@ -150,21 +137,11 @@ export const LocationManager: React.FC<LocationManagerProps> = ({
       // Restore console.warn
       console.warn = originalWarn;
 
-      console.log('🌍 Setting component restrictions...');
       // Restrict to restaurants and bars
       autocompleteInstance.setComponentRestrictions({ country: 'us' });
 
-      console.log('👂 Adding place_changed listener...');
       autocompleteInstance.addListener('place_changed', () => {
-        console.log('🎯 Place changed event triggered!');
         const place = autocompleteInstance.getPlace();
-        console.log('📍 Selected place details:', {
-          name: place?.name,
-          address: place?.formatted_address,
-          placeId: place?.place_id,
-          types: place?.types,
-          hasGeometry: !!place?.geometry
-        });
         
         if (place && place.geometry && place.place_id) {
           // Check if it's a restaurant or bar
@@ -172,10 +149,7 @@ export const LocationManager: React.FC<LocationManagerProps> = ({
             ['restaurant', 'bar', 'meal_takeaway', 'food', 'night_club', 'establishment'].includes(type)
           );
 
-          console.log('🍕 Is restaurant/bar:', isRestaurantOrBar, 'Types:', place.types);
-
           if (isRestaurantOrBar || place.types?.includes('establishment')) {
-            console.log('✅ Valid place selected, updating state...');
             setSelectedPlace(place);
             setError('');
             
@@ -184,94 +158,11 @@ export const LocationManager: React.FC<LocationManagerProps> = ({
               inputElement.value = place.name || place.formatted_address || '';
             }
           } else {
-            console.log('❌ Not a restaurant/bar, showing error');
             setError('Please select a restaurant or bar location.');
             setSelectedPlace(null);
           }
-        } else {
-          console.log('❌ No place, geometry, or place_id found');
-          if (!place) {
-            console.log('  - No place object');
-          }
-          if (!place?.geometry) {
-            console.log('  - No geometry');
-          }
-          if (!place?.place_id) {
-            console.log('  - No place_id');
-          }
         }
       });
-      
-      // Add input event listener to debug typing
-      inputElement.addEventListener('input', (e) => {
-        console.log('⌨️ Input event:', (e.target as HTMLInputElement).value);
-      });
-      
-      inputElement.addEventListener('focus', () => {
-        console.log('🎯 Input focused');
-      });
-      
-      inputElement.addEventListener('blur', () => {
-        console.log('😴 Input blurred');
-      });
-      
-      // Test if autocomplete is working by triggering a focus
-      setTimeout(() => {
-        console.log('🔍 Testing autocomplete by focusing input...');
-        inputElement.focus();
-        
-        // Check if the autocomplete dropdown container exists
-        const pacContainer = document.querySelector('.pac-container');
-        console.log('📦 PAC container found:', !!pacContainer);
-        
-        if (!pacContainer) {
-          console.log('⚠️ No autocomplete dropdown container found. This might be a styling issue.');
-        } else {
-          // Check if PAC container is visible
-          const computedStyle = window.getComputedStyle(pacContainer);
-          console.log('👁️ PAC container visibility:', computedStyle.visibility);
-          console.log('📏 PAC container display:', computedStyle.display);
-          console.log('🔢 PAC container z-index:', computedStyle.zIndex);
-          console.log('📐 PAC container position:', computedStyle.position);
-        }
-        
-        // Force trigger autocomplete by simulating typing
-        setTimeout(() => {
-          console.log('🧪 Testing with simulated input...');
-          inputElement.value = 'test';
-          inputElement.dispatchEvent(new Event('input', { bubbles: true }));
-          
-          setTimeout(() => {
-            const pacContainerAfter = document.querySelector('.pac-container');
-            console.log('📦 PAC container after typing:', !!pacContainerAfter);
-            
-            if (pacContainerAfter) {
-              const afterStyle = window.getComputedStyle(pacContainerAfter);
-              console.log('👁️ PAC container visibility after typing:', afterStyle.visibility);
-              console.log('📏 PAC container display after typing:', afterStyle.display);
-              
-              // Check for pac-item elements
-              const pacItems = pacContainerAfter.querySelectorAll('.pac-item');
-              console.log('📋 Number of autocomplete suggestions:', pacItems.length);
-              
-              if (pacItems.length > 0) {
-                console.log('✅ Autocomplete suggestions are available!');
-                pacItems.forEach((item, index) => {
-                  console.log(`📝 Suggestion ${index + 1}:`, item.textContent?.trim());
-                });
-              } else {
-                console.log('❌ No autocomplete suggestions found');
-              }
-            }
-            
-            // Clear the test input
-            inputElement.value = '';
-            inputElement.dispatchEvent(new Event('input', { bubbles: true }));
-          }, 1000);
-        }, 500);
-      }, 500);
-      
-      console.log('🚀 Autocomplete setup complete (using legacy API)');
       
       // Fix autocomplete dropdown styling to ensure it's visible
       const style = document.createElement('style');
@@ -313,7 +204,6 @@ export const LocationManager: React.FC<LocationManagerProps> = ({
         }
       `;
       document.head.appendChild(style);
-      console.log('🎨 Added custom styling for autocomplete dropdown');
     } catch (err) {
       console.error('💥 Error loading Google Maps:', err);
       
@@ -407,7 +297,14 @@ export const LocationManager: React.FC<LocationManagerProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog 
+      open={open} 
+      onClose={onClose} 
+      maxWidth="md" 
+      fullWidth
+      disableRestoreFocus
+      keepMounted={false}
+    >
       <DialogTitle>Manage Locations</DialogTitle>
       <DialogContent>
         <Box sx={{ mb: 3 }}>
@@ -490,19 +387,27 @@ export const LocationManager: React.FC<LocationManagerProps> = ({
         
         <List>
           {locations.map((location) => (
-            <ListItem key={location.id} divider>
+            <ListItem 
+              key={location.id} 
+              divider
+              sx={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                paddingRight: 6 // Make room for the delete button
+              }}
+            >
               <ListItemText
                 primary={location.name}
                 secondary={
                   <React.Fragment>
                     {location.address && (
-                      <Typography variant="body2" color="text.secondary" component="span" sx={{ display: 'block' }}>
+                      <Typography variant="body2" color="text.secondary" component="div" sx={{ display: 'block' }}>
                         <LocationIcon sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />
                         {location.address}
                       </Typography>
                     )}
                     {location.businessInfo?.rating && (
-                      <Typography variant="body2" color="text.secondary" component="span" sx={{ display: 'block' }}>
+                      <Typography variant="body2" color="text.secondary" component="div" sx={{ display: 'block' }}>
                         Rating: {location.businessInfo.rating} ⭐
                       </Typography>
                     )}
@@ -513,16 +418,23 @@ export const LocationManager: React.FC<LocationManagerProps> = ({
                     )}
                   </React.Fragment>
                 }
+                slotProps={{
+                  secondary: { component: 'div' }
+                }}
               />
-              <ListItemSecondaryAction>
-                <IconButton
-                  edge="end"
-                  onClick={() => { void handleDeleteLocation(location.id); }}
-                  color="error"
-                >
-                  <DeleteIcon />
-                </IconButton>
-              </ListItemSecondaryAction>
+              <IconButton
+                edge="end"
+                onClick={() => { void handleDeleteLocation(location.id); }}
+                color="error"
+                sx={{
+                  position: 'absolute',
+                  right: 8,
+                  top: '50%',
+                  transform: 'translateY(-50%)'
+                }}
+              >
+                <DeleteIcon />
+              </IconButton>
             </ListItem>
           ))}
         </List>

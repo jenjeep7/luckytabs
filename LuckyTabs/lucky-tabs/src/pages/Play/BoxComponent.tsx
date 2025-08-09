@@ -345,7 +345,6 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
 
   if (boxes.length === 0) return null;
 
-  console.log("boxes", boxes);
   return (
     <>
       <Box sx={{ mt: marginTop }}>

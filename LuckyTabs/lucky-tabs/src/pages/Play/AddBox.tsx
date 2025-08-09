@@ -36,7 +36,6 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
   const [winningTickets, setWinningTickets] = useState<Prize[]>([
     { prize: "", totalPrizes: 0, claimedTotal: 0 },
   ]);
-console.log("user", user);
   const handleSubmit = async () => {
     interface Box {
       boxName: string;
