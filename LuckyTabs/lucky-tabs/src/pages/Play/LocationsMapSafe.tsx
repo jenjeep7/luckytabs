@@ -6,7 +6,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Box, Typography, Alert } from '@mui/material';
-import { Loader } from '@googlemaps/js-api-loader';
+import { getGoogleMapsLoader } from '../../utils/googleMapsLoader';
 
 interface Location {
   id: string;
@@ -24,8 +24,6 @@ interface LocationsMapProps {
   onLocationSelect?: (locationId: string) => void;
   height?: number;
 }
-
-const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
 export const LocationsMapSafe: React.FC<LocationsMapProps> = ({
   locations,
@@ -60,12 +58,6 @@ export const LocationsMapSafe: React.FC<LocationsMapProps> = ({
 
   // Initialize Google Maps once
   useEffect(() => {
-    if (!GOOGLE_MAPS_API_KEY) {
-      setError('Google Maps API key is not configured');
-      setIsLoading(false);
-      return;
-    }
-
     // Prevent multiple initializations and handle React Strict Mode
     if (initializingRef.current || mapInstanceRef.current) {
       if (mapInstanceRef.current) {
@@ -90,13 +82,7 @@ export const LocationsMapSafe: React.FC<LocationsMapProps> = ({
 
     const initializeMap = async () => {
       try {
-        const loader = new Loader({
-          apiKey: GOOGLE_MAPS_API_KEY,
-          version: 'weekly',
-          libraries: ['marker'],
-        });
-
-        await loader.load();
+        await getGoogleMapsLoader();
         
         if (isUnmountedRef.current) {
           initializingRef.current = false;

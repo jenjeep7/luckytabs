@@ -14,7 +14,6 @@ import { db } from '../../firebase';
 import { ConfirmRemoveDialog, ClaimPrizeDialog, EstimateRemainingDialog } from './BoxDialogs';
 import {
   calculateRemainingPrizes,
-  calculateRemainingWinningTickets,
   calculateTotalRemainingPrizeValue,
   calculatePayoutPercentage,
   getPayoutColor,

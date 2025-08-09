@@ -20,9 +20,10 @@ import {
   IconButton,
   Alert,
   Chip,
+  TextField,
 } from '@mui/material';
 import { Delete as DeleteIcon, LocationOn as LocationIcon } from '@mui/icons-material';
-import { Loader } from '@googlemaps/js-api-loader';
+import { getGoogleMapsLoader } from '../../utils/googleMapsLoader';
 import { collection, addDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -85,19 +86,7 @@ export const LocationManager: React.FC<LocationManagerProps> = ({
 
   const initializeGoogleMaps = async () => {
     try {
-      const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
-      
-      if (!apiKey) {
-        throw new Error('Google Maps API key is missing. Please check your .env file.');
-      }
-      
-      const loader = new Loader({
-        apiKey: apiKey,
-        version: 'weekly',
-        libraries: ['places'],
-      });
-
-      await loader.load();
+      await getGoogleMapsLoader();
 
       if (!inputRef.current) {
         throw new Error('Input element not found');
@@ -112,7 +101,7 @@ export const LocationManager: React.FC<LocationManagerProps> = ({
         originalWarn.apply(console, args);
       };
       
-      // Get the input element directly (now it's a plain HTML input)
+      // Get the input element from the TextField ref
       const inputElement = inputRef.current;
       
       if (!inputElement || !(inputElement instanceof HTMLInputElement)) {
@@ -156,6 +145,9 @@ export const LocationManager: React.FC<LocationManagerProps> = ({
             // Update the input field with the selected place name
             if (inputElement) {
               inputElement.value = place.name || place.formatted_address || '';
+              // Trigger React's change event for controlled components
+              const event = new Event('input', { bubbles: true });
+              inputElement.dispatchEvent(event);
             }
           } else {
             setError('Please select a restaurant or bar location.');
@@ -164,13 +156,14 @@ export const LocationManager: React.FC<LocationManagerProps> = ({
         }
       });
       
-      // Fix autocomplete dropdown styling to ensure it's visible
+      // Fix autocomplete dropdown styling to work with Material-UI themes
       const style = document.createElement('style');
       style.textContent = `
         .pac-container {
           z-index: 9999 !important;
-          background: white !important;
-          border: 1px solid #ccc !important;
+          background: var(--mui-palette-background-paper, white) !important;
+          color: var(--mui-palette-text-primary, #000) !important;
+          border: 1px solid var(--mui-palette-divider, #ccc) !important;
           border-radius: 4px !important;
           box-shadow: 0 2px 10px rgba(0,0,0,0.2) !important;
           font-family: 'Roboto', Arial, sans-serif !important;
@@ -181,21 +174,23 @@ export const LocationManager: React.FC<LocationManagerProps> = ({
         .pac-item {
           cursor: pointer !important;
           padding: 8px 12px !important;
-          border-bottom: 1px solid #f0f0f0 !important;
+          border-bottom: 1px solid var(--mui-palette-divider, #f0f0f0) !important;
           display: block !important;
           visibility: visible !important;
+          color: var(--mui-palette-text-primary, #333) !important;
         }
         .pac-item:hover {
-          background-color: #f5f5f5 !important;
+          background-color: var(--mui-palette-action-hover, #f5f5f5) !important;
         }
         .pac-item-selected {
-          background-color: #e3f2fd !important;
+          background-color: var(--mui-palette-action-selected, #e3f2fd) !important;
         }
         .pac-matched {
           font-weight: bold !important;
+          color: var(--mui-palette-primary-main, #1976d2) !important;
         }
         .pac-item-query {
-          color: #333 !important;
+          color: var(--mui-palette-text-primary, #333) !important;
           font-size: 14px !important;
         }
         .pac-icon {
@@ -315,30 +310,17 @@ export const LocationManager: React.FC<LocationManagerProps> = ({
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
               Search for restaurants and bars
             </Typography>
-            <input
-              ref={inputRef}
+            <TextField
+              inputRef={inputRef}
               type="text"
               placeholder="Type restaurant or bar name..."
-              style={{
-                width: '100%',
-                padding: '16.5px 14px',
-                border: '1px solid #d0d7de',
-                borderRadius: '4px',
-                fontSize: '16px',
-                fontFamily: 'inherit',
-                outline: 'none',
-                backgroundColor: 'transparent',
-                transition: 'border-color 0.2s',
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = '#1976d2';
-                e.target.style.borderWidth = '2px';
-                e.target.style.padding = '15.5px 13px'; // Adjust padding to compensate for thicker border
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = '#d0d7de';
-                e.target.style.borderWidth = '1px';
-                e.target.style.padding = '16.5px 14px';
+              fullWidth
+              variant="outlined"
+              size="medium"
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  fontSize: '16px',
+                },
               }}
             />
           </Box>
@@ -446,7 +428,7 @@ export const LocationManager: React.FC<LocationManagerProps> = ({
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Close</Button>
+        <Button onClick={onClose} color="inherit" variant="outlined">Close</Button>
       </DialogActions>
     </Dialog>
   );
