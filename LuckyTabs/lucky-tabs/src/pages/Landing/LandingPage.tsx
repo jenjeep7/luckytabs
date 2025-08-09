@@ -198,7 +198,7 @@ export const LandingPage: React.FC = () => {
           <Typography variant="h6" maxWidth={600} mx="auto" mb={4}>
             Connect with fellow enthusiasts, share insights, and elevate your pull tab experience today.
           </Typography>
-          <Button variant="contained" sx={{ bgcolor: 'brand.main', color: 'primary.main', '&:hover': { bgcolor: 'grey.100' } }}>
+          <Button variant="contained" sx={{ bgcolor: 'secondary.main', color: 'text.primary', '&:hover': { bgcolor: 'grey.100' } }}>
             Join Now
           </Button>
         </Container>
