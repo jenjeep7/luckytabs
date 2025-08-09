@@ -22,7 +22,9 @@
     "types": ["react", "react-dom", "node", "jest"]
   },
   "include": [
-    "src"
+    "src/**/*",
+    "src/**/*.ts",
+    "src/**/*.tsx"
   ],
   "exclude": [
     "node_modules",
