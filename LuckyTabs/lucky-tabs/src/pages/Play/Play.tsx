@@ -184,13 +184,9 @@ export const Play: React.FC = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Play
+      <Typography variant="h4" gutterBottom sx={{ textAlign: 'center' }}>
+        Play Pull Tabs
       </Typography>
-      <Typography paragraph>
-        This is the play area where users can engage with the game.
-      </Typography>
-
       {/* Locations Map */}
       {locations.length > 0 && (
         <LocationsMapSafe
@@ -201,13 +197,14 @@ export const Play: React.FC = () => {
         />
       )}
 
-      <FormControl fullWidth sx={{ mt: 4 }}>
-        <InputLabel id="location-select-label">Select Location</InputLabel>
+      <FormControl fullWidth sx={{ mt: 0 }} size="small">
+        <InputLabel id="location-select-label" size="small">Select Location</InputLabel>
         <Select
           labelId="location-select-label"
           value={selectedLocation}
           label="Select Location"
           onChange={handleChange}
+          size="small"
         >
           {locations.map((loc) => (
             <MenuItem key={loc.id} value={loc.id}>

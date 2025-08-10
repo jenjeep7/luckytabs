@@ -29,7 +29,7 @@ export const LocationsMapSafe: React.FC<LocationsMapProps> = ({
   locations,
   selectedLocationId,
   onLocationSelect,
-  height = 400,
+  height = 250, // Reduced from 400 to 250
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -335,13 +335,17 @@ export const LocationsMapSafe: React.FC<LocationsMapProps> = ({
   return (
     <Box sx={{ mb: 2 }}>
       <Typography variant="h6" gutterBottom>
-        Locations Map
+        Locations
       </Typography>
       <Box
         sx={{
           position: 'relative',
           width: '100%',
-          height,
+          height: {
+            xs: Math.min(height, 200),
+            sm: Math.min(height, 250),
+            md: height,
+          },
           borderRadius: 1,
           border: '1px solid #e0e0e0',
           overflow: 'hidden',
