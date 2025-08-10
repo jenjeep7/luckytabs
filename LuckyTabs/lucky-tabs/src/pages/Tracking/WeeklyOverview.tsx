@@ -4,19 +4,12 @@ import {
   Typography,
   Card,
   CardContent,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Chip,
   LinearProgress,
   Alert,
 } from '@mui/material';
 import {
-  AttachMoney as MoneyIcon,
   TrendingUp as WinIcon,
   TrendingDown as LossIcon,
-  AccessTime as TimeIcon,
   Remove as EvenIcon,
 } from '@mui/icons-material';
 import { WeeklyData, Budget, Transaction } from './useTrackingData';
@@ -119,7 +112,7 @@ export const WeeklyOverview: React.FC<WeeklyOverviewProps> = ({
 
   return (
     <Box>
-      <Typography variant="h6" sx={{ mb: 2 }}>
+      <Typography variant="body1" sx={{ mb: 2 }}>
         Week of {formatDate(weeklyData.weekStart)} - {formatDate(weeklyData.weekEnd)}
       </Typography>
 
@@ -162,9 +155,9 @@ export const WeeklyOverview: React.FC<WeeklyOverviewProps> = ({
 
       {/* Transactions List */}
       <Card>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            This Week&apos;s Activity
+        <CardContent sx={{ p: 0 }}>
+          <Typography variant="h6" gutterBottom sx={{ textAlign: 'center' }}>
+            {`This Week's Activity`}
           </Typography>
           
           {groupedTransactions.length === 0 ? (
@@ -177,78 +170,80 @@ export const WeeklyOverview: React.FC<WeeklyOverviewProps> = ({
               </Typography>
             </Box>
           ) : (
-            <List>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, p: 1 }}>
               {groupedTransactions.map((transaction) => {
                 return (
-                  <ListItem key={transaction.id} divider>
-                    <ListItemIcon>
+                  <Box
+                    key={transaction.id}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      p: 1.5,
+                      border: 1,
+                      borderColor: 'divider',
+                      borderRadius: 1,
+                      bgcolor: 'background.paper',
+                      minHeight: 60,
+                    }}
+                  >
+                    {/* Left side - Icon and basic info */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, minWidth: 0 }}>
                       {transaction.isProfit ? (
-                        <WinIcon color="success" />
+                        <WinIcon color="success" sx={{ flexShrink: 0 }} />
                       ) : transaction.isEven ? (
-                        <EvenIcon sx={{ color: 'warning.main' }} />
+                        <EvenIcon sx={{ color: 'warning.main', flexShrink: 0 }} />
                       ) : (
-                        <LossIcon color="error" />
+                        <LossIcon color="error" sx={{ flexShrink: 0 }} />
                       )}
-                    </ListItemIcon>
-                    <ListItemText
-                      slotProps={{
-                        primary: { component: 'div' },
-                        secondary: { component: 'div' }
-                      }}
-                      primary={
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                          <Typography variant="subtitle1" component="span">
-                            {transaction.description}
+                      
+                      <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, flexWrap: 'wrap' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 'medium', flexShrink: 0 }}>
+                            ${transaction.betAmount.toFixed(2)}
                           </Typography>
-                          <Chip
-                            label={transaction.isProfit ? 'Profit' : transaction.isEven ? 'Even' : 'Loss'}
-                            color={transaction.isProfit ? 'success' : transaction.isEven ? 'warning' : 'error'}
-                            size="small"
-                          />
-                        </Box>
-                      }
-                      secondary={
-                        <Box>
-                          <Box sx={{ display: 'flex', gap: 2, mb: 0.5 }}>
-                            <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center' }}>
-                              <MoneyIcon sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />
-                              Bet: ${transaction.betAmount.toFixed(2)}
-                            </Typography>
-                            {transaction.winAmount > 0 && (
-                              <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center' }}>
-                                <WinIcon sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />
-                                Won: ${transaction.winAmount.toFixed(2)}
+                          {transaction.winAmount > 0 && (
+                            <>
+                              <Typography variant="body2" color="text.secondary" sx={{ flexShrink: 0 }}>→</Typography>
+                              <Typography 
+                                variant="body2" 
+                                sx={{ 
+                                  flexShrink: 0,
+                                  color: transaction.winAmount > transaction.betAmount ? 'success.main' : transaction.winAmount === transaction.betAmount ? 'text.primary' : 'error.main'
+                                }}
+                              >
+                                ${transaction.winAmount.toFixed(2)}
                               </Typography>
-                            )}
-                          </Box>
-                          <Typography 
-                            variant="body2" 
-                            sx={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              mb: 0.5,
-                              color: transaction.isProfit ? 'success.main' : transaction.isEven ? 'warning.main' : 'error.main',
-                              fontWeight: 'medium'
-                            }}
-                          >
-                            Net: {transaction.isProfit ? '+' : transaction.isEven ? '' : ''}${transaction.netResult.toFixed(2)}
-                          </Typography>
-                          {transaction.location && (
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                              📍 {transaction.location}
-                            </Typography>
+                            </>
                           )}
-                          <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center' }}>
-                            <TimeIcon sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />
-                            {formatDate(transaction.createdAt)} at {formatTime(transaction.createdAt)}
-                          </Typography>
                         </Box>
-                      }
-                    />
-                  </ListItem>
+                        
+                        <Typography variant="caption" color="text.secondary" noWrap>
+                          {formatDate(transaction.createdAt)} {formatTime(transaction.createdAt)}
+                          {transaction.location && ` • ${transaction.location}`}
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    {/* Right side - Net result
+                    <Box sx={{ textAlign: 'right', ml: 1, flexShrink: 0, minWidth: 60 }}>
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          color: transaction.isProfit ? 'success.main' : transaction.isEven ? 'warning.main' : 'error.main',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        {transaction.isProfit ? '+' : transaction.isEven ? '' : ''}${Math.abs(transaction.netResult).toFixed(2)}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {transaction.isProfit ? 'Profit' : transaction.isEven ? 'Even' : 'Loss'}
+                      </Typography>
+                    </Box> */}
+                  </Box>
                 );
               })}
-            </List>
+            </Box>
           )}
         </CardContent>
       </Card>

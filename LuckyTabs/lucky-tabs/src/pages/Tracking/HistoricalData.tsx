@@ -29,14 +29,23 @@ export const HistoricalData: React.FC<HistoricalDataProps> = ({
 }) => {
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', {
-      month: 'short',
+      month: 'numeric',
       day: 'numeric',
-      year: 'numeric',
     });
   };
 
   const formatDateRange = (startDate: Date, endDate: Date) => {
-    return `${formatDate(startDate)} - ${formatDate(endDate)}`;
+    const startYear = startDate.getFullYear();
+    const endYear = endDate.getFullYear();
+    const currentYear = new Date().getFullYear();
+    
+    // If both dates are in the current year, omit the year
+    if (startYear === currentYear && endYear === currentYear) {
+      return `${formatDate(startDate)} - ${formatDate(endDate)}`;
+    }
+    
+    // If different years, show the year for the end date
+    return `${formatDate(startDate)} - ${formatDate(endDate)}/${endYear.toString().slice(2)}`;
   };
 
   // Calculate overall statistics
@@ -103,7 +112,7 @@ export const HistoricalData: React.FC<HistoricalDataProps> = ({
 
       {/* Historical Table */}
       <Card>
-        <CardContent>
+        <CardContent sx={{ p: 0 }}>
           <Typography variant="h6" gutterBottom>
             Weekly History
           </Typography>
@@ -119,7 +128,11 @@ export const HistoricalData: React.FC<HistoricalDataProps> = ({
             </Box>
           ) : (
             <TableContainer component={Paper} variant="outlined">
-              <Table>
+              <Table sx={{
+                '& .MuiTableCell-root': {
+                  padding: '8px 12px', // Reduced from default 16px
+                }
+              }}>
                 <TableHead>
                   <TableRow>
                     <TableCell>Week</TableCell>

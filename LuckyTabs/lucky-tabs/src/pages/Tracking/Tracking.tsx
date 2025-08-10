@@ -45,7 +45,7 @@ function TabPanel(props: TabPanelProps) {
       {...other}
     >
       {value === index && (
-        <Box sx={{ p: 3 }}>
+        <Box sx={{ p: 1 }}>
           {children}
         </Box>
       )}
@@ -246,7 +246,7 @@ export const Tracking: React.FC = () => {
           </CardContent>
         </Card>
         
-        <Card>
+        {/* <Card>
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
               <BudgetIcon sx={{ mr: 1, color: isOverBudget ? 'error.main' : 'text.primary' }} />
@@ -292,15 +292,31 @@ export const Tracking: React.FC = () => {
               </>
             )}
           </CardContent>
-        </Card>
+        </Card> */}
       </Box>
 
       {/* Tabs for different views */}
       <Card>
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs value={tabValue} onChange={handleTabChange} aria-label="tracking tabs">
-            <Tab label="This Week" />
-            <Tab label="History" />
+            <Tab 
+              label="This Week" 
+              sx={{ 
+                color: 'text.primary',
+                '&.Mui-selected': {
+                  color: 'text.secondary'
+                }
+              }}
+            />
+            <Tab 
+              label="History" 
+              sx={{ 
+                color: 'text.primary',
+                '&.Mui-selected': {
+                  color: 'text.secondary'
+                }
+              }}
+            />
           </Tabs>
         </Box>
         
