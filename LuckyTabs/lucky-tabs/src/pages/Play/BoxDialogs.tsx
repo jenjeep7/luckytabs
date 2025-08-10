@@ -103,13 +103,14 @@ export const EstimateRemainingDialog: React.FC<EstimateRemainingDialogProps> = (
   const [row2, setRow2] = useState(0);
   const [row3, setRow3] = useState(0);
   const [row4, setRow4] = useState(0);
+  const [initialized, setInitialized] = useState(false);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   // Initialize sliders with saved row estimates or distributed current value when dialog opens
   React.useEffect(() => {
-    if (open) {
+    if (open && !initialized) {
       if (currentRowEstimates) {
         // Use saved row estimates if available
         setRow1(currentRowEstimates.row1);
@@ -131,14 +132,27 @@ export const EstimateRemainingDialog: React.FC<EstimateRemainingDialogProps> = (
         setRow3(0);
         setRow4(0);
       }
+      setInitialized(true);
     }
-  }, [open, currentValue, currentRowEstimates]);
+  }, [open, currentValue, currentRowEstimates, initialized]);
+
+  // Reset initialization when dialog closes
+  React.useEffect(() => {
+    if (!open) {
+      setInitialized(false);
+    }
+  }, [open]);
 
   const totalTickets = row1 + row2 + row3 + row4;
 
   const handleUpdate = () => {
     const rowEstimates = { row1, row2, row3, row4 };
     onUpdate(totalTickets, rowEstimates);
+  };
+
+  const handleCancel = () => {
+    setInitialized(false);
+    onCancel();
   };
 
   return (
@@ -571,7 +585,7 @@ export const EstimateRemainingDialog: React.FC<EstimateRemainingDialogProps> = (
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onCancel} variant="outlined" color="secondary">
+        <Button onClick={handleCancel} variant="outlined" color="secondary">
           Cancel
         </Button>
         <Button onClick={handleUpdate} color="primary" variant="contained">

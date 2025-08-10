@@ -420,26 +420,25 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
                     )}
                   </Box>
                 </Box>
-                
-                <Box sx={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 1 }}>
-                  <IconButton
-                    color="info"
-                    size="small"
-                    onClick={(e) => handleEditClick(e, box)}
-                  >
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton
-                    color="error"
-                    size="small"
-                    onClick={(e) => handleRemoveClick(e, box)}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                </Box>
               </Box>
 
-             
+              {/* Moved action buttons to bottom */}
+              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, mt: 2 }}>
+                <IconButton
+                  color="info"
+                  size="small"
+                  onClick={(e) => handleEditClick(e, box)}
+                >
+                  <EditIcon />
+                </IconButton>
+                <IconButton
+                  color="error"
+                  size="small"
+                  onClick={(e) => handleRemoveClick(e, box)}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </Box>
             </Paper>
           );
         })}
