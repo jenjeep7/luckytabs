@@ -25,7 +25,6 @@ import {
   Favorite,
   FavoriteBorder,
   ChatBubbleOutline,
-  Share,
   MoreVert,
   Send,
   Public,
@@ -224,13 +223,6 @@ function PostCard({ post, onLike, onComment, currentUserId, currentUserName, cur
             sx={{ color: 'text.secondary' }}
           >
             {comments.length}
-          </Button>
-          <Button 
-            startIcon={<Share />} 
-            size="small"
-            sx={{ color: 'text.secondary' }}
-          >
-            Share
           </Button>
         </Box>
 

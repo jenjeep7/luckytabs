@@ -351,6 +351,7 @@ export const UserProfile: React.FC = () => {
                   <Button
                     variant="outlined"
                     startIcon={<Edit />}
+                    color="primary"
                     onClick={handleEditClick}
                   >
                     Edit Profile

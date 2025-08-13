@@ -13,7 +13,8 @@ import {
   Card,
   CardContent,
   Divider,
-  Tooltip
+  Tooltip,
+  useTheme
 } from '@mui/material';
 import { 
   Delete as DeleteIcon, 
@@ -85,6 +86,8 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
   marginTop = 3 
 }) => {
   const [user] = useAuthState(auth);
+  const theme = useTheme();
+  const isDarkMode = theme.palette.mode === 'dark';
   const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; boxId: string; boxName: string }>({
     open: false,
     boxId: '',
@@ -360,16 +363,34 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
               minWidth: 60,
               minHeight: 40,
               m: 0.5,
-              backgroundColor: isClaimed ? 'transparent' : 'primary.main',
-              color: isClaimed ? 'text.disabled' : 'white',
-              borderColor: isClaimed ? 'text.disabled' : 'primary.main',
-              textDecoration: isClaimed ? 'line-through' : 'none',
-              '&:hover': {
-                backgroundColor: isClaimed ? 'action.hover' : 'primary.dark',
-                borderColor: isClaimed ? 'text.secondary' : 'primary.dark',
-                color: isClaimed ? 'text.primary' : 'white'
-              },
-              opacity: isClaimed ? 0.6 : 1,
+              // Dark mode specific styling for unclaimed buttons
+              ...(isDarkMode && !isClaimed && {
+                backgroundColor: '#1e1e1e',
+                color: '#ffffff',
+                border: '1px solid #ffffff',
+                '&:hover': {
+                  backgroundColor: '#2a2a2a',
+                  borderColor: '#ffffff',
+                }
+              }),
+              // Light mode styling for unclaimed buttons
+              ...(!isDarkMode && !isClaimed && {
+                backgroundColor: 'primary.main',
+                color: 'white',
+              }),
+              // Claimed button styling (works for both modes)
+              ...(isClaimed && {
+                backgroundColor: 'transparent',
+                color: 'text.disabled',
+                borderColor: 'text.disabled',
+                textDecoration: 'line-through',
+                opacity: 0.6,
+                '&:hover': {
+                  backgroundColor: 'action.hover',
+                  borderColor: 'text.secondary',
+                  color: 'text.primary'
+                }
+              }),
               transition: 'all 0.2s ease-in-out'
             }}
           >
@@ -398,7 +419,7 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
           // Calculate EV data
           let evData = null;
           let rtpData = null;
-          let evBandData = null;
+          // let evBandData = null;
           if (estimatedTickets > 0 && box.winningTickets) {
             const prizes: Prize[] = box.winningTickets.map(ticket => ({
               value: Number(ticket.prize),
@@ -407,11 +428,11 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
             
             const ev = evPerTicket(pricePerTicket, estimatedTickets, prizes);
             const rtp = rtpRemaining(pricePerTicket, estimatedTickets, prizes);
-            const band = evBand(pricePerTicket, estimatedTickets, prizes);
+            // const band = evBand(pricePerTicket, estimatedTickets, prizes);
             
             evData = ev;
             rtpData = rtp;
-            evBandData = band;
+            // evBandData = band;
           }
           
           return (

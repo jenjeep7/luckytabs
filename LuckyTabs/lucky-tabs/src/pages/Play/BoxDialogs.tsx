@@ -86,14 +86,31 @@ interface RowSliderProps {
 }
 
 const RowSlider: React.FC<RowSliderProps> = ({ label, value, onChange, isMobile }) => {
+  const [localValue, setLocalValue] = useState(value);
+
+  // Sync local state with prop value
+  React.useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
+
+  const handleSliderChange = (_: Event, newValue: number | number[]) => {
+    const val = Array.isArray(newValue) ? newValue[0] : newValue;
+    setLocalValue(val);
+  };
+
+  const handleSliderChangeCommitted = (_: Event | React.SyntheticEvent, newValue: number | number[]) => {
+    const val = Array.isArray(newValue) ? newValue[0] : newValue;
+    onChange(val);
+  };
+
   const sliderStyles = {
     height: 280,
     mb: 2,
     '& .MuiSlider-thumb': {
       backgroundColor: '#e140a1',
       border: isMobile ? '3px solid #fff' : '2px solid #fff',
-      width: isMobile ? 24 : 20,
-      height: isMobile ? 24 : 20,
+      width: isMobile ? 28 : 20,
+      height: isMobile ? 28 : 20,
       ...(isMobile && {
         boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
         '&:hover': {
@@ -107,6 +124,16 @@ const RowSlider: React.FC<RowSliderProps> = ({ label, value, onChange, isMobile 
         '&::before': {
           boxShadow: 'none',
         },
+        // Improve touch target
+        '&:after': {
+          content: '""',
+          position: 'absolute',
+          top: '-10px',
+          left: '-10px',
+          right: '-10px',
+          bottom: '-10px',
+          borderRadius: '50%',
+        }
       }),
       ...(!isMobile && {
         '&:hover': {
@@ -116,21 +143,29 @@ const RowSlider: React.FC<RowSliderProps> = ({ label, value, onChange, isMobile 
     },
     '& .MuiSlider-track': {
       backgroundColor: '#e140a1',
-      width: isMobile ? 6 : 4,
+      width: isMobile ? 8 : 4,
     },
     '& .MuiSlider-rail': {
       backgroundColor: '#ddd',
-      width: isMobile ? 6 : 4,
+      width: isMobile ? 8 : 4,
     },
     '& .MuiSlider-mark': {
       backgroundColor: '#e140a1',
-      ...(isMobile && { width: 3, height: 3 }),
+      ...(isMobile && { width: 4, height: 4 }),
     },
     '& .MuiSlider-markLabel': {
       color: 'text.primary',
       fontSize: isMobile ? '0.65rem' : '0.75rem',
       ...(isMobile && { transform: 'translateX(-50%)' }),
     },
+    // Prevent text selection during drag on mobile
+    ...(isMobile && {
+      userSelect: 'none',
+      WebkitUserSelect: 'none',
+      MozUserSelect: 'none',
+      msUserSelect: 'none',
+      WebkitTouchCallout: 'none',
+    }),
   };
 
   const marks = [
@@ -146,33 +181,48 @@ const RowSlider: React.FC<RowSliderProps> = ({ label, value, onChange, isMobile 
       <Typography 
         variant={isMobile ? "caption" : "subtitle2"} 
         sx={{ 
-          mb: 2, 
+          mb: 1, 
           fontSize: isMobile ? '1rem' : undefined,
           fontWeight: 'bold',
-          ...(isMobile ? {} : { gutterBottom: true })
+          ...(isMobile ? { userSelect: 'none' } : { gutterBottom: true })
         }}
       >
         {label}
       </Typography>
+      <Typography 
+        variant={isMobile ? "caption" : "body2"} 
+        sx={{ 
+          fontWeight: 'bold',
+          fontSize: isMobile ? '1.1rem' : undefined,
+          mb: 2,
+          color: 'text.primary',
+          backgroundColor: 'background.paper',
+          px: 1,
+          py: 0.5,
+          borderRadius: 1,
+          border: '1px solid',
+          borderColor: 'divider',
+          ...(isMobile && { userSelect: 'none' })
+        }}
+      >
+        {localValue}
+      </Typography>
       <Slider
         orientation="vertical"
-        value={value}
-        onChange={(_, newValue) => onChange(typeof newValue === 'number' ? newValue : newValue[0])}
+        value={localValue}
+        onChange={handleSliderChange}
+        onChangeCommitted={handleSliderChangeCommitted}
         max={800}
         min={0}
         step={isMobile ? 5 : 1}
         marks={marks}
         sx={sliderStyles}
+        // Add mobile-specific props
+        {...(isMobile && {
+          disableSwap: true,
+          size: 'medium',
+        })}
       />
-      <Typography 
-        variant={isMobile ? "caption" : "body2"} 
-        sx={{ 
-          fontWeight: 'bold',
-          fontSize: isMobile ? '1rem' : undefined
-        }}
-      >
-        {value}
-      </Typography>
     </Box>
   );
 };

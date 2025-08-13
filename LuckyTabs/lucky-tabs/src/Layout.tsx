@@ -27,9 +27,9 @@ const navItems = [
   { label: 'Home', route: '/dashboard' },
   { label: 'Play', route: '/play' },
   { label: 'Tracking', route: '/tracking' },
-  { label: 'Contact', email: 'tabsywins@gmail.com' },
   { label: 'Community', route: '/community'},
-  { label: 'Profile', route: '/profile' }
+  { label: 'Profile', route: '/profile' },
+    { label: 'Contact', email: 'tabsywins@gmail.com' }
 ];
 
 function Layout() {
@@ -165,9 +165,6 @@ function Layout() {
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
           <Typography variant="caption">
             {`© 2025 Tabsy's Community. All rights reserved. For entertainment purposes only. Please play responsibly.`}
-          </Typography>
-          <Typography variant="caption" sx={{ color: 'grey.400' }}>
-            •
           </Typography>
           <Button 
             href="#privacy-policy" 

@@ -18,6 +18,7 @@ import {
   TrendingDown as TrendingDownIcon,
 } from '@mui/icons-material';
 import { HistoricalWeek } from './useTrackingData';
+import { formatDateRange, formatCurrency } from '../../utils/formatters';
 
 interface HistoricalDataProps {
   historicalData: HistoricalWeek[];
@@ -27,26 +28,6 @@ interface HistoricalDataProps {
 export const HistoricalData: React.FC<HistoricalDataProps> = ({
   historicalData,
 }) => {
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      month: 'numeric',
-      day: 'numeric',
-    });
-  };
-
-  const formatDateRange = (startDate: Date, endDate: Date) => {
-    const startYear = startDate.getFullYear();
-    const endYear = endDate.getFullYear();
-    const currentYear = new Date().getFullYear();
-    
-    // If both dates are in the current year, omit the year
-    if (startYear === currentYear && endYear === currentYear) {
-      return `${formatDate(startDate)} - ${formatDate(endDate)}`;
-    }
-    
-    // If different years, show the year for the end date
-    return `${formatDate(startDate)} - ${formatDate(endDate)}/${endYear.toString().slice(2)}`;
-  };
 
   // Calculate overall statistics
   const totalAllTimeSpent = historicalData.reduce((sum, week) => sum + week.totalSpent, 0);
@@ -69,7 +50,7 @@ export const HistoricalData: React.FC<HistoricalDataProps> = ({
                   Total Spent
                 </Typography>
                 <Typography variant="h6" color="error.main">
-                  ${totalAllTimeSpent.toFixed(2)}
+                  {formatCurrency(totalAllTimeSpent)}
                 </Typography>
               </Box>
               <Box>
@@ -77,7 +58,7 @@ export const HistoricalData: React.FC<HistoricalDataProps> = ({
                   Total Won
                 </Typography>
                 <Typography variant="h6" color="success.main">
-                  ${totalAllTimeWon.toFixed(2)}
+                  {formatCurrency(totalAllTimeWon)}
                 </Typography>
               </Box>
               <Box>
@@ -94,7 +75,7 @@ export const HistoricalData: React.FC<HistoricalDataProps> = ({
                   ) : (
                     <TrendingDownIcon fontSize="small" />
                   )}
-                  {totalAllTimeNet >= 0 ? '+' : ''}${totalAllTimeNet.toFixed(2)}
+                  {totalAllTimeNet >= 0 ? '+' : ''}{formatCurrency(Math.abs(totalAllTimeNet))}
                 </Typography>
               </Box>
               <Box>
@@ -172,12 +153,12 @@ export const HistoricalData: React.FC<HistoricalDataProps> = ({
                         </TableCell>
                         <TableCell align="right">
                           <Typography color="error.main">
-                            ${week.totalSpent.toFixed(2)}
+                            {formatCurrency(week.totalSpent)}
                           </Typography>
                         </TableCell>
                         <TableCell align="right">
                           <Typography color="success.main">
-                            ${week.totalWon.toFixed(2)}
+                            {formatCurrency(week.totalWon)}
                           </Typography>
                         </TableCell>
                         <TableCell align="right">
@@ -190,7 +171,7 @@ export const HistoricalData: React.FC<HistoricalDataProps> = ({
                             ) : (
                               <TrendingDownIcon fontSize="small" />
                             )}
-                            {isPositive ? '+' : ''}${week.netResult.toFixed(2)}
+                            {isPositive ? '+' : ''}{formatCurrency(Math.abs(week.netResult))}
                           </Typography>
                         </TableCell>
                         <TableCell align="center">
