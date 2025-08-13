@@ -15,21 +15,26 @@ import {
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import LogoutIcon from '@mui/icons-material/Logout';
+import FacebookIcon from '@mui/icons-material/Facebook';
+import InstagramIcon from '@mui/icons-material/Instagram';
+import TwitterIcon from '@mui/icons-material/Twitter';
+import YouTubeIcon from '@mui/icons-material/YouTube';
 import { useState } from 'react';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { auth } from './firebase';
 
 const navItems = [
   { label: 'Home', route: '/dashboard' },
   { label: 'Play', route: '/play' },
   { label: 'Tracking', route: '/tracking' },
-  { label: 'Contact', anchor: 'contact' },
+  { label: 'Contact', email: 'tabsywins@gmail.com' },
+  { label: 'Community', route: '/community'},
+  { label: 'Profile', route: '/profile' }
 ];
 
 function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
 
   const handleLogout = async () => await auth.signOut();
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
@@ -37,16 +42,10 @@ function Layout() {
   const handleNavItemClick = (item: typeof navItems[number]) => {
     if (item.route) {
       void navigate(item.route);
-    } else if (item.anchor) {
-      const anchor = `#${item.anchor}`;
-      if (location.pathname !== '/dashboard') {
-        void navigate('/dashboard');
-        setTimeout(() => {
-          document.querySelector(anchor)?.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
-      } else {
-        document.querySelector(anchor)?.scrollIntoView({ behavior: 'smooth' });
-      }
+    } else if (item.email) {
+      const subject = encodeURIComponent('Tabsy Wins - Contact');
+      const body = encodeURIComponent('Hello,\n\nI would like to get in touch regarding Tabsy Wins.\n\nThank you!');
+      window.location.href = `mailto:${item.email}?subject=${subject}&body=${body}`;
     }
   };
 
@@ -119,6 +118,71 @@ function Layout() {
       <Box component="main" sx={{ flexGrow: 1 }}>
         <Toolbar />
         <Outlet />
+      </Box>
+
+      {/* Footer Section */}
+      <Box id="contact" sx={{ bgcolor: 'grey.900', color: 'grey.300', py: 3, textAlign: 'center' }}>
+        <Typography variant="h6" color="white" gutterBottom>
+          {`Tabsy's Community`}
+        </Typography>
+
+        {/* Social Media Icons */}
+        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, my: 2 }}>
+          <IconButton
+            href="https://facebook.com/tabsyscommunity"
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{ color: 'grey.300', '&:hover': { color: '#1877F2' }, p: 1 }}
+          >
+            <FacebookIcon />
+          </IconButton>
+          <IconButton
+            href="https://www.instagram.com/tabsy_wins/"
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{ color: 'grey.300', '&:hover': { color: '#E4405F' }, p: 1 }}
+          >
+            <InstagramIcon />
+          </IconButton>
+          <IconButton
+            href="https://twitter.com/tabsyscommunity"
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{ color: 'grey.300', '&:hover': { color: '#1DA1F2' }, p: 1 }}
+          >
+            <TwitterIcon />
+          </IconButton>
+          <IconButton
+            href="https://www.youtube.com/@TabsyWins"
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{ color: 'grey.300', '&:hover': { color: '#FF0000' }, p: 1 }}
+          >
+            <YouTubeIcon />
+          </IconButton>
+        </Box>
+
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+          <Typography variant="caption">
+            {`© 2025 Tabsy's Community. All rights reserved. For entertainment purposes only. Please play responsibly.`}
+          </Typography>
+          <Typography variant="caption" sx={{ color: 'grey.400' }}>
+            •
+          </Typography>
+          <Button 
+            href="#privacy-policy" 
+            sx={{ 
+              color: 'grey.300', 
+              textTransform: 'none',
+              fontSize: 'inherit',
+              p: 0,
+              minWidth: 'auto',
+              '&:hover': { color: '#ffffff' }
+            }}
+          >
+            Privacy Policy
+          </Button>
+        </Box>
       </Box>
     </Box>
   );

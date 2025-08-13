@@ -41,3 +41,12 @@ Thumbs.db
 # IDE files
 .vscode/launch.json
 .idea/
+
+# Documentation (optional - remove if you want to commit these)
+# USER_PROFILE_README.md
+# COMMUNITY_AVATAR_UPDATE.md
+# firestore-rules-updated.rules
+
+# IDE files
+.vscode/launch.json
+.idea/

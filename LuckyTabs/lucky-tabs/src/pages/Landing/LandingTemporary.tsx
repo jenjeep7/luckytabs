@@ -12,7 +12,6 @@ const LandingTemporary: React.FC = () => {
       bgcolor="#170453"
       sx={{
         position: 'relative',
-        // Your cleaned background image with wizard/rainbow/etc.
         backgroundImage: 'url(/TabsyBackground.png)',
         backgroundRepeat: 'no-repeat',
         backgroundSize: {
@@ -23,18 +22,7 @@ const LandingTemporary: React.FC = () => {
           xs: 'center bottom 12%',
           sm: 'center bottom 8%',
           md: 'center bottom 6%',
-        },
-
-        // Soft vignette/gradient to make text readable against stars
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          inset: 0,
-          // background:
-          //   'radial-gradient(120% 70% at 50% 0%, rgba(23,4,83,0.0) 0%, rgba(23,4,83,0.35) 50%, rgba(23,4,83,0.65) 100%)',
-          pointerEvents: 'none',
-          zIndex: 1,
-        },
+        },      
       }}
     >
       {/* Content */}

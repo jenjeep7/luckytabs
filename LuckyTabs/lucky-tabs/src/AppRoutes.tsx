@@ -10,6 +10,8 @@ import { SupportCircle } from './pages/Support/SupportCircle';
 import Layout from './Layout';
 import { Play } from './pages/Play/Play';
 import { Tracking } from './pages/Tracking/Tracking';
+import { Community } from './pages/Community/Community';
+import { UserProfile } from './pages/Profile/UserProfile';
 function AppRoutes() {
   const [user, loading] = useAuthState(auth);
 
@@ -23,6 +25,9 @@ function AppRoutes() {
         <Route path="/support-circle" element={<SupportCircle />} />
         <Route path="/play" element={<Play />} />
         <Route path="/tracking" element={<Tracking />} />
+        <Route path="/community" element={<Community />} />
+        <Route path="/profile" element={<UserProfile />} />
+
       </Route>
       <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <Login />} />
       <Route path="/signup" element={user ? <Navigate to="/dashboard" /> : <Signup />} />

@@ -196,7 +196,7 @@ export const Tracking: React.FC = () => {
             </Typography>
             {currentWeekStats.netResult >= 0 && (
               <Typography variant="caption" color="success.main">
-                🎉 You&apos;re ahead this week!
+                {`🎉 You're ahead this week!`}
               </Typography>
             )}
           </CardContent>

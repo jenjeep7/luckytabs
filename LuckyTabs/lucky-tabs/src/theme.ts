@@ -7,6 +7,7 @@ export const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => ({
       ? {
           primary: {
             main: '#000000ff',
+            light: '#f9f9f9',
           },
           secondary: {
             main: '#e140a1ff',
@@ -26,6 +27,7 @@ export const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => ({
       : {
           primary: {
             main: '#000000ff',
+            light: '#3b3636ff',
           },
           secondary: {
             main: '#e140a1ff',
