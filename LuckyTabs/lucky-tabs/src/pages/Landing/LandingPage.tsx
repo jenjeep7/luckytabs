@@ -8,6 +8,7 @@ import {
   Grid,
   Typography,
   Paper,
+  useTheme,
 } from '@mui/material';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism';
@@ -15,11 +16,18 @@ import { useNavigate } from 'react-router-dom';
 
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isDarkMode = theme.palette.mode === 'dark';
 
   return (
     <>
       {/* Hero Section */}
-      <Box sx={{ bgcolor: 'primary.main', color: 'white', py: 10, textAlign: 'center' }}>
+      <Box sx={{ 
+        bgcolor: isDarkMode ? 'background.paper' : 'primary.main', 
+        color: isDarkMode ? 'text.primary' : 'white', 
+        py: 10, 
+        textAlign: 'center' 
+      }}>
         <Container>
           <Box>
             <img
@@ -54,9 +62,12 @@ export const LandingPage: React.FC = () => {
       </Box>
 
       {/* Features Section */}
-      <Box id="features" sx={{ py: 8, bgcolor: 'primary.light' }}>
+      <Box id="features" sx={{ 
+        py: 8, 
+        bgcolor: isDarkMode ? 'background.default' : 'grey.100' 
+      }}>
         <Container>
-          <Typography variant="h4" align="center" fontWeight="bold" gutterBottom color="primary.main">
+          <Typography variant="h4" align="center" fontWeight="bold" gutterBottom color="text.primary">
             Features & How the Luck Lines Up
           </Typography>
           <Grid container spacing={4} mt={4}>
@@ -100,7 +111,12 @@ export const LandingPage: React.FC = () => {
       </Box>
 
       {/* Testimonials Section */}
-      <Box id="testimonials" sx={{ py: 10, bgcolor: 'primary.main', color: 'white', textAlign: 'center' }}>
+      <Box id="testimonials" sx={{ 
+        py: 10, 
+        bgcolor: isDarkMode ? 'background.paper' : 'primary.main', 
+        color: isDarkMode ? 'text.primary' : 'white', 
+        textAlign: 'center' 
+      }}>
         <Container>
           <Typography variant="h4" align="center" fontWeight="bold" gutterBottom>
             📣 Pulled & Proud
@@ -120,7 +136,11 @@ export const LandingPage: React.FC = () => {
               },              
             ].map(({ quote, name }) => (
               <Grid key={name} size={{ xs: 12, md: 6 }}>
-                <Paper elevation={2} sx={{ p: 4 }} color="text.secondary">
+                <Paper elevation={2} sx={{ 
+                  p: 4,
+                  bgcolor: isDarkMode ? 'background.default' : 'white',
+                  color: 'text.primary'
+                }}>
                   <Typography variant="body1" fontStyle="italic" gutterBottom>
                     &quot;{quote}&quot;
                   </Typography>
@@ -137,7 +157,12 @@ export const LandingPage: React.FC = () => {
       {/* Responsible Gaming Section */}
       <Box
         id="responsible-gaming"
-        sx={{ py: 10, bgcolor: 'primary.light', textAlign: 'center', color: 'text.primary' }}
+        sx={{ 
+          py: 10, 
+          bgcolor: isDarkMode ? 'background.default' : 'grey.100', 
+          textAlign: 'center', 
+          color: 'text.primary' 
+        }}
       >
         <Container>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, mb: 2 }}>
@@ -160,7 +185,12 @@ export const LandingPage: React.FC = () => {
       </Box>
 
       {/* Final Call to Action Section */}
-      <Box sx={{ bgcolor: 'primary.main', color: 'white', py: 10, textAlign: 'center' }}>
+      <Box sx={{ 
+        bgcolor: isDarkMode ? 'background.paper' : 'primary.main', 
+        color: isDarkMode ? 'text.primary' : 'white', 
+        py: 10, 
+        textAlign: 'center' 
+      }}>
         <Container>
           <Typography variant="h4" fontWeight="bold" gutterBottom>
             {`Ready to Join Tabsy's Community?`}
@@ -168,7 +198,16 @@ export const LandingPage: React.FC = () => {
           <Typography variant="h6" maxWidth={600} mx="auto" mb={4}>
             Connect with fellow enthusiasts, share insights, and elevate your pull tab experience today.
           </Typography>
-          <Button variant="contained" sx={{ bgcolor: 'secondary.main', color: 'text.primary', '&:hover': { bgcolor: 'grey.100' } }}>
+          <Button 
+            variant="contained" 
+            sx={{ 
+              bgcolor: 'secondary.main', 
+              color: 'white',
+              '&:hover': { 
+                bgcolor: isDarkMode ? 'secondary.dark' : 'secondary.light' 
+              } 
+            }}
+          >
             Join Now
           </Button>
         </Container>

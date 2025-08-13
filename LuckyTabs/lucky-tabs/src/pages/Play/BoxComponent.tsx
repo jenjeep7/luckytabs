@@ -27,6 +27,7 @@ import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { db, auth } from '../../firebase';
 import { ConfirmRemoveDialog, EstimateRemainingDialog } from './BoxDialogs';
+import { formatCurrency } from '../../utils/formatters';
 import {
   calculateRemainingPrizes,
   calculateTotalRemainingPrizeValue,
@@ -477,12 +478,12 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
                   )}
                   
                   <Typography><strong>Number:</strong> {box.boxNumber}</Typography>
-                  <Typography><strong>Price per Ticket:</strong> ${box.pricePerTicket}</Typography>
+                  <Typography><strong>Price per Ticket:</strong> {formatCurrency(parseFloat(box.pricePerTicket))}</Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 0.5 }}>
                       {renderPrizeButtons(box)}
                   </Box>
 
-                  <Typography><strong>Total Remaining Prizes:</strong> ${remainingPrizes}</Typography>
+                  <Typography><strong>Total Remaining Prizes:</strong> {formatCurrency(remainingPrizes)}</Typography>
                   {showOwner && (
                     <Typography><strong>Created By:</strong> {userDisplayNames[box.ownerId] || 'Loading...'}</Typography>
                   )}
@@ -524,7 +525,7 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
                           <strong>Odds:</strong> {calculateOneInXChances(remainingTicketsInput, box.id, box)} chance
                         </Typography>
                         <Typography sx={{ fontWeight: 'bold', color: 'success.main' }}>
-                          <strong>Total Remaining Prize Value:</strong> ${calculateTotalRemainingPrizeValue(box)}
+                          <strong>Total Remaining Prize Value:</strong> {formatCurrency(calculateTotalRemainingPrizeValue(box))}
                         </Typography>
                         {/* <Typography sx={{ fontWeight: 'bold', color: getPayoutColor(remainingTicketsInput, box.id, box) }}>
                           <strong>Percent to buyout:</strong> {calculatePayoutPercentage(remainingTicketsInput, box.id, box)}
