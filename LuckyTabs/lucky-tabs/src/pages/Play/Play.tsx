@@ -53,6 +53,7 @@ export const Play: React.FC = () => {
   const [openCreateBox, setOpenCreateBox] = useState(false);
   const [openLocationManager, setOpenLocationManager] = useState(false);
   const [editBox, setEditBox] = useState<BoxItem | null>(null);
+  const [showLocationSelector, setShowLocationSelector] = useState(false);
 
   useEffect(() => {
     const fetchLocations = async () => {
@@ -117,6 +118,13 @@ export const Play: React.FC = () => {
 
   const handleChange = (event: SelectChangeEvent) => {
     setSelectedLocation(event.target.value);
+    if (event.target.value) {
+      setShowLocationSelector(false); // Hide selector when location is chosen
+    }
+  };
+
+  const handleChangeLocation = () => {
+    setShowLocationSelector(true); // Show selector to change location
   };
 
   const refreshBoxes = () => {
@@ -196,32 +204,82 @@ export const Play: React.FC = () => {
       <Typography variant="h4" gutterBottom sx={{ textAlign: 'center' }}>
         Play Pull Tabs
       </Typography>
-      {/* Locations Map */}
-      {locations.length > 0 && (
-        <LocationsMapSafe
-          locations={locations}
-          selectedLocationId={selectedLocation}
-          onLocationSelect={setSelectedLocation}
-          height={400}
-        />
+
+      {/* Show location selector if no location is selected OR user wants to change location */}
+      {(!selectedLocation || showLocationSelector) && (
+        <>
+          {/* Locations Map */}
+          {locations.length > 0 && (
+            <LocationsMapSafe
+              locations={locations}
+              selectedLocationId={selectedLocation}
+              onLocationSelect={setSelectedLocation}
+              height={400}
+            />
+          )}
+
+          <FormControl fullWidth sx={{ mt: 0 }} size="small">
+            <InputLabel id="location-select-label" size="small">Select Location</InputLabel>
+            <Select
+              labelId="location-select-label"
+              value={selectedLocation}
+              label="Select Location"
+              onChange={handleChange}
+              size="small"
+            >
+              {locations.map((loc) => (
+                <MenuItem key={loc.id} value={loc.id}>
+                  {loc.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          {/* Manage Locations button - only show during location selection */}
+          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+            <Button
+              variant="outlined"
+              color="secondary"
+              startIcon={<PlaceIcon />}
+              onClick={() => setOpenLocationManager(true)}
+            >
+              Manage Locations
+            </Button>
+          </Box>
+        </>
       )}
 
-      <FormControl fullWidth sx={{ mt: 0 }} size="small">
-        <InputLabel id="location-select-label" size="small">Select Location</InputLabel>
-        <Select
-          labelId="location-select-label"
-          value={selectedLocation}
-          label="Select Location"
-          onChange={handleChange}
-          size="small"
-        >
-          {locations.map((loc) => (
-            <MenuItem key={loc.id} value={loc.id}>
-              {loc.name}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+      {/* Show selected location info when a location is chosen and selector is hidden */}
+      {selectedLocation && !showLocationSelector && (
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 2,
+          p: 2, 
+          bgcolor: 'background.paper', 
+          borderRadius: 2,
+          border: '1px solid',
+          borderColor: 'divider',
+          mb: 2
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <PlaceIcon color="primary" />
+            <Typography variant="h6">
+              {selectedLocationObj?.name}
+            </Typography>
+          </Box>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={handleChangeLocation}
+            startIcon={<PlaceIcon />}
+          >
+            Change Location
+          </Button>
+        </Box>
+      )}
 
       <Box sx={{ mt: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
         <Button
@@ -231,15 +289,6 @@ export const Play: React.FC = () => {
           onClick={() => setOpenCreateBox(true)}
         >
           Create Box for Location
-        </Button>
-        
-        <Button
-          variant="outlined"
-          color="secondary"
-          startIcon={<PlaceIcon />}
-          onClick={() => setOpenLocationManager(true)}
-        >
-          Manage Locations
         </Button>
       </Box>
 
