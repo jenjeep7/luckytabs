@@ -37,7 +37,7 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../../firebase';
 import { communityService, Post, Comment } from '../../services/communityService';
 import { userService, UserData } from '../../services/userService';
-import { GroupsManager } from '../../components/GroupsManager';
+import { GroupsManager } from '../GroupManager/GroupsManager';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -337,7 +337,6 @@ export const Community: React.FC = () => {
           }
         }
       } catch (error) {
-        console.error('Error loading posts:', error);
         setSnackbar({
           open: true,
           message: 'Failed to load posts',
@@ -365,7 +364,6 @@ export const Community: React.FC = () => {
       const updatedPosts = await communityService.getPosts(feedType);
       setPosts(updatedPosts);
     } catch (error) {
-      console.error('Error liking post:', error);
       setSnackbar({
         open: true,
         message: 'Failed to update like',
@@ -385,7 +383,6 @@ export const Community: React.FC = () => {
         severity: 'success'
       });
     } catch (error) {
-      console.error('Error creating comment:', error);
       setSnackbar({
         open: true,
         message: 'Failed to add comment',
@@ -414,7 +411,6 @@ export const Community: React.FC = () => {
         severity: 'success'
       });
     } catch (error) {
-      console.error('Error creating post:', error);
       setSnackbar({
         open: true,
         message: 'Failed to create post',

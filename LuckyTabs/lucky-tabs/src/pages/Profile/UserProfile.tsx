@@ -244,30 +244,30 @@ export const UserProfile: React.FC = () => {
     }
   };
 
-  const handleRemoveFromGroup = async (userId: string) => {
-    if (!user) return;
+  // const handleRemoveFromGroup = async (userId: string) => {
+  //   if (!user) return;
     
-    try {
-      // Remove user from friends
-      await userService.removeFriend(user.uid, userId);
+  //   try {
+  //     // Remove user from friends
+  //     await userService.removeFriend(user.uid, userId);
       
-      // Update local state
-      setGroupMembers(prev => prev.filter(member => member.uid !== userId));
+  //     // Update local state
+  //     setGroupMembers(prev => prev.filter(member => member.uid !== userId));
       
-      setSnackbar({
-        open: true,
-        message: 'User removed from friends',
-        severity: 'success'
-      });
-    } catch (error) {
-      console.error('Error removing user from group:', error);
-      setSnackbar({
-        open: true,
-        message: 'Failed to remove user from friends',
-        severity: 'error'
-      });
-    }
-  };
+  //     setSnackbar({
+  //       open: true,
+  //       message: 'User removed from friends',
+  //       severity: 'success'
+  //     });
+  //   } catch (error) {
+  //     console.error('Error removing user from group:', error);
+  //     setSnackbar({
+  //       open: true,
+  //       message: 'Failed to remove user from friends',
+  //       severity: 'error'
+  //     });
+  //   }
+  // };
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
