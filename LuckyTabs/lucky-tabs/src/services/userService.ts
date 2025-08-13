@@ -4,8 +4,6 @@ import {
   setDoc, 
   updateDoc, 
   collection, 
-  query, 
-  where, 
   getDocs, 
   arrayUnion, 
   arrayRemove,
@@ -23,6 +21,7 @@ export interface UserData {
   avatar?: string;
   groups: string[];
   friends: string[];
+  isAdmin: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -62,6 +61,7 @@ class UserService {
           avatar: data.avatar as string | undefined,
           groups: (data.groups as string[]) || [],
           friends: (data.friends as string[]) || [],
+          isAdmin: data.isAdmin as boolean || false,
           createdAt,
           updatedAt
         } as UserData;
@@ -90,15 +90,18 @@ class UserService {
         lastName: lastName || displayName.split(' ')[1] || '',
         groups: [],
         friends: [],
+        isAdmin: false,
         createdAt: new Date(),
         updatedAt: new Date()
       };
 
-      await setDoc(doc(db, 'users', userId), {
+      const firestoreData = {
         ...userData,
         createdAt: Timestamp.fromDate(userData.createdAt),
         updatedAt: Timestamp.fromDate(userData.updatedAt)
-      });
+      };
+
+      await setDoc(doc(db, 'users', userId), firestoreData);
     } catch (error) {
       console.error('Error creating user profile:', error);
       throw error;
@@ -145,29 +148,45 @@ class UserService {
     try {
       if (!searchTerm.trim()) return [];
 
-      // Note: This is a basic search. For production, consider using
-      // Algolia or similar for better search capabilities
-      const usersRef = collection(db, 'users');
-      const q = query(
-        usersRef,
-        where('displayName', '>=', searchTerm),
-        where('displayName', '<=', searchTerm + '\uf8ff')
-      );
+      console.log('Searching for users with term:', searchTerm);
+      console.log('Excluding user IDs:', excludeUserIds);
 
-      const snapshot = await getDocs(q);
+      // Get all users and filter client-side for better search experience
+      // Note: For large user bases, consider using Algolia or similar
+      const usersRef = collection(db, 'users');
+      const snapshot = await getDocs(usersRef);
+      
+      console.log('Total users found in database:', snapshot.docs.length);
+      
+      const searchTermLower = searchTerm.toLowerCase().trim();
       const users = snapshot.docs
         .map(doc => {
           const data = doc.data();
           return {
             uid: doc.id,
-            displayName: data.displayName as string,
-            firstName: data.firstName as string,
-            lastName: data.lastName as string,
+            displayName: data.displayName as string || '',
+            firstName: data.firstName as string || '',
+            lastName: data.lastName as string || '',
             avatar: data.avatar as string | undefined
           } as GroupMember;
         })
-        .filter(user => !excludeUserIds.includes(user.uid));
+        .filter(user => {
+          // Check if user should be excluded
+          if (excludeUserIds.includes(user.uid)) {
+            return false;
+          }
+          
+          // Check if search term matches any part of the user's names (case-insensitive)
+          const displayNameLower = user.displayName.toLowerCase();
+          const firstNameLower = user.firstName.toLowerCase();
+          const lastNameLower = user.lastName.toLowerCase();
+          
+          return displayNameLower.includes(searchTermLower) ||
+                 firstNameLower.includes(searchTermLower) ||
+                 lastNameLower.includes(searchTermLower);
+        });
 
+      console.log('Users matching search:', users);
       return users;
     } catch (error) {
       console.error('Error searching users:', error);

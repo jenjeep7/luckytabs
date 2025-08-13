@@ -375,59 +375,7 @@ export const UserProfile: React.FC = () => {
                 </Stack>
               </CardContent>
             </Card>
-          </Grid>
-
-          {/* Group Management Card */}
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h6">
-                    Group Members
-                  </Typography>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<PersonAdd />}
-                    onClick={() => setAddUserDialog(true)}
-                  >
-                    Add User
-                  </Button>
-                </Box>
-
-                <List dense>
-                  {groupMembers.map((member) => (
-                    <ListItem key={member.uid}>
-                      <ListItemAvatar>
-                        <Avatar src={member.avatar}>
-                          {member.displayName[0]}
-                        </Avatar>
-                      </ListItemAvatar>
-                      <ListItemText
-                        primary={member.displayName}
-                        secondary={`ID: ${member.uid.slice(0, 8)}`}
-                      />
-                      <ListItemSecondaryAction>
-                        <IconButton
-                          edge="end"
-                          onClick={() => void handleRemoveFromGroup(member.uid)}
-                          size="small"
-                        >
-                          <Delete />
-                        </IconButton>
-                      </ListItemSecondaryAction>
-                    </ListItem>
-                  ))}
-                </List>
-
-                {groupMembers.length === 0 && (
-                  <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
-                    No group members yet
-                  </Typography>
-                )}
-              </CardContent>
-            </Card>
-          </Grid>
+          </Grid>       
         </Grid>
       )}
 

@@ -30,12 +30,14 @@ import {
   Send,
   Public,
   Group,
-  Add
+  Add,
+  Groups as GroupsIcon
 } from '@mui/icons-material';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../../firebase';
 import { communityService, Post, Comment } from '../../services/communityService';
 import { userService, UserData } from '../../services/userService';
+import { GroupsManager } from '../../components/GroupsManager';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -454,6 +456,11 @@ export const Community: React.FC = () => {
             label="Group Feed" 
             iconPosition="start"
           />
+          <Tab 
+            icon={<GroupsIcon />} 
+            label="My Groups" 
+            iconPosition="start"
+          />
         </Tabs>
 
         <TabPanel value={activeTab} index={0}>
@@ -528,6 +535,14 @@ export const Community: React.FC = () => {
               />
             ))
           )}
+        </TabPanel>
+
+        <TabPanel value={activeTab} index={2}>
+          {/* Groups Management */}
+          <GroupsManager 
+            currentUserId={user.uid}
+            currentUserName={currentUserProfile?.displayName || user?.displayName || undefined}
+          />
         </TabPanel>
       </Paper>
 
