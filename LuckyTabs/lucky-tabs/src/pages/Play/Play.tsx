@@ -183,7 +183,16 @@ export const Play: React.FC = () => {
   const barBoxes = boxes.filter((box) => box.type === "bar box");
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ 
+      p: 3, 
+      width: '100%', 
+      minHeight: 'calc(100vh - 64px)', // Account for AppBar height
+      overflow: 'visible',
+      '@media (max-width: 600px)': {
+        p: 2, // Reduce padding on mobile
+        minHeight: 'calc(100vh - 56px)', // Smaller AppBar on mobile
+      }
+    }}>
       <Typography variant="h4" gutterBottom sx={{ textAlign: 'center' }}>
         Play Pull Tabs
       </Typography>

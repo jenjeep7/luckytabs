@@ -152,18 +152,30 @@ function PostCard({ post, onLike, onComment, currentUserId, currentUserName, cur
   const isLiked = currentUserId ? post.likes.includes(currentUserId) : false;
 
   return (
-    <Card sx={{ mb: 2 }}>
+    <Card sx={{ 
+      mb: 2,
+      bgcolor: 'background.paper',
+      color: 'text.primary',
+      border: '1px solid',
+      borderColor: 'divider'
+    }}>
       <CardContent>
         {/* Post Header */}
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
           <Avatar
             src={getAvatarUrl(post.authorId)}
-            sx={{ width: 40, height: 40, mr: 2, bgcolor: 'primary.main' }}
+            sx={{ 
+              width: 40, 
+              height: 40, 
+              mr: 2, 
+              bgcolor: 'primary.main',
+              color: 'primary.contrastText'
+            }}
           >
             {getInitials(post.authorId)}
           </Avatar>
           <Box sx={{ flexGrow: 1 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>
               {getDisplayName(post.authorId)}
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -175,17 +187,22 @@ function PostCard({ post, onLike, onComment, currentUserId, currentUserName, cur
                 label={post.type === 'public' ? 'Public' : 'Group'}
                 size="small"
                 variant="outlined"
-                sx={{ fontSize: '0.7rem', height: 20 }}
+                sx={{ 
+                  fontSize: '0.7rem', 
+                  height: 20,
+                  color: 'text.secondary',
+                  borderColor: 'divider'
+                }}
               />
             </Box>
           </Box>
-          <IconButton size="small">
+          <IconButton size="small" sx={{ color: 'text.secondary' }}>
             <MoreVert />
           </IconButton>
         </Box>
 
         {/* Post Content */}
-        <Typography variant="body1" sx={{ mb: 2, whiteSpace: 'pre-wrap' }}>
+        <Typography variant="body1" sx={{ mb: 2, whiteSpace: 'pre-wrap', color: 'text.primary' }}>
           {post.content}
         </Typography>
 
@@ -196,6 +213,7 @@ function PostCard({ post, onLike, onComment, currentUserId, currentUserName, cur
             onClick={() => onLike(post.id)}
             color={isLiked ? 'error' : 'inherit'}
             size="small"
+            sx={{ color: isLiked ? 'error.main' : 'text.secondary' }}
           >
             {post.likes.length}
           </Button>
@@ -203,20 +221,33 @@ function PostCard({ post, onLike, onComment, currentUserId, currentUserName, cur
             startIcon={<ChatBubbleOutline />}
             onClick={() => setShowComments(!showComments)}
             size="small"
+            sx={{ color: 'text.secondary' }}
           >
             {comments.length}
           </Button>
-          <Button startIcon={<Share />} size="small">
+          <Button 
+            startIcon={<Share />} 
+            size="small"
+            sx={{ color: 'text.secondary' }}
+          >
             Share
           </Button>
         </Box>
 
         {/* Comments Section */}
         {showComments && (
-          <Box sx={{ mt: 2, pt: 2, borderTop: 1, borderColor: 'divider' }}>
+          <Box sx={{ 
+            mt: 2, 
+            pt: 2, 
+            borderTop: 1, 
+            borderColor: 'divider',
+            bgcolor: 'background.default',
+            borderRadius: 1,
+            p: 2
+          }}>
             {/* Loading Comments */}
             {loadingComments ? (
-              <CircularProgress size={20} />
+              <CircularProgress size={20} sx={{ color: 'primary.main' }} />
             ) : (
               <>
                 {/* Existing Comments */}
@@ -224,15 +255,20 @@ function PostCard({ post, onLike, onComment, currentUserId, currentUserName, cur
                   <Box key={comment.id} sx={{ display: 'flex', gap: 1, mb: 2 }}>
                     <Avatar 
                       src={getAvatarUrl(comment.authorId)}
-                      sx={{ width: 24, height: 24, bgcolor: 'secondary.main' }}
+                      sx={{ 
+                        width: 24, 
+                        height: 24, 
+                        bgcolor: 'secondary.main',
+                        color: 'secondary.contrastText'
+                      }}
                     >
                       {getInitials(comment.authorId)}
                     </Avatar>
                     <Box sx={{ flexGrow: 1 }}>
-                      <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                      <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.primary' }}>
                         {getDisplayName(comment.authorId)}
                       </Typography>
-                      <Typography variant="body2">
+                      <Typography variant="body2" sx={{ color: 'text.primary' }}>
                         {comment.content}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
@@ -248,7 +284,12 @@ function PostCard({ post, onLike, onComment, currentUserId, currentUserName, cur
             <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
               <Avatar 
                 src={getAvatarUrl(currentUserId || '')}
-                sx={{ width: 24, height: 24, bgcolor: 'primary.main' }}
+                sx={{ 
+                  width: 24, 
+                  height: 24, 
+                  bgcolor: 'primary.main',
+                  color: 'primary.contrastText'
+                }}
               >
                 {getInitials(currentUserId || '')}
               </Avatar>
@@ -260,6 +301,25 @@ function PostCard({ post, onLike, onComment, currentUserId, currentUserName, cur
                 size="small"
                 multiline
                 maxRows={3}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    bgcolor: 'background.paper',
+                    color: 'text.primary',
+                    '& fieldset': {
+                      borderColor: 'divider',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: 'primary.main',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: 'primary.main',
+                    },
+                  },
+                  '& .MuiInputBase-input::placeholder': {
+                    color: 'text.secondary',
+                    opacity: 1,
+                  },
+                }}
               />
               <Button 
                 onClick={handleComment}
@@ -421,8 +481,19 @@ export const Community: React.FC = () => {
 
   if (!user) {
     return (
-      <Container maxWidth="md" sx={{ py: 4 }}>
-        <Alert severity="info">
+      <Container maxWidth="md" sx={{ py: 4, bgcolor: 'background.default', minHeight: '100vh' }}>
+        <Alert 
+          severity="info"
+          sx={{
+            bgcolor: 'background.paper',
+            color: 'text.primary',
+            border: '1px solid',
+            borderColor: 'divider',
+            '& .MuiAlert-icon': {
+              color: 'info.main',
+            },
+          }}
+        >
           Please log in to access the community features.
         </Alert>
       </Container>
@@ -430,17 +501,35 @@ export const Community: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
-      <Typography variant="h4" sx={{ mb: 4, fontWeight: 600 }}>
+    <Container maxWidth="md" sx={{ py: 4, bgcolor: 'background.default', minHeight: '100vh' }}>
+      <Typography variant="h4" sx={{ mb: 4, fontWeight: 600, color: 'text.primary' }}>
         Community
       </Typography>
 
-      <Paper sx={{ mb: 3 }}>
+      <Paper sx={{ 
+        mb: 3,
+        bgcolor: 'background.paper',
+        border: '1px solid',
+        borderColor: 'divider',
+        boxShadow: (theme) => theme.palette.mode === 'dark' ? 'none' : 1
+      }}>
         <Tabs 
           value={activeTab} 
           onChange={handleTabChange} 
           variant="fullWidth"
-          sx={{ borderBottom: 1, borderColor: 'divider' }}
+          sx={{ 
+            borderBottom: 1, 
+            borderColor: 'divider',
+            '& .MuiTab-root': {
+              color: 'text.secondary',
+              '&.Mui-selected': {
+                color: 'primary.main',
+              },
+            },
+            '& .MuiTabs-indicator': {
+              backgroundColor: 'primary.main',
+            },
+          }}
         >
           <Tab 
             icon={<Public />} 
@@ -462,7 +551,7 @@ export const Community: React.FC = () => {
         <TabPanel value={activeTab} index={0}>
           {/* Public Feed Content */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Typography variant="h6">Public Community</Typography>
+            <Typography variant="h6" sx={{ color: 'text.primary' }}>Public Community</Typography>
             <Button
               variant="contained"
               startIcon={<Add />}
@@ -474,7 +563,7 @@ export const Community: React.FC = () => {
 
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-              <CircularProgress />
+              <CircularProgress sx={{ color: 'primary.main' }} />
             </Box>
           ) : posts.length === 0 ? (
             <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
@@ -499,7 +588,7 @@ export const Community: React.FC = () => {
         <TabPanel value={activeTab} index={1}>
           {/* Group Feed Content */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Typography variant="h6">Group Posts</Typography>
+            <Typography variant="h6" sx={{ color: 'text.primary' }}>Group Posts</Typography>
             <Button
               variant="contained"
               startIcon={<Add />}
@@ -511,7 +600,7 @@ export const Community: React.FC = () => {
 
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-              <CircularProgress />
+              <CircularProgress sx={{ color: 'primary.main' }} />
             </Box>
           ) : posts.length === 0 ? (
             <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
@@ -548,8 +637,16 @@ export const Community: React.FC = () => {
         onClose={() => setNewPostDialog(false)}
         maxWidth="sm"
         fullWidth
+        sx={{
+          '& .MuiDialog-paper': {
+            bgcolor: 'background.paper',
+            color: 'text.primary',
+            border: '1px solid',
+            borderColor: 'divider',
+          },
+        }}
       >
-        <DialogTitle>
+        <DialogTitle sx={{ color: 'text.primary' }}>
           Create New Post
         </DialogTitle>
         <DialogContent>
@@ -560,11 +657,30 @@ export const Community: React.FC = () => {
             placeholder={`What's on your mind? Share with the ${activeTab === 0 ? 'public' : 'group'} community...`}
             value={newPostContent}
             onChange={(e) => setNewPostContent(e.target.value)}
-            sx={{ mt: 1 }}
+            sx={{ 
+              mt: 1,
+              '& .MuiOutlinedInput-root': {
+                bgcolor: 'background.default',
+                color: 'text.primary',
+                '& fieldset': {
+                  borderColor: 'divider',
+                },
+                '&:hover fieldset': {
+                  borderColor: 'primary.main',
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: 'primary.main',
+                },
+              },
+              '& .MuiInputBase-input::placeholder': {
+                color: 'text.secondary',
+                opacity: 1,
+              },
+            }}
           />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setNewPostDialog(false)}>
+        <DialogActions sx={{ bgcolor: 'background.paper' }}>
+          <Button onClick={() => setNewPostDialog(false)} sx={{ color: 'text.secondary' }}>
             Cancel
           </Button>
           <Button 

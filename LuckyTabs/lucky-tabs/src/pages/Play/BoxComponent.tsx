@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Box, 
   Typography, 
@@ -7,18 +6,38 @@ import {
   Button,
   IconButton,
   TextField,
+  Chip,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Card,
+  CardContent,
+  Divider,
+  Tooltip
 } from '@mui/material';
-import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
+import { 
+  Delete as DeleteIcon, 
+  Edit as EditIcon, 
+  ExpandMore as ExpandMoreIcon,
+  Analytics as AnalyticsIcon,
+  Info as InfoIcon
+} from '@mui/icons-material';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
-import { db } from '../../firebase';
-import { ConfirmRemoveDialog, ClaimPrizeDialog, EstimateRemainingDialog } from './BoxDialogs';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { db, auth } from '../../firebase';
+import { ConfirmRemoveDialog, EstimateRemainingDialog } from './BoxDialogs';
 import {
   calculateRemainingPrizes,
   calculateTotalRemainingPrizeValue,
   calculatePayoutPercentage,
   getPayoutColor,
   calculateChancePercentage,
-  calculateOneInXChances
+  calculateOneInXChances,
+  calculateAdvancedMetrics,
+  evPerTicket,
+  evBand,
+  rtpRemaining,
+  Prize
 } from './helpers';
 
 interface WinningTicket {
@@ -45,7 +64,7 @@ interface BoxItem {
     row3: number;
     row4: number;
   };
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface BoxComponentProps {
@@ -65,23 +84,10 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
   showOwner = true,
   marginTop = 3 
 }) => {
+  const [user] = useAuthState(auth);
   const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; boxId: string; boxName: string }>({
     open: false,
     boxId: '',
-    boxName: ''
-  });
-
-  const [claimDialog, setClaimDialog] = useState<{ 
-    open: boolean; 
-    boxId: string; 
-    ticketIndex: number; 
-    prize: string;
-    boxName: string;
-  }>({
-    open: false,
-    boxId: '',
-    ticketIndex: -1,
-    prize: '',
     boxName: ''
   });
 
@@ -96,6 +102,35 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
     boxId: '',
     boxName: ''
   });
+
+  // Helper function to determine EV color based on three-tier system
+  // Green: EV >= 0 (Excellent - player advantage)
+  // Orange: RTP >= 80% but EV < 0 (Decent - reasonable value)  
+  // Red: RTP < 80% (Poor - avoid)
+  const getEvColor = (evValue: number, rtpValue: number, isPercentage = true) => {
+    const rtpThreshold = isPercentage ? 80 : 0.8;
+    
+    if (evValue >= 0) {
+      return '#4caf50'; // Green for positive EV (>100% RTP)
+    } else if (rtpValue >= rtpThreshold) {
+      return '#ff9800'; // Orange for decent (80-99% RTP)
+    } else {
+      return '#f44336'; // Red for poor (<80% RTP)
+    }
+  };
+
+  // Helper function to get EV status text
+  const getEvStatus = (evValue: number, rtpValue: number, isPercentage = true) => {
+    const rtpThreshold = isPercentage ? 80 : 0.8;
+    
+    if (evValue >= 0) {
+      return 'Excellent';
+    } else if (rtpValue >= rtpThreshold) {
+      return 'Decent';
+    } else {
+      return 'Poor';
+    }
+  };
 
   useEffect(() => {
     const fetchUserDisplayNames = async () => {
@@ -181,49 +216,46 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
     setConfirmDialog({ open: false, boxId: '', boxName: '' });
   };
 
-  const handlePrizeClick = (boxId: string, ticketIndex: number, prize: string, boxName: string) => {
-    setClaimDialog({
-      open: true,
-      boxId,
-      ticketIndex,
-      prize,
-      boxName
-    });
-  };
-
-  const handleConfirmClaim = () => {
-    const claimPrize = async () => {
+  const handlePrizeClick = (boxId: string, ticketIndex: number, prizeIndex: number) => {
+    const toggleClaim = async () => {
       try {
-        const boxRef = doc(db, 'boxes', claimDialog.boxId);
-        const box = boxes.find(b => b.id === claimDialog.boxId);
+        const boxRef = doc(db, 'boxes', boxId);
+        const box = boxes.find(b => b.id === boxId);
         
         if (box && box.winningTickets) {
           const updatedTickets = [...box.winningTickets];
-          updatedTickets[claimDialog.ticketIndex] = {
-            ...updatedTickets[claimDialog.ticketIndex],
-            claimedTotal: updatedTickets[claimDialog.ticketIndex].claimedTotal + 1
-          };
+          const currentTicket = updatedTickets[ticketIndex];
+          
+          // Toggle between claimed and unclaimed
+          if (prizeIndex < currentTicket.claimedTotal) {
+            // Unclaim: reduce claimedTotal by 1
+            updatedTickets[ticketIndex] = {
+              ...currentTicket,
+              claimedTotal: Math.max(0, currentTicket.claimedTotal - 1)
+            };
+          } else {
+            // Claim: increase claimedTotal by 1
+            updatedTickets[ticketIndex] = {
+              ...currentTicket,
+              claimedTotal: Math.min(currentTicket.totalPrizes, currentTicket.claimedTotal + 1)
+            };
+          }
 
           await updateDoc(boxRef, {
             winningTickets: updatedTickets
           });
-          
-          setClaimDialog({ open: false, boxId: '', ticketIndex: -1, prize: '', boxName: '' });
-          
+
+          // Refresh data if callback exists
           if (onBoxRemoved) {
             onBoxRemoved();
           }
         }
       } catch (error) {
-        console.error('Error claiming prize:', error);
+        console.error('Error toggling prize claim:', error);
       }
     };
-    
-    void claimPrize();
-  };
 
-  const handleCancelClaim = () => {
-    setClaimDialog({ open: false, boxId: '', ticketIndex: -1, prize: '', boxName: '' });
+    void toggleClaim();
   };
 
   const handleEstimateClick = (box: BoxItem) => {
@@ -237,6 +269,12 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
   const handleEstimateUpdate = (totalTickets: number, rowEstimates: { row1: number; row2: number; row3: number; row4: number }) => {
     const updateEstimate = async () => {
       try {
+        // Check if user is authenticated
+        if (!user?.uid) {
+          console.warn('User not authenticated, cannot update box');
+          return;
+        }
+
         // Update local state
         setRemainingTicketsInput(prev => ({
           ...prev,
@@ -274,34 +312,32 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
     setEstimateDialog({ open: false, boxId: '', boxName: '' });
   };
 
-  const handleRemainingTicketsChange = (boxId: string, value: string) => {
-    // Only allow positive numbers
-    if (value === '' || (/^\d+$/.test(value) && Number(value) >= 0)) {
-      setRemainingTicketsInput(prev => ({
-        ...prev,
-        [boxId]: value
-      }));
-
-      // Save to database with debounce (wait for user to stop typing)
-      const updateDB = async () => {
-        try {
-          const boxRef = doc(db, 'boxes', boxId);
-          await updateDoc(boxRef, {
-            estimatedRemainingTickets: value === '' ? null : Number(value)
-          });
-        } catch (error) {
-          console.error('Error updating estimated remaining tickets:', error);
+  const handleRemainingTicketsChange = useCallback((boxId: string, ticketsRemaining: number) => {
+    setRemainingTicketsInput(prev => ({
+      ...prev,
+      [boxId]: ticketsRemaining.toString()
+    }));
+    
+    // Update Firestore
+    const updateFirestore = async () => {
+      try {
+        // Check if user is authenticated
+        if (!user?.uid) {
+          console.warn('User not authenticated, cannot update box');
+          return;
         }
-      };
 
-      // Clear existing timeout and set new one
-      if (value !== '') {
-        setTimeout(() => {
-          void updateDB();
-        }, 1000); // Wait 1 second after user stops typing
+        const boxRef = doc(db, 'boxes', boxId);
+        await updateDoc(boxRef, {
+          estimatedRemainingTickets: ticketsRemaining
+        });
+      } catch (error) {
+        console.error('Error updating remaining tickets:', error);
       }
-    }
-  };
+    };
+    
+    void updateFirestore();
+  }, [user?.uid]);
 
   const renderPrizeButtons = (box: BoxItem) => {
     if (!box.winningTickets) return null;
@@ -314,23 +350,27 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
       const claimedTotal = ticket.claimedTotal;
 
       for (let i = 0; i < totalPrizes; i++) {
-        const isDisabled = i < claimedTotal;
+        const isClaimed = i < claimedTotal;
         allPrizeButtons.push(
           <Button
             key={`${ticketIndex}-${i}`}
-            variant="contained"
-            disabled={isDisabled}
-            onClick={() => !isDisabled && handlePrizeClick(box.id, ticketIndex, prize, box.boxName)}
+            variant={isClaimed ? "outlined" : "contained"}
+            onClick={() => handlePrizeClick(box.id, ticketIndex, i)}
             sx={{
               minWidth: 60,
               minHeight: 40,
               m: 0.5,
-              backgroundColor: isDisabled ? 'grey.300' : 'primary.main',
-              color: isDisabled ? 'grey.500' : 'white',
+              backgroundColor: isClaimed ? 'transparent' : 'primary.main',
+              color: isClaimed ? 'text.disabled' : 'white',
+              borderColor: isClaimed ? 'text.disabled' : 'primary.main',
+              textDecoration: isClaimed ? 'line-through' : 'none',
               '&:hover': {
-                backgroundColor: isDisabled ? 'grey.300' : 'primary.dark'
+                backgroundColor: isClaimed ? 'action.hover' : 'primary.dark',
+                borderColor: isClaimed ? 'text.secondary' : 'primary.dark',
+                color: isClaimed ? 'text.primary' : 'white'
               },
-              opacity: isDisabled ? 0.5 : 1
+              opacity: isClaimed ? 0.6 : 1,
+              transition: 'all 0.2s ease-in-out'
             }}
           >
             ${prize}
@@ -352,6 +392,27 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
         </Typography>
         {boxes.map((box) => {
           const remainingPrizes = calculateRemainingPrizes(box);
+          const pricePerTicket = parseFloat(box.pricePerTicket);
+          const estimatedTickets = Number(remainingTicketsInput[box.id]) || box.estimatedRemainingTickets || 0;
+          
+          // Calculate EV data
+          let evData = null;
+          let rtpData = null;
+          let evBandData = null;
+          if (estimatedTickets > 0 && box.winningTickets) {
+            const prizes: Prize[] = box.winningTickets.map(ticket => ({
+              value: Number(ticket.prize),
+              remaining: Number(ticket.totalPrizes) - Number(ticket.claimedTotal)
+            }));
+            
+            const ev = evPerTicket(pricePerTicket, estimatedTickets, prizes);
+            const rtp = rtpRemaining(pricePerTicket, estimatedTickets, prizes);
+            const band = evBand(pricePerTicket, estimatedTickets, prizes);
+            
+            evData = ev;
+            rtpData = rtp;
+            evBandData = band;
+          }
           
           return (
             <Paper
@@ -363,6 +424,37 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
                   <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
                     {box.boxName}
                   </Typography>
+                  
+                  {/* EV Badge */}
+                  {evData !== null && rtpData !== null && (
+                    <Box sx={{ mb: 2 }}>
+                      <Chip
+                        label={`EV ${evData >= 0 ? '+' : ''}$${evData.toFixed(2)} / ticket`}
+                        sx={{
+                          fontSize: '1.1rem',
+                          fontWeight: 'bold',
+                          px: 2,
+                          py: 1,
+                          backgroundColor: getEvColor(evData, rtpData, true), // rtpData is percentage format
+                          color: 'white',
+                          '& .MuiChip-label': {
+                            fontWeight: 'bold'
+                          }
+                        }}
+                      />
+                      {rtpData !== null && (
+                        <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
+                          RTP: {rtpData.toFixed(1)}% • Status: {getEvStatus(evData, rtpData, true)}
+                        </Typography>
+                      )}
+                      {/* {evBandData && (
+                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                          EV range: ${evBandData.low.toFixed(2)} to ${evBandData.high.toFixed(2)}
+                        </Typography>
+                      )} */}
+                    </Box>
+                  )}
+                  
                   <Typography><strong>Number:</strong> {box.boxNumber}</Typography>
                   <Typography><strong>Price per Ticket:</strong> ${box.pricePerTicket}</Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 0.5 }}>
@@ -398,7 +490,7 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
                         type="number"
                         size="small"
                         value={remainingTicketsInput[box.id] || ''}
-                        onChange={(e) => handleRemainingTicketsChange(box.id, e.target.value)}
+                        onChange={(e) => handleRemainingTicketsChange(box.id, Number(e.target.value))}
                         sx={{ maxWidth: 200 }}
                       />
                     )}
@@ -413,13 +505,225 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
                         <Typography sx={{ fontWeight: 'bold', color: 'success.main' }}>
                           <strong>Total Remaining Prize Value:</strong> ${calculateTotalRemainingPrizeValue(box)}
                         </Typography>
-                        <Typography sx={{ fontWeight: 'bold', color: getPayoutColor(remainingTicketsInput, box.id, box) }}>
+                        {/* <Typography sx={{ fontWeight: 'bold', color: getPayoutColor(remainingTicketsInput, box.id, box) }}>
                           <strong>Percent to buyout:</strong> {calculatePayoutPercentage(remainingTicketsInput, box.id, box)}
-                        </Typography>
+                        </Typography> */}
                       </>
                     )}
-                  </Box>
+                  {/* Advanced Metrics Section */}
+                  {remainingTicketsInput[box.id] && (
+                    <Accordion sx={{ mt: 2, maxWidth: 800, mx: 'auto' }}>
+                      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <AnalyticsIcon />
+                          <Typography variant="h6">Advanced Analytics</Typography>
+                        </Box>
+                      </AccordionSummary>
+                      <AccordionDetails>
+                        {(() => {
+                          const remainingTickets = Number(remainingTicketsInput[box.id]);
+                          const metrics = calculateAdvancedMetrics(box, remainingTickets);
+                          
+                          return (
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                              {/* Core Metrics */}
+                              <Box>
+                                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 2 }}>
+                                  📊 Core Metrics
+                                </Typography>
+                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                                  <Card variant="outlined" sx={{ flex: '1 1 200px' }}>
+                                    <CardContent sx={{ p: 2 }}>
+                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                        <Typography variant="caption" color="text.secondary">EV per Ticket</Typography>
+                                        <Tooltip 
+                                          title={
+                                            <Box>
+                                              <Typography variant="subtitle2" sx={{ mb: 1 }}>Expected Value per Ticket</Typography>
+                                              <Typography variant="body2" sx={{ mb: 1 }}>
+                                                This shows the average profit or loss per ticket if you played many times.
+                                              </Typography>
+                                              <Typography variant="body2" sx={{ mb: 1 }}>
+                                                <strong>Positive (+)</strong>: Good! You expect to make money on average<br/>
+                                                <strong>Negative (-)</strong>: Bad! You expect to lose money on average<br/>
+                                                <strong>Zero (0)</strong>: Break-even, no profit or loss expected
+                                              </Typography>
+                                              <Typography variant="body2">
+                                                <em>Example: +$0.25 means you&apos;d expect to profit 25¢ per ticket over many pulls</em>
+                                              </Typography>
+                                            </Box>
+                                          }
+                                          arrow
+                                          placement="top"
+                                        >
+                                          <IconButton size="small" sx={{ p: 0.25 }}>
+                                            <InfoIcon fontSize="small" />
+                                          </IconButton>
+                                        </Tooltip>
+                                      </Box>
+                                      <Typography variant="h6" sx={{ color: getEvColor(metrics.evPerTicket, metrics.rtpRemaining, false) }}> {/* decimal format */}
+                                        {metrics.evPerTicket >= 0 ? '+' : ''}${metrics.evPerTicket.toFixed(2)}
+                                      </Typography>
+                                    </CardContent>
+                                  </Card>
+                                  
+                                  <Card variant="outlined" sx={{ flex: '1 1 200px' }}>
+                                    <CardContent sx={{ p: 2 }}>
+                                      <Typography variant="caption" color="text.secondary">RTP Remaining</Typography>
+                                      <Typography variant="h6" sx={{ color: getEvColor(metrics.evPerTicket, metrics.rtpRemaining, false) }}> {/* decimal format */}
+                                        {(metrics.rtpRemaining * 100).toFixed(1)}%
+                                      </Typography>
+                                    </CardContent>
+                                  </Card>
+                                  
+                                  <Card variant="outlined" sx={{ flex: '1 1 200px' }}>
+                                    <CardContent sx={{ p: 2 }}>
+                                      <Typography variant="caption" color="text.secondary">Goodness Score</Typography>
+                                      <Typography variant="h6" color="primary.main">
+                                        {(metrics.goodnessScore * 100).toFixed(0)}/100
+                                      </Typography>
+                                    </CardContent>
+                                  </Card>
+                                </Box>
+                              </Box>
+
+                              {/* Buyout Analysis */}
+                              <Box>
+                                <Divider />
+                                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', my: 2 }}>
+                                  💰 Buyout Analysis
+                                </Typography>
+                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                                  <Card variant="outlined" sx={{ flex: '1 1 250px' }}>
+                                    <CardContent sx={{ p: 2 }}>
+                                      <Typography variant="caption" color="text.secondary">Cost to Clear</Typography>
+                                      <Typography variant="h6">${metrics.costToClear.toFixed(2)}</Typography>
+                                    </CardContent>
+                                  </Card>
+                                  
+                                  <Card variant="outlined" sx={{ flex: '1 1 250px' }}>
+                                    <CardContent sx={{ p: 2 }}>
+                                      <Typography variant="caption" color="text.secondary">Net if Cleared</Typography>
+                                      <Typography variant="h6" color={metrics.netIfCleared >= 0 ? 'success.main' : 'error.main'}>
+                                        {metrics.netIfCleared >= 0 ? '+' : ''}${metrics.netIfCleared.toFixed(2)}
+                                      </Typography>
+                                    </CardContent>
+                                  </Card>
+                                </Box>
+                              </Box>
+
+                              {/* Odds Analysis */}
+                              <Box>
+                                <Divider />
+                                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', my: 2 }}>
+                                  🎯 Odds Analysis
+                                </Typography>
+                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                                  <Card variant="outlined" sx={{ flex: '1 1 300px' }}>
+                                    <CardContent sx={{ p: 2 }}>
+                                      <Typography variant="subtitle2" sx={{ mb: 1 }}>Top Prize Odds</Typography>
+                                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                                        <Chip 
+                                          label={`Next 1: ${(metrics.topPrizeOdds.next1 * 100).toFixed(1)}%`} 
+                                          size="small" 
+                                          color="primary"
+                                        />
+                                        <Chip 
+                                          label={`Next 5: ${(metrics.topPrizeOdds.next5 * 100).toFixed(1)}%`} 
+                                          size="small" 
+                                          color="primary"
+                                        />
+                                        <Chip 
+                                          label={`Next 10: ${(metrics.topPrizeOdds.next10 * 100).toFixed(1)}%`} 
+                                          size="small" 
+                                          color="primary"
+                                        />
+                                      </Box>
+                                    </CardContent>
+                                  </Card>
+                                  
+                                  <Card variant="outlined" sx={{ flex: '1 1 300px' }}>
+                                    <CardContent sx={{ p: 2 }}>
+                                      <Typography variant="subtitle2" sx={{ mb: 1 }}>Profit Ticket Odds</Typography>
+                                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                                        <Chip 
+                                          label={`Next 1: ${(metrics.profitTicketOdds.next1 * 100).toFixed(1)}%`} 
+                                          size="small" 
+                                          color="success"
+                                        />
+                                        <Chip 
+                                          label={`Next 5: ${(metrics.profitTicketOdds.next5 * 100).toFixed(1)}%`} 
+                                          size="small" 
+                                          color="success"
+                                        />
+                                        <Chip 
+                                          label={`Next 10: ${(metrics.profitTicketOdds.next10 * 100).toFixed(1)}%`} 
+                                          size="small" 
+                                          color="success"
+                                        />
+                                      </Box>
+                                    </CardContent>
+                                  </Card>
+                                </Box>
+                              </Box>
+
+                              {/* Risk Analysis */}
+                              <Box>
+                                <Divider />
+                                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', my: 2 }}>
+                                  ⚠️ Risk Analysis
+                                </Typography>
+                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                                  <Card variant="outlined" sx={{ flex: '1 1 180px' }}>
+                                    <CardContent sx={{ p: 2 }}>
+                                      <Typography variant="caption" color="text.secondary">Risk per Ticket</Typography>
+                                      <Typography variant="h6">±${metrics.riskPerTicket.toFixed(2)}</Typography>
+                                    </CardContent>
+                                  </Card>
+                                  
+                                  <Card variant="outlined" sx={{ flex: '1 1 180px' }}>
+                                    <CardContent sx={{ p: 2 }}>
+                                      <Typography variant="caption" color="text.secondary">Payout Concentration</Typography>
+                                      <Typography variant="h6">{(metrics.payoutConcentration * 100).toFixed(1)}%</Typography>
+                                    </CardContent>
+                                  </Card>
+                                  
+                                  <Card variant="outlined" sx={{ flex: '1 1 180px' }}>
+                                    <CardContent sx={{ p: 2 }}>
+                                      <Typography variant="caption" color="text.secondary">Estimate Stability</Typography>
+                                      <Chip 
+                                        label={metrics.sensitivity.isEstimateSensitive ? "Sensitive" : "Stable"} 
+                                        size="small" 
+                                        color={metrics.sensitivity.isEstimateSensitive ? "warning" : "success"}
+                                      />
+                                    </CardContent>
+                                  </Card>
+                                </Box>
+                              </Box>
+
+                              {/* Sensitivity Warning */}
+                              {metrics.sensitivity.isEstimateSensitive && (
+                                <Card variant="outlined" sx={{ bgcolor: 'warning.light' }}>
+                                  <CardContent sx={{ p: 2 }}>
+                                    <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>⚠️ Estimate Sensitivity Warning</Typography>
+                                    <Typography variant="body2" sx={{ mb: 1 }}>
+                                      EV at 90% estimate: ${metrics.sensitivity.evLow.toFixed(2)} | 
+                                      EV at 110% estimate: ${metrics.sensitivity.evHigh.toFixed(2)}
+                                    </Typography>
+                                    <Typography variant="caption">
+                                      The profitability estimate is sensitive to your ticket count estimate. Consider refining your count.
+                                    </Typography>
+                                  </CardContent>
+                                </Card>
+                              )}
+                            </Box>
+                          );
+                        })()}
+                      </AccordionDetails>
+                    </Accordion>
+                  )}
                 </Box>
+              </Box>
               </Box>
 
               {/* Moved action buttons to bottom */}
@@ -449,14 +753,6 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
         boxName={confirmDialog.boxName}
         onConfirm={handleConfirmRemove}
         onCancel={handleCancelRemove}
-      />
-
-      <ClaimPrizeDialog
-        open={claimDialog.open}
-        prize={claimDialog.prize}
-        boxName={claimDialog.boxName}
-        onConfirm={handleConfirmClaim}
-        onCancel={handleCancelClaim}
       />
 
       <EstimateRemainingDialog

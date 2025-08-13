@@ -66,7 +66,7 @@ function Layout() {
   );
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%', overflow: 'visible' }}>
       <AppBar component="nav" position="fixed">
         <Toolbar>
           <IconButton
@@ -115,7 +115,7 @@ function Layout() {
         </Drawer>
       </Box>
 
-      <Box component="main" sx={{ flexGrow: 1 }}>
+      <Box component="main" sx={{ flexGrow: 1, width: '100%', overflow: 'visible' }}>
         <Toolbar />
         <Outlet />
       </Box>
