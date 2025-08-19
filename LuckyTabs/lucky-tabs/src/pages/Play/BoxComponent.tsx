@@ -289,7 +289,8 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
         const boxRef = doc(db, 'boxes', estimateDialog.boxId);
         await updateDoc(boxRef, {
           estimatedRemainingTickets: totalTickets,
-          rowEstimates: rowEstimates
+          rowEstimates: rowEstimates,
+          estimatedTicketsUpdated: new Date(),
         });
 
         setEstimateDialog({ open: false, boxId: '', boxName: '' });

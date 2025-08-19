@@ -17,6 +17,10 @@ import {
   DialogTitle,
   DialogContent,
   IconButton,
+  Card,
+  CardContent,
+  Chip,
+  Paper,
 } from "@mui/material";
 import CloseIcon from '@mui/icons-material/Close';
 import PlaceIcon from '@mui/icons-material/Place';
@@ -34,6 +38,12 @@ interface Location {
   [key: string]: any;
 }
 
+interface WinningTicket {
+  totalPrizes: number;
+  claimedTotal: number;
+  prize: string;
+}
+
 interface BoxItem {
   id: string;
   boxName: string;
@@ -43,10 +53,80 @@ interface BoxItem {
   locationId: string;
   ownerId: string;
   isActive?: boolean;
+  winningTickets?: WinningTicket[];
+  estimatedRemainingTickets?: number;
   [key: string]: any;
 }
 
 export const Play: React.FC = () => {
+  // Restore missing helper functions
+  const handleChange = (event: any) => {
+    setSelectedLocation(event.target.value as string);
+    if (event.target.value) {
+      setShowLocationSelector(false);
+    }
+  };
+
+  const handleChangeLocation = () => {
+    setShowLocationSelector(true);
+  };
+
+  const refreshBoxes = () => {
+    // Re-trigger the fetchBoxes useEffect by updating a dependency
+    // Since selectedLocation is already a dependency, we can just call fetchBoxes directly
+    if (selectedLocation) {
+      const fetchBoxes = async () => {
+        try {
+          const snapshot = await getDocs(collection(db, "boxes"));
+          const data: BoxItem[] = snapshot.docs.map((doc) => {
+            const docData = doc.data();
+            return {
+              id: doc.id,
+              boxName: (docData.boxName as string) || '',
+              boxNumber: (docData.boxNumber as string) || '',
+              pricePerTicket: (docData.pricePerTicket as string) || '',
+              type: (docData.type as "wall" | "bar box") || 'wall',
+              locationId: (docData.locationId as string) || '',
+              ownerId: (docData.ownerId as string) || '',
+              isActive: docData.isActive !== false,
+              ...docData,
+            };
+          })
+          .filter((box) => box.locationId === selectedLocation && box.isActive);
+          setBoxes(data);
+        } catch (error) {
+          console.error("Error fetching boxes:", error);
+        }
+      };
+      void fetchBoxes();
+    }
+  };
+
+  const refreshLocations = async () => {
+    try {
+      const snapshot = await getDocs(collection(db, "locations"));
+      const data: Location[] = snapshot.docs.map((doc) => {
+        const docData = doc.data();
+        return {
+          id: doc.id,
+          name: (docData.name as string) || '',
+          address: (docData.address as string) || '',
+          type: (docData.type as "restaurant" | "bar") || 'bar',
+          placeId: docData.placeId as string,
+          coordinates: docData.coordinates ? {
+            lat: docData.coordinates.lat || (docData.coordinates._lat as number),
+            lng: docData.coordinates.lng || (docData.coordinates._long as number)
+          } : (docData.geo ? {
+            lat: docData.geo.latitude,
+            lng: docData.geo.longitude
+          } : undefined),
+        };
+      });
+      setLocations(data);
+    } catch (error) {
+      console.error("Error fetching locations:", error);
+    }
+  };
   const [locations, setLocations] = useState<Location[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<string>("");
   const [boxes, setBoxes] = useState<BoxItem[]>([]);
@@ -88,7 +168,6 @@ export const Play: React.FC = () => {
   useEffect(() => {
     const fetchBoxes = async () => {
       if (!selectedLocation) return;
-
       try {
         const snapshot = await getDocs(collection(db, "boxes"));
         const data: BoxItem[] = snapshot.docs.map((doc) => {
@@ -106,85 +185,13 @@ export const Play: React.FC = () => {
           };
         })
         .filter((box) => box.locationId === selectedLocation && box.isActive);
-
         setBoxes(data);
       } catch (error) {
         console.error("Error fetching boxes:", error);
       }
     };
-
     void fetchBoxes();
   }, [selectedLocation]);
-
-  const handleChange = (event: SelectChangeEvent) => {
-    setSelectedLocation(event.target.value);
-    if (event.target.value) {
-      setShowLocationSelector(false); // Hide selector when location is chosen
-    }
-  };
-
-  const handleChangeLocation = () => {
-    setShowLocationSelector(true); // Show selector to change location
-  };
-
-  const refreshBoxes = () => {
-    // Re-trigger the fetchBoxes useEffect by updating a dependency
-    // Since selectedLocation is already a dependency, we can just call fetchBoxes directly
-    if (selectedLocation) {
-      const fetchBoxes = async () => {
-        try {
-          const snapshot = await getDocs(collection(db, "boxes"));
-          const data: BoxItem[] = snapshot.docs.map((doc) => {
-            const docData = doc.data();
-            return {
-              id: doc.id,
-              boxName: (docData.boxName as string) || '',
-              boxNumber: (docData.boxNumber as string) || '',
-              pricePerTicket: (docData.pricePerTicket as string) || '',
-              type: (docData.type as "wall" | "bar box") || 'wall',
-              locationId: (docData.locationId as string) || '',
-              ownerId: (docData.ownerId as string) || '',
-              isActive: docData.isActive !== false, // Default to true if not specified
-              ...docData,
-            };
-          })
-          .filter((box) => box.locationId === selectedLocation && box.isActive);
-
-          setBoxes(data);
-        } catch (error) {
-          console.error("Error fetching boxes:", error);
-        }
-      };
-
-      void fetchBoxes();
-    }
-  };
-
-  const refreshLocations = async () => {
-    try {
-      const snapshot = await getDocs(collection(db, "locations"));
-      const data: Location[] = snapshot.docs.map((doc) => {
-        const docData = doc.data();
-        return {
-          id: doc.id,
-          name: (docData.name as string) || '',
-          address: (docData.address as string) || '',
-          type: (docData.type as "restaurant" | "bar") || 'bar',
-          placeId: docData.placeId as string,
-          coordinates: docData.coordinates ? {
-            lat: docData.coordinates.lat || (docData.coordinates._lat as number),
-            lng: docData.coordinates.lng || (docData.coordinates._long as number)
-          } : (docData.geo ? {
-            lat: docData.geo.latitude,
-            lng: docData.geo.longitude
-          } : undefined),
-        };
-      });
-      setLocations(data);
-    } catch (error) {
-      console.error("Error fetching locations:", error);
-    }
-  };
 
   const selectedLocationObj = locations.find((loc) => loc.id === selectedLocation);
   const wallBoxes = boxes.filter((box) => box.type === "wall");
@@ -330,37 +337,213 @@ export const Play: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Display Boxes */}
+      {/* Display Box Dashboard */}
       {selectedLocation && (
-        <Box sx={{ mt: 5 }}>
-          <Typography variant="h6" gutterBottom>
-            Boxes at {selectedLocationObj?.name}
+        <Box sx={{ mt: 2 }}>
+          <Typography variant="h5" gutterBottom sx={{ mb: 2 }}>
+            Pull Tab Dashboard - {selectedLocationObj?.name}
           </Typography>
 
-          <BoxComponent
-            title="Wall Boxes"
-            boxes={wallBoxes}
-            onBoxClick={setEditBox}
-            onBoxRemoved={refreshBoxes}
-            marginTop={3}
-          />
+          {/* Box Dashboard Grid */}
+          <Box sx={{ 
+            display: 'grid', 
+            gridTemplateColumns: {
+              xs: '1fr',
+              sm: 'repeat(auto-fill, minmax(180px, 1fr))',
+              md: 'repeat(auto-fill, minmax(200px, 1fr))',
+              lg: 'repeat(auto-fill, minmax(220px, 1fr))',
+            },
+            gap: 1.5,
+            mb: 2
+          }}>
+            {[...wallBoxes, ...barBoxes].map((box) => {
+              const pricePerTicket = parseFloat(box.pricePerTicket);
+              const estimatedTickets = box.estimatedRemainingTickets || 0;
+              
+              // Calculate EV and metrics
+              let evColor = '#757575'; // Default gray
+              let evStatus = 'No Data';
+              
+              if (estimatedTickets > 0 && box.winningTickets) {
+                const prizes = box.winningTickets.map((ticket: WinningTicket) => ({
+                  value: Number(ticket.prize),
+                  remaining: Number(ticket.totalPrizes) - Number(ticket.claimedTotal)
+                }));
+                
+                // Calculate remaining prize value
+                const totalRemainingValue = prizes.reduce((sum: number, prize) => sum + (prize.value * prize.remaining), 0);
+                
+                // EV calculation: (total remaining prize value - cost to buy all tickets) / tickets
+                const costToCloseOut = pricePerTicket * estimatedTickets;
+                const evData = (totalRemainingValue - costToCloseOut) / estimatedTickets;
+                const rtpData = (totalRemainingValue / costToCloseOut) * 100;
+                
+                // Color coding based on EV and RTP
+                if (evData >= 0) {
+                  evColor = '#4caf50'; // Green for positive EV
+                  evStatus = 'Excellent';
+                } else if (rtpData >= 80) {
+                  evColor = '#ff9800'; // Orange for decent RTP
+                  evStatus = 'Decent';
+                } else {
+                  evColor = '#f44336'; // Red for poor
+                  evStatus = 'Poor';
+                }
+              }
 
-          <BoxComponent
-            title="Bar Boxes"
-            boxes={barBoxes}
-            onBoxClick={setEditBox}
-            onBoxRemoved={refreshBoxes}
-            showOwner={true}
-            marginTop={4}
-          />
+              // Get last updated timestamp for estimated tickets
+              let lastUpdated = '';
+              if (box.estimatedTicketsUpdated) {
+                const dateObj = typeof box.estimatedTicketsUpdated === 'string'
+                  ? new Date(box.estimatedTicketsUpdated)
+                  : (box.estimatedTicketsUpdated &&
+                      typeof box.estimatedTicketsUpdated === 'object' &&
+                      typeof (box.estimatedTicketsUpdated as { toDate?: unknown }).toDate === 'function'
+                      ? (box.estimatedTicketsUpdated as { toDate: () => Date }).toDate()
+                      : box.estimatedTicketsUpdated);
+                lastUpdated = dateObj instanceof Date && !isNaN(dateObj.getTime())
+                  ? dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                  : '';
+              }
+              return (
+                <Card 
+                  key={box.id}
+                  sx={{ 
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease-in-out',
+                    border: '3px solid',
+                    borderColor: evColor,
+                    backgroundColor: `${evColor}08`,
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 8px 20px ${evColor}40`,
+                      borderColor: evColor,
+                    }
+                  }}
+                  onClick={() => setEditBox(box)}
+                >
+                  <CardContent sx={{ p: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.primary', fontSize: '1rem' }}>
+                          {box.boxName}
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.9rem', mt: 0.5 }}>
+                          #{box.boxNumber} • {box.type === 'wall' ? 'Wall Box' : 'Bar Box'}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 70 }}>
+                        <Chip
+                          label={evStatus}
+                          size="small"
+                          sx={{
+                            backgroundColor: evColor,
+                            color: 'white',
+                            fontWeight: 'bold',
+                            fontSize: '0.7rem',
+                            height: 24,
+                            px: 1,
+                            mb: 0.5
+                          }}
+                        />
+                        {/* EV Calculation under chip */}
+                        {estimatedTickets > 0 && box.winningTickets && (
+                          <Typography variant="caption" sx={{ color: evColor, fontWeight: 'bold', fontSize: '0.8rem', textAlign: 'right' }}>
+                            EV: {(() => {
+                              const prizes = box.winningTickets.map((ticket: WinningTicket) => ({
+                                value: Number(ticket.prize),
+                                remaining: Number(ticket.totalPrizes) - Number(ticket.claimedTotal)
+                              }));
+                              const totalRemainingValue = prizes.reduce((sum: number, prize) => sum + (prize.value * prize.remaining), 0);
+                              const costToCloseOut = pricePerTicket * estimatedTickets;
+                              const evData = (totalRemainingValue - costToCloseOut) / estimatedTickets;
+                              return `${evData >= 0 ? '+' : ''}${evData.toFixed(2)}`;
+                            })()} / ticket
+                          </Typography>
+                        )}
+                      </Box>
+                    </Box>
+                    {/* Last updated timestamp for estimated tickets */}
+                    {lastUpdated && (
+                      <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.7rem', textAlign: 'right', display: 'block', mt: 1 }}>
+                        updated: {lastUpdated}
+                      </Typography>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </Box>
 
+          {/* No boxes message */}
           {wallBoxes.length === 0 && barBoxes.length === 0 && (
-            <Typography sx={{ mt: 3 }} color="text.secondary">
-              No boxes found for this location.
-            </Typography>
+            <Paper sx={{ p: 4, textAlign: 'center' }}>
+              <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
+                No boxes found for this location
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Create your first box to get started with pull tab tracking
+              </Typography>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={() => setOpenCreateBox(true)}
+              >
+                Create Your First Box
+              </Button>
+            </Paper>
           )}
         </Box>
       )}
+
+      {/* Full-Screen Box Details Dialog */}
+      <Dialog 
+        open={!!editBox} 
+        onClose={() => setEditBox(null)} 
+        maxWidth={false}
+        fullWidth
+        PaperProps={{
+          sx: {
+            width: '95vw',
+            height: '95vh',
+            maxWidth: 'none',
+            maxHeight: 'none',
+            m: 1
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          borderBottom: '1px solid',
+          borderColor: 'divider'
+        }}>
+          <Typography variant="h5">
+            {editBox?.boxName} - Detailed View
+          </Typography>
+          <IconButton onClick={() => setEditBox(null)}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 0, overflow: 'auto' }}>
+          {editBox && (
+            <Box sx={{ p: 3 }}>
+              <BoxComponent
+                title=""
+                boxes={[editBox]}
+                onBoxClick={() => { /* No action needed since we're already in the detail view */ }}
+                onBoxRemoved={() => {
+                  refreshBoxes();
+                  setEditBox(null); // Close dialog when box is removed
+                }}
+                showOwner={true}
+                marginTop={0}
+              />
+            </Box>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Location Manager Dialog */}
       <LocationManager
