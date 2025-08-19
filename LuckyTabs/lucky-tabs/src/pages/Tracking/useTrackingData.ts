@@ -46,14 +46,26 @@ export interface HistoricalWeek {
   totalWon: number;
   netResult: number;
   transactionCount: number;
+  transactions: Transaction[]; // Add transactions to the historical week data
 }
 
 // Helper function to get start of week (Monday)
 const getStartOfWeek = (date: Date): Date => {
   const d = new Date(date);
   const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
-  return new Date(d.setDate(diff));
+  
+  // Calculate days to subtract to get to Monday
+  // Sunday = 0, Monday = 1, Tuesday = 2, etc.
+  // For Sunday (0), we want to go back 6 days to Monday
+  // For Monday (1), we want to go back 0 days
+  // For Tuesday (2), we want to go back 1 day, etc.
+  const daysToSubtract = day === 0 ? 6 : day - 1;
+  
+  // Use setDate instead of the constructor to properly handle month boundaries
+  const startOfWeek = new Date(d);
+  startOfWeek.setDate(d.getDate() - daysToSubtract);
+  startOfWeek.setHours(0, 0, 0, 0); // Set to start of day
+  return startOfWeek;
 };
 
 // Helper function to get end of week (Sunday)
@@ -145,7 +157,9 @@ export const useTrackingData = (userId: string | undefined) => {
         transactions.forEach(transaction => {
           if (!transaction.createdAt) return; // Skip transactions without timestamps
           const transactionDate = transaction.createdAt.toDate();
-          const weekStartKey = getStartOfWeek(transactionDate).toISOString().split('T')[0];
+          const weekStartDate = getStartOfWeek(transactionDate);
+          // Use a more reliable key that doesn't depend on timezone
+          const weekStartKey = `${weekStartDate.getFullYear()}-${weekStartDate.getMonth()}-${weekStartDate.getDate()}`;
           
           if (!weeklyGroups.has(weekStartKey)) {
             weeklyGroups.set(weekStartKey, []);
@@ -158,7 +172,9 @@ export const useTrackingData = (userId: string | undefined) => {
 
         const historical: HistoricalWeek[] = Array.from(weeklyGroups.entries())
           .map(([weekStartKey, weekTransactions]) => {
-            const weekStartDate = new Date(weekStartKey);
+            // Parse the key back to get the week start date
+            const [year, month, date] = weekStartKey.split('-').map(Number);
+            const weekStartDate = new Date(year, month, date);
             const weekEndDate = getEndOfWeek(weekStartDate);
             
             const spent = weekTransactions
@@ -176,9 +192,30 @@ export const useTrackingData = (userId: string | undefined) => {
               totalWon: won,
               netResult: won - spent,
               transactionCount: weekTransactions.length,
+              transactions: weekTransactions,
             };
           })
           .sort((a, b) => b.weekStart.getTime() - a.weekStart.getTime());
+
+        // Ensure current week is always included, even if it has no transactions
+        const currentWeekKey = `${weekStart.getFullYear()}-${weekStart.getMonth()}-${weekStart.getDate()}`;
+        const hasCurrentWeek = weeklyGroups.has(currentWeekKey);
+        
+        if (!hasCurrentWeek) {
+          // Add current week with zero values if it doesn't exist
+          const currentWeekHistorical: HistoricalWeek = {
+            weekStart,
+            weekEnd,
+            totalSpent: currentWeek.totalSpent,
+            totalWon: currentWeek.totalWon,
+            netResult: currentWeek.netResult,
+            transactionCount: currentWeek.transactionCount,
+            transactions: currentWeek.transactions,
+          };
+          
+          // Insert at the beginning since it's the most recent
+          historical.unshift(currentWeekHistorical);
+        }
 
         setHistoricalData(historical);
         setIsLoading(false);

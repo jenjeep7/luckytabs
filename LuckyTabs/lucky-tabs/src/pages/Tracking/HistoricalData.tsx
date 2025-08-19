@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Typography,
@@ -12,6 +12,15 @@ import {
   TableRow,
   Chip,
   Paper,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  List,
+  ListItem,
+  ListItemText,
+  Divider,
 } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
@@ -19,6 +28,7 @@ import {
 } from '@mui/icons-material';
 import { HistoricalWeek } from './useTrackingData';
 import { formatDateRange, formatCurrency } from '../../utils/formatters';
+import { Timestamp } from 'firebase/firestore';
 
 interface HistoricalDataProps {
   historicalData: HistoricalWeek[];
@@ -28,6 +38,27 @@ interface HistoricalDataProps {
 export const HistoricalData: React.FC<HistoricalDataProps> = ({
   historicalData,
 }) => {
+  const [selectedWeek, setSelectedWeek] = useState<HistoricalWeek | null>(null);
+
+  const handleWeekClick = (week: HistoricalWeek) => {
+    setSelectedWeek(week);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedWeek(null);
+  };
+
+  const formatTransactionDate = (createdAt: Timestamp | null) => {
+    if (!createdAt) return 'Unknown date';
+    const date = createdAt.toDate();
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  };
 
   // Calculate overall statistics
   const totalAllTimeSpent = historicalData.reduce((sum, week) => sum + week.totalSpent, 0);
@@ -125,15 +156,22 @@ export const HistoricalData: React.FC<HistoricalDataProps> = ({
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {historicalData.map((week, index) => {
-                    const isCurrentWeek = index === 0; // First item is current week
+                  {historicalData.map((week) => {
+                    // Check if this week contains today's date
+                    const today = new Date();
+                    const isCurrentWeek = today >= week.weekStart && today <= week.weekEnd;
                     const isPositive = week.netResult >= 0;
                     
                     return (
                       <TableRow 
                         key={`${week.weekStart.getTime()}`}
+                        onClick={() => handleWeekClick(week)}
                         sx={{ 
                           backgroundColor: isCurrentWeek ? 'action.hover' : 'inherit',
+                          cursor: 'pointer',
+                          '&:hover': {
+                            backgroundColor: isCurrentWeek ? 'action.selected' : 'action.hover',
+                          },
                         }}
                       >
                         <TableCell>
@@ -194,6 +232,90 @@ export const HistoricalData: React.FC<HistoricalDataProps> = ({
           )}
         </CardContent>
       </Card>
+
+      {/* Transaction Details Modal */}
+      <Dialog 
+        open={selectedWeek !== null} 
+        onClose={handleCloseModal}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          {selectedWeek && (
+            <Box>
+              <Typography variant="h6">
+                Week of {formatDateRange(selectedWeek.weekStart, selectedWeek.weekEnd)}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {selectedWeek.transactionCount} transaction{selectedWeek.transactionCount !== 1 ? 's' : ''}
+              </Typography>
+            </Box>
+          )}
+        </DialogTitle>
+        <DialogContent>
+          {selectedWeek && selectedWeek.transactions.length > 0 ? (
+            <List>
+              {selectedWeek.transactions
+                .sort((a, b) => {
+                  if (!a.createdAt || !b.createdAt) return 0;
+                  return b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime();
+                })
+                .map((transaction, index) => (
+                  <React.Fragment key={transaction.id}>
+                    <ListItem sx={{ px: 0 }}>
+                      <ListItemText
+                        primary={
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Chip
+                                label={transaction.type === 'bet' ? 'Bet' : 'Win'}
+                                color={transaction.type === 'bet' ? 'error' : 'success'}
+                                size="small"
+                                variant="outlined"
+                              />
+                              {transaction.description && (
+                                <Typography variant="body2">
+                                  {transaction.description}
+                                </Typography>
+                              )}
+                            </Box>
+                            <Typography 
+                              variant="body1" 
+                              fontWeight="bold"
+                              color={transaction.type === 'bet' ? 'error.main' : 'success.main'}
+                            >
+                              {transaction.type === 'bet' ? '-' : '+'}{formatCurrency(transaction.amount)}
+                            </Typography>
+                          </Box>
+                        }
+                        secondary={
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+                            <Typography variant="body2" color="text.secondary">
+                              {formatTransactionDate(transaction.createdAt)}
+                            </Typography>
+                            {transaction.location && (
+                              <Typography variant="body2" color="text.secondary">
+                                📍 {transaction.location}
+                              </Typography>
+                            )}
+                          </Box>
+                        }
+                      />
+                    </ListItem>
+                    {index < selectedWeek.transactions.length - 1 && <Divider />}
+                  </React.Fragment>
+                ))}
+            </List>
+          ) : (
+            <Typography color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+              No transactions for this week
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseModal}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
