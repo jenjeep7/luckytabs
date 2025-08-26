@@ -86,86 +86,19 @@ interface RowSliderProps {
 }
 
 const RowSlider: React.FC<RowSliderProps> = ({ label, value, onChange, isMobile }) => {
-  const [localValue, setLocalValue] = useState(value);
-
-  // Sync local state with prop value
-  React.useEffect(() => {
-    setLocalValue(value);
-  }, [value]);
-
   const handleSliderChange = (_: Event, newValue: number | number[]) => {
-    const val = Array.isArray(newValue) ? newValue[0] : newValue;
-    setLocalValue(val);
-  };
-
-  const handleSliderChangeCommitted = (_: Event | React.SyntheticEvent, newValue: number | number[]) => {
     const val = Array.isArray(newValue) ? newValue[0] : newValue;
     onChange(val);
   };
 
-  const sliderStyles = {
-    height: 280,
-    mb: 2,
-    '& .MuiSlider-thumb': {
-      backgroundColor: '#e140a1',
-      border: isMobile ? '3px solid #fff' : '2px solid #fff',
-      width: isMobile ? 28 : 20,
-      height: isMobile ? 28 : 20,
-      ...(isMobile && {
-        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-        '&:hover': {
-          backgroundColor: '#c73691',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-        },
-        '&:active': {
-          backgroundColor: '#c73691',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-        },
-        '&::before': {
-          boxShadow: 'none',
-        },
-        // Improve touch target
-        '&:after': {
-          content: '""',
-          position: 'absolute',
-          top: '-10px',
-          left: '-10px',
-          right: '-10px',
-          bottom: '-10px',
-          borderRadius: '50%',
-        }
-      }),
-      ...(!isMobile && {
-        '&:hover': {
-          backgroundColor: '#c73691',
-        },
-      }),
-    },
-    '& .MuiSlider-track': {
-      backgroundColor: '#e140a1',
-      width: isMobile ? 8 : 4,
-    },
-    '& .MuiSlider-rail': {
-      backgroundColor: '#ddd',
-      width: isMobile ? 8 : 4,
-    },
-    '& .MuiSlider-mark': {
-      backgroundColor: '#e140a1',
-      ...(isMobile && { width: 4, height: 4 }),
-    },
-    '& .MuiSlider-markLabel': {
-      color: 'text.primary',
-      fontSize: isMobile ? '0.65rem' : '0.75rem',
-      ...(isMobile && { transform: 'translateX(-50%)' }),
-    },
-    // Prevent text selection during drag on mobile
-    ...(isMobile && {
-      userSelect: 'none',
-      WebkitUserSelect: 'none',
-      MozUserSelect: 'none',
-      msUserSelect: 'none',
-      WebkitTouchCallout: 'none',
-    }),
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (val === "") {
+      onChange(0);
+      return;
+    }
+    const num = Math.max(0, Math.min(800, Number(val)));
+    onChange(num);
   };
 
   const marks = [
@@ -189,35 +122,57 @@ const RowSlider: React.FC<RowSliderProps> = ({ label, value, onChange, isMobile 
       >
         {label}
       </Typography>
-      <Typography 
-        variant={isMobile ? "caption" : "body2"} 
-        sx={{ 
+      <input
+        type="number"
+        min={0}
+        max={800}
+        value={value}
+        onChange={handleInputChange}
+        style={{
           fontWeight: 'bold',
           fontSize: isMobile ? '1.1rem' : undefined,
-          mb: 2,
-          color: 'text.primary',
-          backgroundColor: 'background.paper',
-          px: 1,
-          py: 0.5,
-          borderRadius: 1,
-          border: '1px solid',
-          borderColor: 'divider',
-          ...(isMobile && { userSelect: 'none' })
+          marginBottom: 36, 
+          textAlign: 'center',
+          width: 72,
+          borderRadius: 4,
         }}
-      >
-        {localValue}
-      </Typography>
+      />
       <Slider
         orientation="vertical"
-        value={localValue}
+        value={value}
         onChange={handleSliderChange}
-        onChangeCommitted={handleSliderChangeCommitted}
+        onChangeCommitted={(_event: React.SyntheticEvent | Event, newValue: number | number[]) => handleSliderChange(_event as Event, newValue)}
         max={800}
         min={0}
-        step={isMobile ? 5 : 1}
+        step={isMobile ? 2 : 1}
         marks={marks}
-        sx={sliderStyles}
-        // Add mobile-specific props
+        sx={{
+          height: isMobile ? 330 : 330,
+          mb: 2,
+          '& .MuiSlider-thumb': {
+            backgroundColor: '#e140a1',
+            border: isMobile ? '3px solid #fff' : '2px solid #fff',
+            width: isMobile ? 28 : 20,
+            height: isMobile ? 28 : 20,
+          },
+          '& .MuiSlider-track': {
+            backgroundColor: '#e140a1',
+            width: isMobile ? 8 : 4,
+          },
+          '& .MuiSlider-rail': {
+            backgroundColor: '#ddd',
+            width: isMobile ? 8 : 4,
+          },
+          '& .MuiSlider-mark': {
+            backgroundColor: '#e140a1',
+            ...(isMobile && { width: 4, height: 4 }),
+          },
+          '& .MuiSlider-markLabel': {
+            color: 'text.primary',
+            fontSize: isMobile ? '0.65rem' : '0.75rem',
+            ...(isMobile && { transform: 'translateX(-50%)' }),
+          },
+        }}
         {...(isMobile && {
           disableSwap: true,
           size: 'medium',
@@ -350,11 +305,9 @@ export const EstimateRemainingDialog: React.FC<EstimateRemainingDialogProps> = (
           <RowSlider label="Row 4" value={row4} onChange={setRow4} isMobile={true} />
         </Box>
 
-        <Box sx={{ textAlign: 'center', mt: 2, p: 2, backgroundColor: 'grey.100', borderRadius: 1 }}>
-          <Typography variant="h6" color="primary">
-            Total Estimated Tickets: {totalTickets}
-          </Typography>
-        </Box>
+        <Typography variant="h6" color="text.primary" sx={{ textAlign: 'center', mt: 3 }}>
+          Total Estimated Tickets: {totalTickets}
+        </Typography>
       </DialogContent>
       <DialogActions>
         <Button onClick={handleCancel} variant="outlined" color="secondary">

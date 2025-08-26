@@ -300,7 +300,7 @@ export const Play: React.FC = () => {
       </Box>
 
       {/* Create Box Modal */}
-      <Dialog open={openCreateBox} onClose={() => setOpenCreateBox(false)} maxWidth="md" fullWidth>
+  <Dialog open={openCreateBox} onClose={() => setOpenCreateBox(false)} fullScreen>
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           Create New Box
           <IconButton onClick={() => setOpenCreateBox(false)}>
@@ -319,7 +319,7 @@ export const Play: React.FC = () => {
       </Dialog>
 
       {/* Edit Box Modal */}
-      <Dialog open={!!editBox} onClose={() => setEditBox(null)} maxWidth="md" fullWidth>
+  <Dialog open={!!editBox} onClose={() => setEditBox(null)} fullScreen>
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           Edit Box
           <IconButton onClick={() => setEditBox(null)}>
@@ -422,8 +422,8 @@ export const Play: React.FC = () => {
                   }}
                   onClick={() => setEditBox(box)}
                 >
-                  <CardContent sx={{ p: 2 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                  <CardContent sx={{ pt: 1, pb: 1 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 0 }}>
                       <Box sx={{ flex: 1 }}>
                         <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.primary', fontSize: '1rem' }}>
                           {box.boxName}

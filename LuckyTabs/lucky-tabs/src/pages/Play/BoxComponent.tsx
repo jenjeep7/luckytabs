@@ -191,11 +191,6 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
     });
   };
 
-  const handleEditClick = (e: React.MouseEvent, box: BoxItem) => {
-    e.stopPropagation();
-    onBoxClick(box);
-  };
-
   const handleConfirmRemove = () => {
     const removeBox = async () => {
       try {
@@ -478,8 +473,6 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 0.5 }}>
                       {renderPrizeButtons(box)}
                   </Box>
-
-                  <Typography><strong>Total Remaining Prizes:</strong> {formatCurrency(remainingPrizes)}</Typography>
                   {showOwner && (
                     <Typography><strong>Created By:</strong> {userDisplayNames[box.ownerId] || 'Loading...'}</Typography>
                   )}
@@ -494,7 +487,7 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
                           onClick={() => handleEstimateClick(box)}
                           sx={{ maxWidth: 200 }}
                         >
-                          Estimate Tickets
+                          Enter Tickets by Row
                         </Button>
                         {remainingTicketsInput[box.id] && (
                           <Typography variant="body2" sx={{ color: 'text.secondary' }}>
@@ -746,13 +739,6 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
 
               {/* Moved action buttons to bottom */}
               <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, mt: 2 }}>
-                <IconButton
-                  color="info"
-                  size="small"
-                  onClick={(e) => handleEditClick(e, box)}
-                >
-                  <EditIcon />
-                </IconButton>
                 <IconButton
                   color="error"
                   size="small"
