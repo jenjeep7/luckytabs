@@ -26,7 +26,13 @@ const Login: React.FC = () => {
 
   const onSubmit = async (data: LoginFormInputs) => {
     try {
-      await signInWithEmailAndPassword(auth, data.email, data.password);
+      const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
+      // Force reload user to get latest emailVerified status
+      await userCredential.user.reload();
+      if (!userCredential.user.emailVerified) {
+        setError('Please verify your email address before logging in.');
+        return;
+      }
       setError('');
       void navigate('/');
     } catch (err: unknown) {

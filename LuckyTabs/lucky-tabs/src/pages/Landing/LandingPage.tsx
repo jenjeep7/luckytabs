@@ -18,12 +18,82 @@ import { useNavigate } from 'react-router-dom';
 
 export const LandingPage: React.FC = () => {
   const [user] = useAuthState(auth);
+  const [checkingVerification, setCheckingVerification] = React.useState(false);
+  const [showVerifyModal, setShowVerifyModal] = React.useState(false);
+  React.useEffect(() => {
+    const checkVerification = () => {
+      if (user && !user.emailVerified && user.providerData.some(p => p.providerId === "password")) {
+        setShowVerifyModal(true);
+      } else {
+        setShowVerifyModal(false);
+      }
+    };
+    checkVerification();
+  }, [user]);
   const navigate = useNavigate();
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';
 
   return (
     <>
+      {/* Full Screen Modal for Email Verification */}
+      {showVerifyModal && (
+        <Box sx={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          bgcolor: 'background.paper',
+          zIndex: 2000,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <Paper elevation={6} sx={{ p: 6, textAlign: 'center', maxWidth: 400 }}>
+            <Typography variant="h5" fontWeight="bold" gutterBottom>
+              Verify Your Email
+            </Typography>
+            <Typography variant="body1" sx={{ mb: 3 }}>
+              Please check your inbox and click the verification link to activate your account.<br />
+              You cannot use Tabsy until your email is verified.
+            </Typography>
+            <Button
+              variant="contained"
+              color="primary"
+              disabled={checkingVerification}
+              onClick={async () => {
+                setCheckingVerification(true);
+                await user?.reload();
+                setCheckingVerification(false);
+                if (user?.emailVerified) {
+                  setShowVerifyModal(false);
+                  window.location.reload();
+                }
+              }}
+              sx={{ mt: 2 }}
+            >
+              Refresh & Check Verification
+            </Button>
+            <Button
+              variant="outlined"
+              color="secondary"
+              sx={{ mt: 2 }}
+              onClick={async () => {
+                if (user) {
+                  // Dynamically import sendEmailVerification to avoid import issues
+                  const { sendEmailVerification } = await import('firebase/auth');
+                  await sendEmailVerification(user);
+                  alert('Verification email sent! Please check your inbox.');
+                }
+              }}
+            >
+              Resend Verification Email
+            </Button>
+          </Paper>
+        </Box>
+      )}
       {/* Hero Section */}
       <Box sx={{ 
         bgcolor: isDarkMode ? 'background.paper' : 'primary.main', 
