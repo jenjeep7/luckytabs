@@ -76,6 +76,7 @@ interface BoxComponentProps {
   onBoxRemoved?: () => void;
   showOwner?: boolean;
   marginTop?: number;
+  refreshBoxes?: (boxId?: string) => void;
 }
 
 export const BoxComponent: React.FC<BoxComponentProps> = ({ 
@@ -84,7 +85,8 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
   onBoxClick, 
   onBoxRemoved,
   showOwner = true,
-  marginTop = 3 
+  marginTop = 3,
+  refreshBoxes
 }) => {
   const [user] = useAuthState(auth);
   const theme = useTheme();
@@ -108,18 +110,18 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
   });
 
   // Helper function to determine EV color based on three-tier system
-  // Green: EV >= 0 (Excellent - player advantage)
-  // Orange: RTP >= 80% but EV < 0 (Decent - reasonable value)  
-  // Red: RTP < 80% (Poor - avoid)
-  const getEvColor = (evValue: number, rtpValue: number, isPercentage = true) => {
-    const rtpThreshold = isPercentage ? 80 : 0.8;
-    
-    if (evValue >= 0) {
-      return '#4caf50'; // Green for positive EV (>100% RTP)
-    } else if (rtpValue >= rtpThreshold) {
-      return '#ff9800'; // Orange for decent (80-99% RTP)
+  // Green: RTP >= 100% (Excellent)
+  // Orange: RTP >= 75% and < 100% (Decent)
+  // Red: RTP < 75% (Poor)
+  const getEvColor = (_evValue: number, rtpValue: number, isPercentage = true) => {
+    const rtpGreen = isPercentage ? 100 : 1.0;
+    const rtpOrange = isPercentage ? 75 : 0.75;
+    if (rtpValue >= rtpGreen) {
+      return '#4caf50'; // Green for RTP >= 100%
+    } else if (rtpValue >= rtpOrange) {
+      return '#ff9800'; // Orange for RTP >= 75%
     } else {
-      return '#f44336'; // Red for poor (<80% RTP)
+      return '#f44336'; // Red for RTP < 75%
     }
   };
 
@@ -249,9 +251,9 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
             winningTickets: updatedTickets
           });
 
-          // Refresh data if callback exists
-          if (onBoxRemoved) {
-            onBoxRemoved();
+          // Refresh boxes after prize toggle to update UI
+          if (refreshBoxes) {
+            refreshBoxes(boxId);
           }
         }
       } catch (error) {
@@ -410,9 +412,6 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
   return (
     <>
       <Box sx={{ mt: marginTop }}>
-        <Typography variant="subtitle1" gutterBottom>
-          {title}
-        </Typography>
         {boxes.map((box) => {
           const remainingPrizes = calculateRemainingPrizes(box);
           const pricePerTicket = parseFloat(box.pricePerTicket);
@@ -440,19 +439,15 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
           return (
             <Paper
               key={box.id}
-              sx={{ p: 3, mb: 3, position: 'relative'}}
+              sx={{ p: 1, mb: 3, position: 'relative'}}
             >
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                <Box sx={{ textAlign: 'center', flex: 1 }}>
-                  <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
-                    {box.boxName}
-                  </Typography>
-                  
+                <Box sx={{ textAlign: 'center', flex: 1 }}>                  
                   {/* EV Badge */}
                   {evData !== null && rtpData !== null && (
                     <Box sx={{ mb: 2 }}>
                       <Chip
-                        label={`EV ${evData >= 0 ? '+' : ''}$${evData.toFixed(2)} / ticket`}
+                        label={`Payout ${rtpData.toFixed(1)}%`}
                         sx={{
                           fontSize: '1.1rem',
                           fontWeight: 'bold',
@@ -467,7 +462,7 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
                       />
                       {rtpData !== null && (
                         <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
-                          RTP: {rtpData.toFixed(1)}% • Status: {getEvStatus(evData, rtpData, true)}
+                          Status: {getEvStatus(evData, rtpData, true)}
                         </Typography>
                       )}
                       {/* {evBandData && (

@@ -71,34 +71,34 @@ export const Play: React.FC = () => {
     setShowLocationSelector(true);
   };
 
-  const refreshBoxes = () => {
-    // Re-trigger the fetchBoxes useEffect by updating a dependency
-    // Since selectedLocation is already a dependency, we can just call fetchBoxes directly
+  const refreshBoxes = async (boxIdToUpdate?: string) => {
     if (selectedLocation) {
-      const fetchBoxes = async () => {
-        try {
-          const snapshot = await getDocs(collection(db, "boxes"));
-          const data: BoxItem[] = snapshot.docs.map((doc) => {
-            const docData = doc.data();
-            return {
-              id: doc.id,
-              boxName: (docData.boxName as string) || '',
-              boxNumber: (docData.boxNumber as string) || '',
-              pricePerTicket: (docData.pricePerTicket as string) || '',
-              type: (docData.type as "wall" | "bar box") || 'wall',
-              locationId: (docData.locationId as string) || '',
-              ownerId: (docData.ownerId as string) || '',
-              isActive: docData.isActive !== false,
-              ...docData,
-            };
-          })
-          .filter((box) => box.locationId === selectedLocation && box.isActive);
-          setBoxes(data);
-        } catch (error) {
-          console.error("Error fetching boxes:", error);
+      try {
+        const snapshot = await getDocs(collection(db, "boxes"));
+        const data: BoxItem[] = snapshot.docs.map((doc) => {
+          const docData = doc.data();
+          return {
+            id: doc.id,
+            boxName: (docData.boxName as string) || '',
+            boxNumber: (docData.boxNumber as string) || '',
+            pricePerTicket: (docData.pricePerTicket as string) || '',
+            type: (docData.type as "wall" | "bar box") || 'wall',
+            locationId: (docData.locationId as string) || '',
+            ownerId: (docData.ownerId as string) || '',
+            isActive: docData.isActive !== false,
+            ...docData,
+          };
+        })
+        .filter((box) => box.locationId === selectedLocation && box.isActive);
+        setBoxes(data);
+        // If dialog is open, update editBox with latest data
+        if (editBox && boxIdToUpdate) {
+          const updatedBox = data.find(b => b.id === boxIdToUpdate);
+          if (updatedBox) setEditBox(updatedBox);
         }
-      };
-      void fetchBoxes();
+      } catch (error) {
+        console.error("Error fetching boxes:", error);
+      }
     }
   };
 
@@ -312,7 +312,7 @@ export const Play: React.FC = () => {
             <CreateBoxForm
               location={selectedLocationObj}
               onClose={() => setOpenCreateBox(false)}
-              onBoxCreated={refreshBoxes}
+              onBoxCreated={() => { void refreshBoxes(); }}
             />
           )}
         </DialogContent>
@@ -331,7 +331,7 @@ export const Play: React.FC = () => {
             <EditBoxForm
               box={editBox}
               onClose={() => setEditBox(null)}
-              onBoxUpdated={refreshBoxes}
+              onBoxUpdated={() => { void refreshBoxes(); }}
             />
           )}
         </DialogContent>
@@ -382,7 +382,7 @@ export const Play: React.FC = () => {
                 if (evData >= 0) {
                   evColor = '#4caf50'; // Green for positive EV
                   evStatus = 'Excellent';
-                } else if (rtpData >= 80) {
+                } else if (rtpData >= 75) {
                   evColor = '#ff9800'; // Orange for decent RTP
                   evStatus = 'Decent';
                 } else {
@@ -449,16 +449,16 @@ export const Play: React.FC = () => {
                         {/* EV Calculation under chip */}
                         {estimatedTickets > 0 && box.winningTickets && (
                           <Typography variant="caption" sx={{ color: evColor, fontWeight: 'bold', fontSize: '0.8rem', textAlign: 'right' }}>
-                            EV: {(() => {
+                            Payout: {(() => {
                               const prizes = box.winningTickets.map((ticket: WinningTicket) => ({
                                 value: Number(ticket.prize),
                                 remaining: Number(ticket.totalPrizes) - Number(ticket.claimedTotal)
                               }));
                               const totalRemainingValue = prizes.reduce((sum: number, prize) => sum + (prize.value * prize.remaining), 0);
                               const costToCloseOut = pricePerTicket * estimatedTickets;
-                              const evData = (totalRemainingValue - costToCloseOut) / estimatedTickets;
-                              return `${evData >= 0 ? '+' : ''}${evData.toFixed(2)}`;
-                            })()} / ticket
+                              const rtpData = (totalRemainingValue / costToCloseOut) * 100;
+                              return `${rtpData.toFixed(1)}%`;
+                            })()}
                           </Typography>
                         )}
                       </Box>
@@ -498,17 +498,19 @@ export const Play: React.FC = () => {
 
       {/* Full-Screen Box Details Dialog */}
       <Dialog 
-        open={!!editBox} 
-        onClose={() => setEditBox(null)} 
+        open={!!editBox}
+        onClose={() => setEditBox(null)}
         maxWidth={false}
         fullWidth
-        PaperProps={{
-          sx: {
-            width: '95vw',
-            height: '95vh',
-            maxWidth: 'none',
-            maxHeight: 'none',
-            m: 1
+        slotProps={{
+          paper: {
+            sx: {
+              width: '95vw',
+              height: '95vh',
+              maxWidth: 'none',
+              maxHeight: 'none',
+              m: 1
+            }
           }
         }}
       >
@@ -520,7 +522,7 @@ export const Play: React.FC = () => {
           borderColor: 'divider'
         }}>
           <Typography variant="h5">
-            {editBox?.boxName} - Detailed View
+            {editBox?.boxName}
           </Typography>
           <IconButton onClick={() => setEditBox(null)}>
             <CloseIcon />
@@ -534,11 +536,12 @@ export const Play: React.FC = () => {
                 boxes={[editBox]}
                 onBoxClick={() => { /* No action needed since we're already in the detail view */ }}
                 onBoxRemoved={() => {
-                  refreshBoxes();
+                  void refreshBoxes();
                   setEditBox(null); // Close dialog when box is removed
                 }}
                 showOwner={true}
                 marginTop={0}
+                refreshBoxes={(boxId: string | undefined) => { void refreshBoxes(boxId); }}
               />
             </Box>
           )}
