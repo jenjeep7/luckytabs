@@ -13,7 +13,6 @@ import {
   useTheme,
   Stack,
 } from '@mui/material';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism';
 import { useNavigate } from 'react-router-dom';
 
@@ -35,7 +34,7 @@ export const LandingPage: React.FC = () => {
         <Container>
           <Box>
             <img
-              src="/TabsyNew.png"
+              src="/Tabsy New Logo.png"
               alt="Tabsy Wins Logo"
               style={{ height: 250, marginRight: 16, paddingBottom: 16 }}
             />
@@ -91,7 +90,7 @@ export const LandingPage: React.FC = () => {
                   boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
                 }}
               >
-                Try Demo
+                Features
               </Button>
             </Stack>
           </Box>

@@ -89,6 +89,10 @@ const Signup: React.FC = () => {
           <Button variant="contained" color="primary" type="submit">
             Sign Up
           </Button>
+          <Button variant="outlined" color="primary" onClick={() => navigate('/login')}>
+            Already have an account? Login
+          </Button>
+    <Button variant="text" color="secondary" onClick={() => navigate('/')}>Return to Home</Button>
         </Box>
         {error && (
           <Alert severity="error" sx={{ mt: 2 }}>
