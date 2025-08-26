@@ -22,6 +22,7 @@ import YouTubeIcon from '@mui/icons-material/YouTube';
 import { useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { auth } from './firebase';
+import { useAuthState } from 'react-firebase-hooks/auth';
 
 const navItems = [
   { label: 'Home', route: '/dashboard' },
@@ -29,12 +30,17 @@ const navItems = [
   { label: 'Tracking', route: '/tracking' },
   { label: 'Community', route: '/community'},
   { label: 'Profile', route: '/profile' },
-    { label: 'Contact', email: 'tabsywins@gmail.com' }
+  { label: 'Contact', email: 'tabsywins@gmail.com' }
 ];
 
-function Layout() {
+interface LayoutProps {
+  children?: React.ReactNode;
+}
+
+function Layout({ children }: LayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
+  const [user] = useAuthState(auth);
 
   const handleLogout = async () => await auth.signOut();
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
@@ -67,57 +73,64 @@ function Layout() {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%', overflow: 'visible' }}>
-      <AppBar component="nav" position="fixed">
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { md: 'none' } }}
+      {/* Only show AppBar and navigation if user is logged in */}
+      {user && (
+        <AppBar component="nav" position="fixed">
+          <Toolbar>
+            <IconButton
+              color="inherit"
+              aria-label="open drawer"
+              edge="start"
+              onClick={handleDrawerToggle}
+              sx={{ mr: 2, display: { md: 'none' } }}
+            >
+              <MenuIcon />
+            </IconButton>
+
+            <Typography
+              variant="h6"
+              sx={{ flexGrow: 1, display: { xs: 'none', md: 'block' } }}
+            >
+              {`Tabsy's Community`}
+            </Typography>
+
+            <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 2 }}>
+              {navItems.map((item) => (
+                <Button key={item.label} onClick={() => handleNavItemClick(item)} color="inherit">
+                  {item.label}
+                </Button>
+              ))}
+            </Box>
+
+            <IconButton color="inherit" onClick={() => void handleLogout()} sx={{ ml: 'auto' }}>
+              <LogoutIcon />
+            </IconButton>
+          </Toolbar>
+        </AppBar>
+      )}
+
+      {/* Only show Drawer if user is logged in */}
+      {user && (
+        <Box component="nav">
+          <Drawer
+            variant="temporary"
+            open={mobileOpen}
+            onClose={handleDrawerToggle}
+            ModalProps={{ keepMounted: true }}
+            sx={{
+              display: { xs: 'block', md: 'none' },
+              '& .MuiDrawer-paper': { boxSizing: 'border-box', width: 240 },
+            }}
           >
-            <MenuIcon />
-          </IconButton>
-
-          <Typography
-            variant="h6"
-            sx={{ flexGrow: 1, display: { xs: 'none', md: 'block' } }}
-          >
-            {`Tabsy's Community`}
-          </Typography>
-
-          <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 2 }}>
-            {navItems.map((item) => (
-              <Button key={item.label} onClick={() => handleNavItemClick(item)} color="inherit">
-                {item.label}
-              </Button>
-            ))}
-          </Box>
-
-          <IconButton color="inherit" onClick={() => void handleLogout()} sx={{ ml: 'auto' }}>
-            <LogoutIcon />
-          </IconButton>
-        </Toolbar>
-      </AppBar>
-
-      <Box component="nav">
-        <Drawer
-          variant="temporary"
-          open={mobileOpen}
-          onClose={handleDrawerToggle}
-          ModalProps={{ keepMounted: true }}
-          sx={{
-            display: { xs: 'block', md: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: 240 },
-          }}
-        >
-          {drawer}
-        </Drawer>
-      </Box>
+            {drawer}
+          </Drawer>
+        </Box>
+      )}
 
       <Box component="main" sx={{ flexGrow: 1, width: '100%', overflow: 'visible' }}>
-        <Toolbar />
-        <Outlet />
+        {user && <Toolbar />}
+        {/* Render children if provided, else Outlet for nested routes */}
+  {children ? children : <Outlet />}
       </Box>
 
       {/* Footer Section */}

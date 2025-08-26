@@ -5,7 +5,6 @@ import { auth } from './firebase';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import { LandingPage } from './pages/Landing/LandingPage';
-import LandingTemporary from './pages/Landing/LandingTemporary';
 import { SupportCircle } from './pages/Support/SupportCircle';
 import Layout from './Layout';
 import { Play } from './pages/Play/Play';
@@ -19,19 +18,20 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/" element={user ? <Navigate to="/dashboard" /> : <LandingTemporary />} />
-      <Route element={user ? <Layout /> : <Navigate to="/" />}> {/* Protected Routes */}
-        <Route path="/dashboard" element={<LandingPage />} />
+      {/* Main home page is /home, redirect / to /home */}
+      <Route path="/" element={<Navigate to="/home" />} />
+      <Route path="/home" element={user ? <Layout><LandingPage /></Layout> : <LandingPage />} />
+      {/* Protected routes only accessible if logged in */}
+      <Route element={user ? <Layout /> : <Navigate to="/home" />}> 
         <Route path="/support-circle" element={<SupportCircle />} />
         <Route path="/play" element={<Play />} />
         <Route path="/tracking" element={<Tracking />} />
         <Route path="/community" element={<Community />} />
         <Route path="/profile" element={<UserProfile />} />
-
       </Route>
-      <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <Login />} />
-      <Route path="/signup" element={user ? <Navigate to="/dashboard" /> : <Signup />} />
-      <Route path="*" element={<Navigate to="/" />} />
+      <Route path="/login" element={user ? <Navigate to="/home" /> : <Login />} />
+      <Route path="/signup" element={user ? <Navigate to="/home" /> : <Signup />} />
+      <Route path="*" element={<Navigate to="/home" />} />
     </Routes>
   );
 }

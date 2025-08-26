@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 /* eslint-disable @typescript-eslint/no-floating-promises */
 import React from 'react';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '../../firebase';
 import {
   Box,
   Button,
@@ -9,12 +11,14 @@ import {
   Typography,
   Paper,
   useTheme,
+  Stack,
 } from '@mui/material';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism';
 import { useNavigate } from 'react-router-dom';
 
 export const LandingPage: React.FC = () => {
+  const [user] = useAuthState(auth);
   const navigate = useNavigate();
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';
@@ -48,15 +52,48 @@ export const LandingPage: React.FC = () => {
             {`Introducing a new pull tab community player experience – where every win, every game, and every insight is better together!`}
           </Typography>
           <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap' }}>
-            <Button
-              variant="contained"
-              color="secondary"
-              size="large"
-              endIcon={<ArrowForwardIcon />}
-              onClick={() => { navigate('/signup'); }}
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={2}
+              justifyContent="center"
+              alignItems="center"
             >
-              Join Tabsy Today
-            </Button>
+              {!user && (
+                <Button
+                  href="/login"
+                  size="large"
+                  variant="contained"
+                  color="success"
+                  sx={{
+                    px: 3.5,
+                    py: 1.25,
+                    fontWeight: 800,
+                    textTransform: 'none',
+                    borderRadius: 999,
+                    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
+                  }}
+                >
+                  Login to Play
+                </Button>
+              )}
+
+              <Button
+                href="/demo"
+                size="large"
+                variant="contained"
+                color="secondary"
+                sx={{
+                  px: 3.5,
+                  py: 1.25,
+                  fontWeight: 800,
+                  textTransform: 'none',
+                  borderRadius: 999,
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
+                }}
+              >
+                Try Demo
+              </Button>
+            </Stack>
           </Box>
         </Container>
       </Box>
