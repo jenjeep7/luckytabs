@@ -11,6 +11,7 @@ import { Play } from './pages/Play/Play';
 import { Tracking } from './pages/Tracking/Tracking';
 import { Community } from './pages/Community/Community';
 import { UserProfile } from './pages/Profile/UserProfile';
+import Features from './pages/Features';
 function AppRoutes() {
   const [user, loading] = useAuthState(auth);
 
@@ -18,20 +19,23 @@ function AppRoutes() {
 
   return (
     <Routes>
-      {/* Main home page is /home, redirect / to /home */}
-      <Route path="/" element={<Navigate to="/home" />} />
-      <Route path="/home" element={user ? <Layout><LandingPage /></Layout> : <LandingPage />} />
+      {/* Redirect / to /play if logged in, else /home */}
+      <Route path="/" element={<Navigate to={user ? "/play" : "/home"} />} />
+      {/* /home is only for logged out users, logged in users go to /play */}
+      <Route path="/home" element={user ? <Navigate to="/play" /> : <LandingPage />} />
       {/* Protected routes only accessible if logged in */}
       <Route element={user ? <Layout /> : <Navigate to="/home" />}> 
-        <Route path="/support-circle" element={<SupportCircle />} />
         <Route path="/play" element={<Play />} />
         <Route path="/tracking" element={<Tracking />} />
         <Route path="/community" element={<Community />} />
         <Route path="/profile" element={<UserProfile />} />
       </Route>
-      <Route path="/login" element={user ? <Navigate to="/home" /> : <Login />} />
-      <Route path="/signup" element={user ? <Navigate to="/home" /> : <Signup />} />
-      <Route path="*" element={<Navigate to="/home" />} />
+      {/* Login/Signup redirect to /play if logged in */}
+      <Route path="/login" element={user ? <Navigate to="/play" /> : <Login />} />
+      <Route path="/signup" element={user ? <Navigate to="/play" /> : <Signup />} />
+      <Route path="/features" element={<Features />} />
+      <Route path="*" element={<Navigate to={user ? "/play" : "/home"} />} />
+      <Route path="/support-circle" element={<SupportCircle />} />
     </Routes>
   );
 }

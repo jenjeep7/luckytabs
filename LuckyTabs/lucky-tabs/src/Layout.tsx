@@ -12,25 +12,32 @@ import {
   ListItemText,
   Divider,
   Button,
+  Paper,
+  BottomNavigation,
+  BottomNavigationAction,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import LogoutIcon from '@mui/icons-material/Logout';
-import FacebookIcon from '@mui/icons-material/Facebook';
-import InstagramIcon from '@mui/icons-material/Instagram';
-import TwitterIcon from '@mui/icons-material/Twitter';
-import YouTubeIcon from '@mui/icons-material/YouTube';
-import { useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import HomeIcon from '@mui/icons-material/Home';
+import ExploreIcon from '@mui/icons-material/Explore';
+import ListAltIcon from '@mui/icons-material/ListAlt';
+import PersonIcon from '@mui/icons-material/Person';
+import MailIcon from '@mui/icons-material/Mail';
+
+import { useState, useMemo } from 'react';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { auth } from './firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
+import { Footer } from './components/Footer';
 
 const navItems = [
-  { label: 'Home', route: '/dashboard' },
-  { label: 'Play', route: '/play' },
-  { label: 'Tracking', route: '/tracking' },
-  { label: 'Community', route: '/community'},
-  { label: 'Profile', route: '/profile' },
-  { label: 'Contact', email: 'tabsywins@gmail.com' }
+  { label: 'Play', route: '/play', icon: <HomeIcon /> },
+  { label: 'Tracking', route: '/tracking', icon: <ListAltIcon /> },
+  { label: 'Community', route: '/community', icon: <ExploreIcon /> },
+  { label: 'Profile', route: '/profile', icon: <PersonIcon /> },
+  // { label: 'Contact', email: 'tabsywins@gmail.com', icon: <MailIcon /> },
 ];
 
 interface LayoutProps {
@@ -39,8 +46,13 @@ interface LayoutProps {
 
 function Layout({ children }: LayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const navigate = useNavigate();
   const [user] = useAuthState(auth);
+
+  const theme = useTheme();
+  const isMdUp = useMediaQuery(theme.breakpoints.up('md'));
+
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = async () => await auth.signOut();
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
@@ -55,6 +67,14 @@ function Layout({ children }: LayoutProps) {
     }
   };
 
+  // Which bottom tab should be active based on the current URL
+  const bottomValue = useMemo(() => {
+    const idx = navItems.findIndex(
+      (i) => i.route && location.pathname.startsWith(i.route)
+    );
+    return idx >= 0 ? idx : 0;
+  }, [location.pathname]);
+
   const drawer = (
     <Box onClick={handleDrawerToggle} sx={{ textAlign: 'center' }}>
       <Typography variant="h6" sx={{ my: 2 }}>Pull Tab Community</Typography>
@@ -67,16 +87,27 @@ function Layout({ children }: LayoutProps) {
             </ListItemButton>
           </ListItem>
         ))}
+        {!!user && (
+          <>
+            <Divider />
+            <ListItem disablePadding>
+              <ListItemButton onClick={() => void handleLogout()}>
+                <ListItemText primary="Logout" />
+              </ListItemButton>
+            </ListItem>
+          </>
+        )}
       </List>
     </Box>
   );
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%', overflow: 'visible' }}>
-      {/* Only show AppBar and navigation if user is logged in */}
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%' }}>
+      {/* Top AppBar (only when logged-in) */}
       {user && (
         <AppBar component="nav" position="fixed">
           <Toolbar>
+            {/* Hamburger only on mobile (md-), paired with the Drawer */}
             <IconButton
               color="inherit"
               aria-label="open drawer"
@@ -94,22 +125,22 @@ function Layout({ children }: LayoutProps) {
               {`Tabsy's Community`}
             </Typography>
 
+            {/* Desktop links */}
             <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 2 }}>
               {navItems.map((item) => (
                 <Button key={item.label} onClick={() => handleNavItemClick(item)} color="inherit">
                   {item.label}
                 </Button>
               ))}
+              <IconButton color="inherit" onClick={() => void handleLogout()}>
+                <LogoutIcon />
+              </IconButton>
             </Box>
-
-            <IconButton color="inherit" onClick={() => void handleLogout()} sx={{ ml: 'auto' }}>
-              <LogoutIcon />
-            </IconButton>
           </Toolbar>
         </AppBar>
       )}
 
-      {/* Only show Drawer if user is logged in */}
+      {/* Drawer (mobile) */}
       {user && (
         <Box component="nav">
           <Drawer
@@ -119,7 +150,7 @@ function Layout({ children }: LayoutProps) {
             ModalProps={{ keepMounted: true }}
             sx={{
               display: { xs: 'block', md: 'none' },
-              '& .MuiDrawer-paper': { boxSizing: 'border-box', width: 240 },
+              '& .MuiDrawer-paper': { boxSizing: 'border-box', width: 260 },
             }}
           >
             {drawer}
@@ -127,73 +158,53 @@ function Layout({ children }: LayoutProps) {
         </Box>
       )}
 
-      <Box component="main" sx={{ flexGrow: 1, width: '100%', overflow: 'visible' }}>
-        {user && <Toolbar />}
-        {/* Render children if provided, else Outlet for nested routes */}
-  {children ? children : <Outlet />}
+      {/* Main content area */}
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          width: '100%',
+          // top padding to clear the AppBar when logged-in
+          pt: user ? { xs: 0, md: '64px' } : 0,
+          // bottom padding to clear BottomNavigation on mobile
+          pb: user ? { xs: 'calc(env(safe-area-inset-bottom) + 64px)', md: 0 } : 0,
+        }}
+      >
+        {user && isMdUp && <Toolbar sx={{ display: 'none' } /* already accounted with pt */} />}
+        {children ? children : <Outlet />}
       </Box>
 
-      {/* Footer Section */}
-      <Box id="contact" sx={{ bgcolor: 'grey.900', color: 'grey.300', py: 3, textAlign: 'center' }}>
-        <Typography variant="h6" color="white" gutterBottom>
-          {`Tabsy's Community`}
-        </Typography>
+      {/* Bottom Navigation (mobile only, when logged-in) */}
+      {user && (
+        <Paper
+          elevation={3}
+          sx={{
+            position: 'fixed',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: (t) => t.zIndex.appBar, // keep on top
+            display: { xs: 'block', md: 'none' },
+            pb: 'env(safe-area-inset-bottom)',
+          }}
+        >
+          <BottomNavigation
+            showLabels
+            value={bottomValue}
+            onChange={(_e: React.SyntheticEvent, newIndex: number) => handleNavItemClick(navItems[newIndex])}
+          >
+            {navItems.map((item) => (
+              <BottomNavigationAction
+                key={item.label}
+                label={item.label}
+                icon={item.icon}
+              />
+            ))}
+          </BottomNavigation>
+        </Paper>
+      )}
 
-        {/* Social Media Icons */}
-        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, my: 2 }}>
-          <IconButton
-            href="https://facebook.com/tabsyscommunity"
-            target="_blank"
-            rel="noopener noreferrer"
-            sx={{ color: 'grey.300', '&:hover': { color: '#1877F2' }, p: 1 }}
-          >
-            <FacebookIcon />
-          </IconButton>
-          <IconButton
-            href="https://www.instagram.com/tabsy_wins/"
-            target="_blank"
-            rel="noopener noreferrer"
-            sx={{ color: 'grey.300', '&:hover': { color: '#E4405F' }, p: 1 }}
-          >
-            <InstagramIcon />
-          </IconButton>
-          <IconButton
-            href="https://twitter.com/tabsyscommunity"
-            target="_blank"
-            rel="noopener noreferrer"
-            sx={{ color: 'grey.300', '&:hover': { color: '#1DA1F2' }, p: 1 }}
-          >
-            <TwitterIcon />
-          </IconButton>
-          <IconButton
-            href="https://www.youtube.com/@TabsyWins"
-            target="_blank"
-            rel="noopener noreferrer"
-            sx={{ color: 'grey.300', '&:hover': { color: '#FF0000' }, p: 1 }}
-          >
-            <YouTubeIcon />
-          </IconButton>
-        </Box>
-
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-          <Typography variant="caption">
-            {`© 2025 Tabsy's Community. All rights reserved. For entertainment purposes only. Please play responsibly.`}
-          </Typography>
-          <Button 
-            href="#privacy-policy" 
-            sx={{ 
-              color: 'grey.300', 
-              textTransform: 'none',
-              fontSize: 'inherit',
-              p: 0,
-              minWidth: 'auto',
-              '&:hover': { color: '#ffffff' }
-            }}
-          >
-            Privacy Policy
-          </Button>
-        </Box>
-      </Box>
+      <Footer />
     </Box>
   );
 }
