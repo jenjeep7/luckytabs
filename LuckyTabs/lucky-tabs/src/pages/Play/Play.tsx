@@ -574,7 +574,7 @@ export const Play: React.FC = () => {
         </DialogTitle>
         <DialogContent sx={{ p: 0, overflow: 'auto' }}>
           {editBox && (
-            <Box sx={{ p: 3 }}>
+            <Box sx={{ p: 1, pt: 3 }}>
               <BoxComponent
                 title=""
                 boxes={[editBox]}

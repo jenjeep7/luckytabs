@@ -423,10 +423,7 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
           }
           
           return (
-            <Paper
-              key={box.id}
-              sx={{ p: 1, mb: 3, position: 'relative'}}
-            >
+            <Box key={box.id} sx={{ p: .5, mb: 3, position: 'relative'}}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                 <Box sx={{ textAlign: 'center', flex: 1 }}>                  
                   {/* EV Badge */}
@@ -550,7 +547,7 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
                   <DeleteIcon />
                 </IconButton>
               </Box>
-            </Paper>
+            </Box>
           );
         })}
       </Box>
