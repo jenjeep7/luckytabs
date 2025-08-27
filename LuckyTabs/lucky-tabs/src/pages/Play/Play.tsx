@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react/prop-types */
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Typography,
@@ -128,12 +128,59 @@ export const Play: React.FC = () => {
     }
   };
   const [locations, setLocations] = useState<Location[]>([]);
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<string>("");
   const [boxes, setBoxes] = useState<BoxItem[]>([]);
   const [openCreateBox, setOpenCreateBox] = useState(false);
   const [openLocationManager, setOpenLocationManager] = useState(false);
   const [editBox, setEditBox] = useState<BoxItem | null>(null);
   const [showLocationSelector, setShowLocationSelector] = useState(false);
+
+  // Get user location on mount
+  useEffect(() => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        },
+        () => {
+          setUserCoords(null);
+        },
+        { enableHighAccuracy: false, maximumAge: 60000, timeout: 8000 }
+      );
+    }
+  }, []);
+
+  // Helper: Haversine formula for distance in meters
+  function getDistanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
+    const toRad = (v: number) => (v * Math.PI) / 180;
+    const R = 6371000;
+    const dLat = toRad(b.lat - a.lat);
+    const dLng = toRad(b.lng - a.lng);
+    const lat1 = toRad(a.lat);
+    const lat2 = toRad(b.lat);
+    const x = dLat / 2;
+    const y = dLng / 2;
+    const h =
+      Math.sin(x) * Math.sin(x) +
+      Math.cos(lat1) * Math.cos(lat2) * Math.sin(y) * Math.sin(y);
+    return 2 * R * Math.asin(Math.sqrt(h));
+  }
+
+  // Sort locations by proximity if userCoords is available
+  const sortedLocations = React.useMemo(() => {
+    if (!userCoords) return locations;
+    return [...locations].sort((a, b) => {
+      const isValidCoords = (coords: any): coords is { lat: number; lng: number } => {
+        return !!coords && typeof coords.lat === 'number' && typeof coords.lng === 'number';
+      };
+
+      if (!isValidCoords(a.coordinates) || !isValidCoords(b.coordinates)) return 0;
+      const da = getDistanceMeters(userCoords, a.coordinates);
+      const db = getDistanceMeters(userCoords, b.coordinates);
+      return da - db;
+    });
+  }, [locations, userCoords]);
 
   useEffect(() => {
     const fetchLocations = async () => {
@@ -218,7 +265,7 @@ export const Play: React.FC = () => {
           {/* Locations Map */}
           {locations.length > 0 && (
             <LocationsMapSafe
-              locations={locations}
+              locations={sortedLocations}
               selectedLocationId={selectedLocation}
               onLocationSelect={setSelectedLocation}
               height={400}
@@ -234,7 +281,7 @@ export const Play: React.FC = () => {
               onChange={handleChange}
               size="small"
             >
-              {locations.map((loc) => (
+              {sortedLocations.map((loc) => (
                 <MenuItem key={loc.id} value={loc.id}>
                   {loc.name}
                 </MenuItem>
@@ -288,7 +335,7 @@ export const Play: React.FC = () => {
         </Box>
       )}
 
-      <Box sx={{ mt: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+      <Box sx={{ mt: 3, display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
         <Button
           variant="contained"
           sx={{ bgcolor: 'secondary.main' }}
@@ -521,7 +568,7 @@ export const Play: React.FC = () => {
           borderBottom: '1px solid',
           borderColor: 'divider'
         }}>
-          <Typography variant="h5">
+          <Typography variant="h5" component="span">
             {editBox?.boxName}
           </Typography>
           <IconButton onClick={() => setEditBox(null)}>

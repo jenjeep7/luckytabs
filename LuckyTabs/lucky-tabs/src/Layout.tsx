@@ -199,6 +199,10 @@ function Layout({ children }: LayoutProps) {
             showLabels
             value={bottomValue}
             onChange={(_e: React.SyntheticEvent, newIndex: number) => handleNavItemClick(navItems[newIndex])}
+            sx={{
+              pb: 2,
+              pt: 1,
+            }}
           >
             {navItems.map((item) => (
               <BottomNavigationAction
