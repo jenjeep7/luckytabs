@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { createUserWithEmailAndPassword, updateProfile, User, onAuthStateChanged } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile, User, onAuthStateChanged, sendEmailVerification } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
@@ -37,6 +37,7 @@ const waitForAuth = (): Promise<User> =>
 const Signup: React.FC = () => {
   const { register, handleSubmit } = useForm<SignupFormInputs>();
   const [error, setError] = useState('');
+  const [verificationSent, setVerificationSent] = useState(false);
   const navigate = useNavigate();
 
   const onSubmit = async (data: SignupFormInputs) => {
@@ -61,8 +62,14 @@ const Signup: React.FC = () => {
         createdAt: new Date(),
       });
 
+      // Send email verification
+      if (confirmedUser && confirmedUser.email) {
+        await sendEmailVerification(confirmedUser);
+        setVerificationSent(true);
+      }
+
       setError('');
-      navigate('/');
+      // Do not navigate until verified
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -78,18 +85,33 @@ const Signup: React.FC = () => {
         <Typography variant="h4" gutterBottom>
           Sign Up
         </Typography>
-        <Box
-          component="form"
-          onSubmit={handleSubmit(onSubmit)}
-          sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
-        >
-          <TextField label="Username" fullWidth {...register('username')} required />
-          <TextField label="Email" type="email" fullWidth {...register('email')} required />
-          <TextField label="Password" type="password" fullWidth {...register('password')} required />
-          <Button variant="contained" color="primary" type="submit">
-            Sign Up
-          </Button>
-        </Box>
+        {!verificationSent ? (
+          <Box
+            component="form"
+            onSubmit={handleSubmit(onSubmit)}
+            sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+          >
+            <TextField label="Username" fullWidth {...register('username')} required />
+            <TextField label="Email" type="email" fullWidth {...register('email')} required />
+            <TextField label="Password" type="password" fullWidth {...register('password')} required />
+            <Button variant="contained" color="primary" type="submit">
+              Sign Up
+            </Button>
+            <Button variant="outlined" color="primary" onClick={() => navigate('/login')}>
+              Already have an account? Login
+            </Button>
+            <Button variant="text" color="secondary" onClick={() => navigate('/')}>Return to Home</Button>
+          </Box>
+        ) : (
+          <Box sx={{ mt: 2 }}>
+            <Alert severity="info">
+              A verification email has been sent to your address. Please check your inbox and verify your email before logging in.
+            </Alert>
+            <Button variant="contained" color="primary" sx={{ mt: 2 }} onClick={() => navigate('/login')}>
+              Go to Login
+            </Button>
+          </Box>
+        )}
         {error && (
           <Alert severity="error" sx={{ mt: 2 }}>
             {error}

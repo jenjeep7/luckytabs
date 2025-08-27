@@ -38,19 +38,20 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
   ]);
   const handleSubmit = async () => {
     interface Box {
-      boxName: string;
-      boxNumber: string;
-      pricePerTicket: string;
-      startingTickets: number;
-      type: "wall" | "bar box";
-      createdAt: any;
-      lastUpdated: any;
-      locationId: string;
-      ownerId: string;
-      isActive: boolean;
-      tags: string[];
-      winningTickets: Prize[];
-      rows?: { rowNumber: number; estimatedTicketsRemaining: number }[];
+            boxName: string;
+            boxNumber: string;
+            pricePerTicket: string;
+            startingTickets: number;
+            type: "wall" | "bar box";
+            createdAt: any;
+            lastUpdated: any;
+            locationId: string;
+            ownerId: string;
+            isActive: boolean;
+            tags: string[];
+            winningTickets: Prize[];
+            rows?: { rowNumber: number; estimatedTicketsRemaining: number }[];
+            estimatedTicketsUpdated?: Date;
     }
 
     const newBox: Box = {
@@ -66,7 +67,7 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
       isActive: true,
       tags: ["pull tab"],
       winningTickets,
-       ...(type === "wall"
+            ...(type === "wall"
     ? {
         rows: [
           { rowNumber: 1, estimatedTicketsRemaining: 0 },
@@ -76,6 +77,8 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
         ],
       }
     : {}),
+            // Add estimatedTicketsUpdated field
+            estimatedTicketsUpdated: new Date(),
 };
 
     try {

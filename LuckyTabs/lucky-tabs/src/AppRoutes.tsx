@@ -5,11 +5,13 @@ import { auth } from './firebase';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import { LandingPage } from './pages/Landing/LandingPage';
-import LandingTemporary from './pages/Landing/LandingTemporary';
 import { SupportCircle } from './pages/Support/SupportCircle';
 import Layout from './Layout';
 import { Play } from './pages/Play/Play';
 import { Tracking } from './pages/Tracking/Tracking';
+import { Community } from './pages/Community/Community';
+import { UserProfile } from './pages/Profile/UserProfile';
+import Features from './pages/Features';
 function AppRoutes() {
   const [user, loading] = useAuthState(auth);
 
@@ -17,16 +19,23 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/" element={user ? <Navigate to="/dashboard" /> : <LandingTemporary />} />
-      <Route element={user ? <Layout /> : <Navigate to="/" />}> {/* Protected Routes */}
-        <Route path="/dashboard" element={<LandingPage />} />
-        <Route path="/support-circle" element={<SupportCircle />} />
+      {/* Redirect / to /play if logged in, else /home */}
+      <Route path="/" element={<Navigate to={user ? "/play" : "/home"} />} />
+      {/* /home is only for logged out users, logged in users go to /play */}
+      <Route path="/home" element={user ? <Navigate to="/play" /> : <LandingPage />} />
+      {/* Protected routes only accessible if logged in */}
+      <Route element={user ? <Layout /> : <Navigate to="/home" />}> 
         <Route path="/play" element={<Play />} />
         <Route path="/tracking" element={<Tracking />} />
+        <Route path="/community" element={<Community />} />
+        <Route path="/profile" element={<UserProfile />} />
       </Route>
-      <Route path="/login" element={user ? <Navigate to="/dashboard" /> : <Login />} />
-      <Route path="/signup" element={user ? <Navigate to="/dashboard" /> : <Signup />} />
-      <Route path="*" element={<Navigate to="/" />} />
+      {/* Login/Signup redirect to /play if logged in */}
+      <Route path="/login" element={user ? <Navigate to="/play" /> : <Login />} />
+      <Route path="/signup" element={user ? <Navigate to="/play" /> : <Signup />} />
+      <Route path="/features" element={<Features />} />
+      <Route path="*" element={<Navigate to={user ? "/play" : "/home"} />} />
+      <Route path="/support-circle" element={<SupportCircle />} />
     </Routes>
   );
 }

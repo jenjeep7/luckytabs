@@ -1,0 +1,36 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Users can read and write their own user document
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Box rules - shared by all authenticated users
+    match /boxes/{boxId} {
+      allow create, read, update, delete, list: if request.auth != null;
+    }
+
+    // Locations - shared by all authenticated users
+    match /locations/{locationId} {
+      allow create, read, update, delete, list: if request.auth != null;
+    }
+    
+    // Users can read and write their own budget documents
+    match /budgets/{document} {
+      allow read, write, list: if request.auth != null && 
+        (resource == null || resource.data.userId == request.auth.uid);
+      allow create: if request.auth != null && 
+        request.resource.data.userId == request.auth.uid;
+    }
+    
+    // Users can read and write their own transaction documents  
+    match /transactions/{document} {
+      allow read, write, list: if request.auth != null && 
+        (resource == null || resource.data.userId == request.auth.uid);
+      allow create: if request.auth != null && 
+        request.resource.data.userId == request.auth.uid;
+    }
+  }
+}

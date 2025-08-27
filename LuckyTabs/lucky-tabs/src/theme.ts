@@ -7,9 +7,12 @@ export const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => ({
       ? {
           primary: {
             main: '#000000ff',
+            light: '#f9f9f9',
+            contrastText: '#ffffff', // White text on black buttons
           },
           secondary: {
             main: '#e140a1ff',
+            contrastText: '#ffffff', // White text on pink buttons
           },
           background: {
             default: '#f9f9fb',
@@ -25,10 +28,13 @@ export const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => ({
         }
       : {
           primary: {
-            main: '#000000ff',
+            main: '#ffffff', // White primary for dark mode
+            light: '#f5f5f5',
+            contrastText: '#000000', // Black text on white buttons in dark mode
           },
           secondary: {
             main: '#e140a1ff',
+            contrastText: '#ffffff', // White text on pink buttons
           },
           background: {
             default: '#121212',
@@ -75,6 +81,30 @@ export const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => ({
           textTransform: 'none',
           borderRadius: 8,
         },
+        contained: ({ theme, ownerState }) => ({
+          ...(theme.palette.mode === 'dark' && ownerState.color === 'primary' && {
+            backgroundColor: '#1e1e1e',
+            color: '#ffffff',
+            border: '1px solid #ffffff',
+            '&:hover': {
+              backgroundColor: '#2a2a2a',
+              borderColor: '#ffffff',
+            },
+            '&:active': {
+              backgroundColor: '#333333',
+            }
+          })
+        }),
+        outlined: ({ theme, ownerState }) => ({
+          ...(theme.palette.mode === 'dark' && ownerState.color === 'primary' && {
+            borderColor: '#ffffff',
+            color: '#ffffff',
+            '&:hover': {
+              borderColor: '#ffffff',
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            }
+          })
+        }),
       },
     },
     MuiPaper: {

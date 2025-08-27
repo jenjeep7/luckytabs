@@ -26,7 +26,13 @@ const Login: React.FC = () => {
 
   const onSubmit = async (data: LoginFormInputs) => {
     try {
-      await signInWithEmailAndPassword(auth, data.email, data.password);
+      const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
+      // Force reload user to get latest emailVerified status
+      await userCredential.user.reload();
+      if (!userCredential.user.emailVerified) {
+        setError('Please verify your email address before logging in.');
+        return;
+      }
       setError('');
       void navigate('/');
     } catch (err: unknown) {
@@ -77,12 +83,13 @@ const Login: React.FC = () => {
           <Button variant="contained" color="primary" type="submit">
             Login
           </Button>
-          {/* <Button variant="outlined" onClick={signInWithGoogle}>
+          <Button variant="outlined" onClick={signInWithGoogle}>
             Sign in with Google
           </Button>
           <Button onClick={() => navigate('/signup')}>
             Sign Up
-          </Button> */}
+          </Button>
+          <Button variant="text" color="secondary" onClick={() => navigate('/')}>Return to Home</Button>
         </Box>
         {error && (
           <Alert severity="error" sx={{ mt: 2 }}>

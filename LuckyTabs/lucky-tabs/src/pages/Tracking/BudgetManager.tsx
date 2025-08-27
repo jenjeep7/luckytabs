@@ -145,10 +145,10 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({
           variant="outlined"
           color="primary"
           sx={{ 
-            borderColor: 'primary.main',
-            color: 'primary.main',
+            borderColor: 'text.primary',
+            color: 'text.primary',
             '&:hover': {
-              borderColor: 'primary.dark',
+              borderColor: 'text.primary',
               backgroundColor: 'action.hover'
             }
           }}

@@ -77,6 +77,111 @@ export const ClaimPrizeDialog: React.FC<ClaimPrizeDialogProps> = ({
   );
 };
 
+// Reusable Row Slider Component
+interface RowSliderProps {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+  isMobile: boolean;
+}
+
+const RowSlider: React.FC<RowSliderProps> = ({ label, value, onChange, isMobile }) => {
+  const handleSliderChange = (_: Event, newValue: number | number[]) => {
+    const val = Array.isArray(newValue) ? newValue[0] : newValue;
+    onChange(val);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (val === "") {
+      onChange(0);
+      return;
+    }
+    const num = Math.max(0, Math.min(800, Number(val)));
+    onChange(num);
+  };
+
+  const marks = [
+    { value: 0, label: '0' },
+    { value: 200, label: '200' },
+    { value: 400, label: '400' },
+    { value: 600, label: '600' },
+    { value: 800, label: '800' }
+  ];
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: 350 }}>
+      <Typography 
+        variant={isMobile ? "caption" : "subtitle2"} 
+        sx={{ 
+          mb: 1, 
+          fontSize: isMobile ? '1rem' : undefined,
+          fontWeight: 'bold',
+          ...(isMobile ? { userSelect: 'none' } : { gutterBottom: true })
+        }}
+      >
+        {label}
+      </Typography>
+      <input
+        type="number"
+        min={0}
+        max={800}
+        value={value}
+        onChange={handleInputChange}
+        style={{
+          fontWeight: 'bold',
+          fontSize: isMobile ? '1.1rem' : undefined,
+          marginBottom: 36, 
+          textAlign: 'center',
+          width: 72,
+          borderRadius: 4,
+        }}
+      />
+      <Slider
+        orientation="vertical"
+        value={value}
+        onChange={handleSliderChange}
+        onChangeCommitted={(_event: React.SyntheticEvent | Event, newValue: number | number[]) => handleSliderChange(_event as Event, newValue)}
+        max={800}
+        min={0}
+        step={isMobile ? 2 : 1}
+        marks={marks}
+        sx={{
+          height: isMobile ? 330 : 330,
+          mb: 2,
+          '& .MuiSlider-thumb': {
+            backgroundColor: '#e140a1',
+            border: isMobile ? '3px solid #fff' : '2px solid #fff',
+            width: isMobile ? 28 : 20,
+            height: isMobile ? 28 : 20,
+          },
+          '& .MuiSlider-track': {
+            backgroundColor: '#e140a1',
+            width: isMobile ? 8 : 4,
+          },
+          '& .MuiSlider-rail': {
+            backgroundColor: '#ddd',
+            width: isMobile ? 8 : 4,
+          },
+          '& .MuiSlider-mark': {
+            backgroundColor: '#e140a1',
+            ...(isMobile && { width: 4, height: 4 }),
+          },
+          '& .MuiSlider-markLabel': {
+            color: 'text.primary',
+            fontSize: isMobile ? '0.65rem' : '0.75rem',
+            ...(isMobile && { transform: 'translateX(-50%)' }),
+          },
+        }}
+        {...(isMobile && {
+          disableSwap: true,
+          size: 'medium',
+        })}
+      />
+    </Box>
+  );
+};
+
 interface EstimateRemainingDialogProps {
   open: boolean;
   boxName: string;
@@ -103,13 +208,14 @@ export const EstimateRemainingDialog: React.FC<EstimateRemainingDialogProps> = (
   const [row2, setRow2] = useState(0);
   const [row3, setRow3] = useState(0);
   const [row4, setRow4] = useState(0);
+  const [initialized, setInitialized] = useState(false);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   // Initialize sliders with saved row estimates or distributed current value when dialog opens
   React.useEffect(() => {
-    if (open) {
+    if (open && !initialized) {
       if (currentRowEstimates) {
         // Use saved row estimates if available
         setRow1(currentRowEstimates.row1);
@@ -131,14 +237,27 @@ export const EstimateRemainingDialog: React.FC<EstimateRemainingDialogProps> = (
         setRow3(0);
         setRow4(0);
       }
+      setInitialized(true);
     }
-  }, [open, currentValue, currentRowEstimates]);
+  }, [open, currentValue, currentRowEstimates, initialized]);
+
+  // Reset initialization when dialog closes
+  React.useEffect(() => {
+    if (!open) {
+      setInitialized(false);
+    }
+  }, [open]);
 
   const totalTickets = row1 + row2 + row3 + row4;
 
   const handleUpdate = () => {
     const rowEstimates = { row1, row2, row3, row4 };
     onUpdate(totalTickets, rowEstimates);
+  };
+
+  const handleCancel = () => {
+    setInitialized(false);
+    onCancel();
   };
 
   return (
@@ -172,406 +291,26 @@ export const EstimateRemainingDialog: React.FC<EstimateRemainingDialogProps> = (
             minHeight: 400 
           }}
         >
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: 350 }}>
-            <Typography variant="subtitle2" gutterBottom sx={{ mb: 2 }}>
-              Row 1
-            </Typography>
-            <Slider
-              orientation="vertical"
-              value={row1}
-              onChange={(_, value) => setRow1(typeof value === 'number' ? value : value[0])}
-              max={800}
-              min={0}
-              step={1}
-              marks={[
-                { value: 0, label: '0' },
-                { value: 200, label: '200' },
-                { value: 400, label: '400' },
-                { value: 600, label: '600' },
-                { value: 800, label: '800' }
-              ]}
-              sx={{ 
-                height: 280, 
-                mb: 2,
-                '& .MuiSlider-thumb': {
-                  backgroundColor: '#e140a1',
-                  border: '2px solid #fff',
-                  '&:hover': {
-                    backgroundColor: '#c73691',
-                  },
-                },
-                '& .MuiSlider-track': {
-                  backgroundColor: '#e140a1',
-                },
-                '& .MuiSlider-rail': {
-                  backgroundColor: '#ddd',
-                },
-                '& .MuiSlider-mark': {
-                  backgroundColor: '#e140a1',
-                },
-                '& .MuiSlider-markLabel': {
-                  color: 'text.primary',
-                  fontSize: '0.75rem',
-                },
-              }}
-            />
-            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-              {row1}
-            </Typography>
-          </Box>
-
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: 350 }}>
-            <Typography variant="subtitle2" gutterBottom sx={{ mb: 2 }}>
-              Row 2
-            </Typography>
-            <Slider
-              orientation="vertical"
-              value={row2}
-              onChange={(_, value) => setRow2(typeof value === 'number' ? value : value[0])}
-              max={800}
-              min={0}
-              step={1}
-              marks={[
-                { value: 0, label: '0' },
-                { value: 200, label: '200' },
-                { value: 400, label: '400' },
-                { value: 600, label: '600' },
-                { value: 800, label: '800' }
-              ]}
-              sx={{ 
-                height: 280, 
-                mb: 2,
-                '& .MuiSlider-thumb': {
-                  backgroundColor: '#e140a1',
-                  border: '2px solid #fff',
-                  '&:hover': {
-                    backgroundColor: '#c73691',
-                  },
-                },
-                '& .MuiSlider-track': {
-                  backgroundColor: '#e140a1',
-                },
-                '& .MuiSlider-rail': {
-                  backgroundColor: '#ddd',
-                },
-                '& .MuiSlider-mark': {
-                  backgroundColor: '#e140a1',
-                },
-                '& .MuiSlider-markLabel': {
-                  color: 'text.primary',
-                  fontSize: '0.75rem',
-                },
-              }}
-            />
-            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-              {row2}
-            </Typography>
-          </Box>
-
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: 350 }}>
-            <Typography variant="subtitle2" gutterBottom sx={{ mb: 2 }}>
-              Row 3
-            </Typography>
-            <Slider
-              orientation="vertical"
-              value={row3}
-              onChange={(_, value) => setRow3(typeof value === 'number' ? value : value[0])}
-              max={800}
-              min={0}
-              step={1}
-              marks={[
-                { value: 0, label: '0' },
-                { value: 200, label: '200' },
-                { value: 400, label: '400' },
-                { value: 600, label: '600' },
-                { value: 800, label: '800' }
-              ]}
-              sx={{ 
-                height: 280, 
-                mb: 2,
-                '& .MuiSlider-thumb': {
-                  backgroundColor: '#e140a1',
-                  border: '2px solid #fff',
-                  '&:hover': {
-                    backgroundColor: '#c73691',
-                  },
-                },
-                '& .MuiSlider-track': {
-                  backgroundColor: '#e140a1',
-                },
-                '& .MuiSlider-rail': {
-                  backgroundColor: '#ddd',
-                },
-                '& .MuiSlider-mark': {
-                  backgroundColor: '#e140a1',
-                },
-                '& .MuiSlider-markLabel': {
-                  color: 'text.primary',
-                  fontSize: '0.75rem',
-                },
-              }}
-            />
-            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-              {row3}
-            </Typography>
-          </Box>
-
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: 350 }}>
-            <Typography variant="subtitle2" gutterBottom sx={{ mb: 2 }}>
-              Row 4
-            </Typography>
-            <Slider
-              orientation="vertical"
-              value={row4}
-              onChange={(_, value) => setRow4(typeof value === 'number' ? value : value[0])}
-              max={800}
-              min={0}
-              step={1}
-              marks={[
-                { value: 0, label: '0' },
-                { value: 200, label: '200' },
-                { value: 400, label: '400' },
-                { value: 600, label: '600' },
-                { value: 800, label: '800' }
-              ]}
-              sx={{ 
-                height: 280, 
-                mb: 2,
-                '& .MuiSlider-thumb': {
-                  backgroundColor: '#e140a1',
-                  border: '2px solid #fff',
-                  '&:hover': {
-                    backgroundColor: '#c73691',
-                  },
-                },
-                '& .MuiSlider-track': {
-                  backgroundColor: '#e140a1',
-                },
-                '& .MuiSlider-rail': {
-                  backgroundColor: '#ddd',
-                },
-                '& .MuiSlider-mark': {
-                  backgroundColor: '#e140a1',
-                },
-                '& .MuiSlider-markLabel': {
-                  color: 'text.primary',
-                  fontSize: '0.75rem',
-                },
-              }}
-            />
-            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-              {row4}
-            </Typography>
-          </Box>
+          <RowSlider label="Row 1" value={row1} onChange={setRow1} isMobile={false} />
+          <RowSlider label="Row 2" value={row2} onChange={setRow2} isMobile={false} />
+          <RowSlider label="Row 3" value={row3} onChange={setRow3} isMobile={false} />
+          <RowSlider label="Row 4" value={row4} onChange={setRow4} isMobile={false} />
         </Box>
 
-        {/* Mobile Layout - Compact Vertical Sliders */}
-        <Box sx={{ py: 1, display: { xs: 'flex', md: 'none' }, justifyContent: 'space-around', alignItems: 'flex-end', minHeight: 280 }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: 250 }}>
-            <Typography variant="caption" sx={{ mb: 1, fontSize: '0.7rem' }}>
-              Row 1
-            </Typography>
-            <Slider
-              orientation="vertical"
-              value={row1}
-              onChange={(_, value) => setRow1(typeof value === 'number' ? value : value[0])}
-              max={800}
-              min={0}
-              step={1}
-              marks={[
-                { value: 0, label: '0' },
-                { value: 800, label: '800' }
-              ]}
-              sx={{ 
-                height: 180, 
-                mb: 1,
-                '& .MuiSlider-thumb': {
-                  backgroundColor: '#e140a1',
-                  border: '2px solid #fff',
-                  width: 16,
-                  height: 16,
-                  '&:hover': {
-                    backgroundColor: '#c73691',
-                  },
-                },
-                '& .MuiSlider-track': {
-                  backgroundColor: '#e140a1',
-                  width: 4,
-                },
-                '& .MuiSlider-rail': {
-                  backgroundColor: '#ddd',
-                  width: 4,
-                },
-                '& .MuiSlider-mark': {
-                  backgroundColor: '#e140a1',
-                },
-                '& .MuiSlider-markLabel': {
-                  color: 'text.primary',
-                  fontSize: '0.6rem',
-                },
-              }}
-            />
-            <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.7rem' }}>
-              {row1}
-            </Typography>
-          </Box>
-
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: 250 }}>
-            <Typography variant="caption" sx={{ mb: 1, fontSize: '0.7rem' }}>
-              Row 2
-            </Typography>
-            <Slider
-              orientation="vertical"
-              value={row2}
-              onChange={(_, value) => setRow2(typeof value === 'number' ? value : value[0])}
-              max={800}
-              min={0}
-              step={1}
-              marks={[
-                { value: 0, label: '0' },
-                { value: 800, label: '800' }
-              ]}
-              sx={{ 
-                height: 180, 
-                mb: 1,
-                '& .MuiSlider-thumb': {
-                  backgroundColor: '#e140a1',
-                  border: '2px solid #fff',
-                  width: 16,
-                  height: 16,
-                  '&:hover': {
-                    backgroundColor: '#c73691',
-                  },
-                },
-                '& .MuiSlider-track': {
-                  backgroundColor: '#e140a1',
-                  width: 4,
-                },
-                '& .MuiSlider-rail': {
-                  backgroundColor: '#ddd',
-                  width: 4,
-                },
-                '& .MuiSlider-mark': {
-                  backgroundColor: '#e140a1',
-                },
-                '& .MuiSlider-markLabel': {
-                  color: 'text.primary',
-                  fontSize: '0.6rem',
-                },
-              }}
-            />
-            <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.7rem' }}>
-              {row2}
-            </Typography>
-          </Box>
-
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: 250 }}>
-            <Typography variant="caption" sx={{ mb: 1, fontSize: '0.7rem' }}>
-              Row 3
-            </Typography>
-            <Slider
-              orientation="vertical"
-              value={row3}
-              onChange={(_, value) => setRow3(typeof value === 'number' ? value : value[0])}
-              max={800}
-              min={0}
-              step={1}
-              marks={[
-                { value: 0, label: '0' },
-                { value: 800, label: '800' }
-              ]}
-              sx={{ 
-                height: 180, 
-                mb: 1,
-                '& .MuiSlider-thumb': {
-                  backgroundColor: '#e140a1',
-                  border: '2px solid #fff',
-                  width: 16,
-                  height: 16,
-                  '&:hover': {
-                    backgroundColor: '#c73691',
-                  },
-                },
-                '& .MuiSlider-track': {
-                  backgroundColor: '#e140a1',
-                  width: 4,
-                },
-                '& .MuiSlider-rail': {
-                  backgroundColor: '#ddd',
-                  width: 4,
-                },
-                '& .MuiSlider-mark': {
-                  backgroundColor: '#e140a1',
-                },
-                '& .MuiSlider-markLabel': {
-                  color: 'text.primary',
-                  fontSize: '0.6rem',
-                },
-              }}
-            />
-            <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.7rem' }}>
-              {row3}
-            </Typography>
-          </Box>
-
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: 250 }}>
-            <Typography variant="caption" sx={{ mb: 1, fontSize: '0.7rem' }}>
-              Row 4
-            </Typography>
-            <Slider
-              orientation="vertical"
-              value={row4}
-              onChange={(_, value) => setRow4(typeof value === 'number' ? value : value[0])}
-              max={800}
-              min={0}
-              step={1}
-              marks={[
-                { value: 0, label: '0' },
-                { value: 800, label: '800' }
-              ]}
-              sx={{ 
-                height: 180, 
-                mb: 1,
-                '& .MuiSlider-thumb': {
-                  backgroundColor: '#e140a1',
-                  border: '2px solid #fff',
-                  width: 16,
-                  height: 16,
-                  '&:hover': {
-                    backgroundColor: '#c73691',
-                  },
-                },
-                '& .MuiSlider-track': {
-                  backgroundColor: '#e140a1',
-                  width: 4,
-                },
-                '& .MuiSlider-rail': {
-                  backgroundColor: '#ddd',
-                  width: 4,
-                },
-                '& .MuiSlider-mark': {
-                  backgroundColor: '#e140a1',
-                },
-                '& .MuiSlider-markLabel': {
-                  color: 'text.primary',
-                  fontSize: '0.6rem',
-                },
-              }}
-            />
-            <Typography variant="caption" sx={{ fontWeight: 'bold', fontSize: '0.7rem' }}>
-              {row4}
-            </Typography>
-          </Box>
+        {/* Mobile Layout - Taller, Touch-Friendly Vertical Sliders */}
+        <Box sx={{ py: 2, display: { xs: 'flex', md: 'none' }, justifyContent: 'space-around', alignItems: 'flex-end', minHeight: 400 }}>
+          <RowSlider label="Row 1" value={row1} onChange={setRow1} isMobile={true} />
+          <RowSlider label="Row 2" value={row2} onChange={setRow2} isMobile={true} />
+          <RowSlider label="Row 3" value={row3} onChange={setRow3} isMobile={true} />
+          <RowSlider label="Row 4" value={row4} onChange={setRow4} isMobile={true} />
         </Box>
 
-        <Box sx={{ textAlign: 'center', mt: 2, p: 2, backgroundColor: 'grey.100', borderRadius: 1 }}>
-          <Typography variant="h6" color="primary">
-            Total Estimated Tickets: {totalTickets}
-          </Typography>
-        </Box>
+        <Typography variant="h6" color="text.primary" sx={{ textAlign: 'center', mt: 3 }}>
+          Total Estimated Tickets: {totalTickets}
+        </Typography>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onCancel} variant="outlined" color="secondary">
+        <Button onClick={handleCancel} variant="outlined" color="secondary">
           Cancel
         </Button>
         <Button onClick={handleUpdate} color="primary" variant="contained">

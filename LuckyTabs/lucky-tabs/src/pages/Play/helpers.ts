@@ -4,6 +4,11 @@ interface WinningTicket {
   prize: string | number;
 }
 
+export interface Prize {
+  value: number;
+  remaining: number;
+}
+
 interface BoxItem {
   id: string;
   boxName: string;
@@ -25,6 +30,52 @@ interface BoxItem {
   [key: string]: unknown;
 }
 
+// Advanced Metrics Types
+export interface AdvancedMetrics {
+  evPerTicket: number;
+  rtpRemaining: number;
+  costToClear: number;
+  netIfCleared: number;
+  topPrizeOdds: {
+    next1: number;
+    next5: number;
+    next10: number;
+  };
+  profitTicketOdds: {
+    next1: number;
+    next5: number;
+    next10: number;
+  };
+  payoutConcentration: number;
+  riskPerTicket: number;
+  sensitivity: {
+    evLow: number;
+    evHigh: number;
+    isEstimateSensitive: boolean;
+  };
+  goodnessScore: number;
+}
+
+// EV Calculation Functions
+export function evPerTicket(p: number, R: number, prizes: Prize[]): number {
+  const Prem = prizes.reduce((s, t) => s + t.value * t.remaining, 0);
+  return (Prem / R) - p; // dollars per ticket
+}
+
+export function evBand(p: number, R: number, prizes: Prize[], pct = 0.10) {
+  const Prem = prizes.reduce((s, t) => s + t.value * t.remaining, 0);
+  const low  = (Prem / Math.ceil(R * (1 + pct))) - p;
+  const mid  = (Prem / R) - p;
+  const high = (Prem / Math.max(1, Math.floor(R * (1 - pct)))) - p;
+  return { low, mid, high };
+}
+
+export function rtpRemaining(p: number, R: number, prizes: Prize[]): number {
+  const Prem = prizes.reduce((s, t) => s + t.value * t.remaining, 0);
+  return (Prem / (p * R)) * 100; // percentage
+}
+
+// Existing functions
 export const calculateRemainingPrizes = (box: BoxItem): number => {
   if (!box.winningTickets || !Array.isArray(box.winningTickets)) {
     return 0;
@@ -141,4 +192,233 @@ export const calculateOneInXChances = (remainingTicketsInput: { [boxId: string]:
   const oneInX = remainingTickets / remainingWinningTickets;
   
   return `1 in ${oneInX.toFixed(1)}`;
+};
+
+// NEW ADVANCED METRICS FUNCTIONS
+
+// Hypergeometric probability: P(at least 1 win in N draws)
+const hypergeometricProbability = (totalTickets: number, winnersRemaining: number, draws: number): number => {
+  if (totalTickets <= 0 || winnersRemaining <= 0 || draws <= 0) return 0;
+  if (winnersRemaining >= totalTickets) return 1;
+  if (draws >= totalTickets) return winnersRemaining > 0 ? 1 : 0;
+  
+  // P(at least 1) = 1 - P(0 wins) = 1 - C(R-K, N) / C(R, N)
+  // For computational stability, we'll use a different approach
+  let probability = 0;
+  for (let wins = 1; wins <= Math.min(draws, winnersRemaining); wins++) {
+    probability += combination(winnersRemaining, wins) * combination(totalTickets - winnersRemaining, draws - wins) / combination(totalTickets, draws);
+  }
+  return Math.min(1, probability);
+};
+
+// Combination function C(n, k) = n! / (k! * (n-k)!)
+const combination = (n: number, k: number): number => {
+  if (k > n || k < 0) return 0;
+  if (k === 0 || k === n) return 1;
+  
+  // Use multiplicative approach to avoid large factorials
+  let result = 1;
+  for (let i = 0; i < k; i++) {
+    result = result * (n - i) / (i + 1);
+  }
+  return result;
+};
+
+// 1. EV per ticket
+export const calculateEVPerTicket = (box: BoxItem, remainingTickets: number): number => {
+  const pricePerTicket = Number(box.pricePerTicket) || 0;
+  const totalRemainingPrizeValue = calculateTotalRemainingPrizeValue(box);
+  
+  if (remainingTickets <= 0) return -pricePerTicket;
+  
+  return (totalRemainingPrizeValue / remainingTickets) - pricePerTicket;
+};
+
+// 2. RTP remaining (Return to Player)
+export const calculateRTPRemaining = (box: BoxItem, remainingTickets: number): number => {
+  const pricePerTicket = Number(box.pricePerTicket) || 0;
+  const totalRemainingPrizeValue = calculateTotalRemainingPrizeValue(box);
+  
+  if (remainingTickets <= 0 || pricePerTicket <= 0) return 0;
+  
+  return totalRemainingPrizeValue / (pricePerTicket * remainingTickets);
+};
+
+// 3. Cost to clear vs payout left
+export const calculateCostToClear = (box: BoxItem, remainingTickets: number): { cost: number; payout: number; net: number } => {
+  const pricePerTicket = Number(box.pricePerTicket) || 0;
+  const totalRemainingPrizeValue = calculateTotalRemainingPrizeValue(box);
+  const cost = pricePerTicket * remainingTickets;
+  
+  return {
+    cost,
+    payout: totalRemainingPrizeValue,
+    net: totalRemainingPrizeValue - cost
+  };
+};
+
+// 4. Top prize odds
+export const calculateTopPrizeOdds = (box: BoxItem, remainingTickets: number): { next1: number; next5: number; next10: number } => {
+  if (!box.winningTickets || remainingTickets <= 0) {
+    return { next1: 0, next5: 0, next10: 0 };
+  }
+
+  // Get top tier prizes (highest value prizes)
+  const sortedPrizes = box.winningTickets
+    .map(ticket => ({
+      value: Number(ticket.prize),
+      remaining: Number(ticket.totalPrizes) - Number(ticket.claimedTotal)
+    }))
+    .filter(p => p.remaining > 0)
+    .sort((a, b) => b.value - a.value);
+
+  if (sortedPrizes.length === 0) {
+    return { next1: 0, next5: 0, next10: 0 };
+  }
+
+  // Consider top 20% of prize values as "top prizes"
+  const topTierCount = Math.max(1, Math.ceil(sortedPrizes.length * 0.2));
+  const topPrizes = sortedPrizes.slice(0, topTierCount);
+  const topPrizeTickets = topPrizes.reduce((sum, p) => sum + p.remaining, 0);
+
+  return {
+    next1: hypergeometricProbability(remainingTickets, topPrizeTickets, 1),
+    next5: hypergeometricProbability(remainingTickets, topPrizeTickets, Math.min(5, remainingTickets)),
+    next10: hypergeometricProbability(remainingTickets, topPrizeTickets, Math.min(10, remainingTickets))
+  };
+};
+
+// 5. Profit ticket odds (tickets worth more than cost)
+export const calculateProfitTicketOdds = (box: BoxItem, remainingTickets: number): { next1: number; next5: number; next10: number } => {
+  if (!box.winningTickets || remainingTickets <= 0) {
+    return { next1: 0, next5: 0, next10: 0 };
+  }
+
+  const pricePerTicket = Number(box.pricePerTicket) || 0;
+  
+  const profitTickets = box.winningTickets
+    .filter(ticket => Number(ticket.prize) >= pricePerTicket)
+    .reduce((sum, ticket) => sum + (Number(ticket.totalPrizes) - Number(ticket.claimedTotal)), 0);
+
+  return {
+    next1: hypergeometricProbability(remainingTickets, profitTickets, 1),
+    next5: hypergeometricProbability(remainingTickets, profitTickets, Math.min(5, remainingTickets)),
+    next10: hypergeometricProbability(remainingTickets, profitTickets, Math.min(10, remainingTickets))
+  };
+};
+
+// 6. Payout concentration
+export const calculatePayoutConcentration = (box: BoxItem): number => {
+  if (!box.winningTickets) return 0;
+
+  const totalRemainingPrizeValue = calculateTotalRemainingPrizeValue(box);
+  if (totalRemainingPrizeValue === 0) return 0;
+
+  // Get prize values with remaining counts
+  const prizeData = box.winningTickets
+    .map(ticket => ({
+      value: Number(ticket.prize),
+      remaining: Number(ticket.totalPrizes) - Number(ticket.claimedTotal),
+      totalValue: (Number(ticket.totalPrizes) - Number(ticket.claimedTotal)) * Number(ticket.prize)
+    }))
+    .filter(p => p.remaining > 0)
+    .sort((a, b) => b.value - a.value);
+
+  if (prizeData.length === 0) return 0;
+
+  // Top 20% of prize tiers by value
+  const topTierCount = Math.max(1, Math.ceil(prizeData.length * 0.2));
+  const topTierValue = prizeData.slice(0, topTierCount).reduce((sum, p) => sum + p.totalValue, 0);
+
+  return topTierValue / totalRemainingPrizeValue;
+};
+
+// 7. Risk per ticket (standard deviation)
+export const calculateRiskPerTicket = (box: BoxItem, remainingTickets: number): number => {
+  if (!box.winningTickets || remainingTickets <= 0) return 0;
+
+  const totalRemainingPrizeValue = calculateTotalRemainingPrizeValue(box);
+  const expectedValue = totalRemainingPrizeValue / remainingTickets;
+
+  // Calculate E[X^2]
+  let expectedSquared = 0;
+  box.winningTickets.forEach(ticket => {
+    const prizeValue = Number(ticket.prize);
+    const remaining = Number(ticket.totalPrizes) - Number(ticket.claimedTotal);
+    expectedSquared += (prizeValue * prizeValue * remaining) / remainingTickets;
+  });
+
+  const variance = expectedSquared - (expectedValue * expectedValue);
+  return Math.sqrt(Math.max(0, variance));
+};
+
+// 8. Sensitivity analysis
+export const calculateSensitivity = (box: BoxItem, remainingTickets: number): { evLow: number; evHigh: number; isEstimateSensitive: boolean } => {
+  const lowEstimate = remainingTickets * 0.9;
+  const highEstimate = remainingTickets * 1.1;
+  
+  const evLow = calculateEVPerTicket(box, lowEstimate);
+  const evHigh = calculateEVPerTicket(box, highEstimate);
+  
+  // Sensitive if EV flips sign across the range
+  const isEstimateSensitive = (evLow < 0 && evHigh > 0) || (evLow > 0 && evHigh < 0);
+  
+  return { evLow, evHigh, isEstimateSensitive };
+};
+
+// 9. Goodness Score
+export const calculateGoodnessScore = (box: BoxItem, remainingTickets: number): number => {
+  const evPerTicket = calculateEVPerTicket(box, remainingTickets);
+  const topPrizeOdds = calculateTopPrizeOdds(box, remainingTickets);
+  const profitOdds = calculateProfitTicketOdds(box, remainingTickets);
+  const risk = calculateRiskPerTicket(box, remainingTickets);
+  const sensitivity = calculateSensitivity(box, remainingTickets);
+  
+  // Normalize EV to 0-1 scale (assume range of -10 to +10)
+  const evNormalized = Math.max(0, Math.min(1, (evPerTicket + 10) / 20));
+  
+  // Normalize risk (assume max risk of $50)
+  const riskNormalized = Math.min(1, risk / 50);
+  
+  // Stability score (higher if not estimate sensitive)
+  const stabilityScore = sensitivity.isEstimateSensitive ? 0 : 1;
+  
+  // Weighted combination
+  const w1 = 0.5; // EV weight
+  const w2 = 0.2; // Top prize odds weight
+  const w3 = 0.2; // Profit odds weight
+  const w4 = 0.05; // Risk penalty weight
+  const w5 = 0.05; // Stability weight
+  
+  return (w1 * evNormalized) + 
+         (w2 * topPrizeOdds.next10) + 
+         (w3 * profitOdds.next5) - 
+         (w4 * riskNormalized) + 
+         (w5 * stabilityScore);
+};
+
+// Main function to calculate all advanced metrics
+export const calculateAdvancedMetrics = (box: BoxItem, remainingTickets: number): AdvancedMetrics => {
+  const evPerTicket = calculateEVPerTicket(box, remainingTickets);
+  const rtpRemaining = calculateRTPRemaining(box, remainingTickets);
+  const clearMetrics = calculateCostToClear(box, remainingTickets);
+  const topPrizeOdds = calculateTopPrizeOdds(box, remainingTickets);
+  const profitTicketOdds = calculateProfitTicketOdds(box, remainingTickets);
+  const payoutConcentration = calculatePayoutConcentration(box);
+  const riskPerTicket = calculateRiskPerTicket(box, remainingTickets);
+  const sensitivity = calculateSensitivity(box, remainingTickets);
+  const goodnessScore = calculateGoodnessScore(box, remainingTickets);
+
+  return {
+    evPerTicket,
+    rtpRemaining,
+    costToClear: clearMetrics.cost,
+    netIfCleared: clearMetrics.net,
+    topPrizeOdds,
+    profitTicketOdds,
+    payoutConcentration,
+    riskPerTicket,
+    sensitivity,
+    goodnessScore
+  };
 };
