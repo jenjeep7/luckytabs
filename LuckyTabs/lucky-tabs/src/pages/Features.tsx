@@ -8,6 +8,7 @@ import {
   Paper,
   useTheme,
 } from '@mui/material';
+export {};
 const featuresList = [
   { title: '🎯 Outsmart the Odds! ', desc: `Enter in box information, and Tabsy's clever system ranks your pull tab chances with the juiciest odds - so you play smart, not random.` },
   { title: `🕹️ Tabsy's Player Pad `, desc: 'Track your pulls, flex your wins, and choose who gets the backstage pass - just you, your crew, or the whole tab-loving world.' },

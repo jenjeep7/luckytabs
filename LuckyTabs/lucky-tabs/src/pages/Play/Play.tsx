@@ -335,16 +335,17 @@ export const Play: React.FC = () => {
         </Box>
       )}
 
-      <Box sx={{ mt: 3, display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
-        <Button
-          variant="contained"
-          sx={{ bgcolor: 'secondary.main' }}
-          disabled={!selectedLocation}
-          onClick={() => setOpenCreateBox(true)}
-        >
-          Create Box for Location
-        </Button>
-      </Box>
+      {selectedLocation && (
+        <Box sx={{ mt: 3, display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
+          <Button
+            variant="contained"
+            sx={{ bgcolor: 'secondary.main' }}
+            onClick={() => setOpenCreateBox(true)}
+          >
+            Create New Box
+          </Button>
+        </Box>
+      )}
 
       {/* Create Box Modal */}
   <Dialog open={openCreateBox} onClose={() => setOpenCreateBox(false)} fullScreen>
@@ -387,10 +388,6 @@ export const Play: React.FC = () => {
       {/* Display Box Dashboard */}
       {selectedLocation && (
         <Box sx={{ mt: 2 }}>
-          <Typography variant="h5" gutterBottom sx={{ mb: 2 }}>
-            Pull Tab Dashboard - {selectedLocationObj?.name}
-          </Typography>
-
           {/* Box Dashboard Grid */}
           <Box sx={{ 
             display: 'grid', 

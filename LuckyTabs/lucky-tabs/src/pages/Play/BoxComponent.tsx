@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useUserProfile } from '../../context/UserProfileContext';
 import {
   Box,
   Typography,
@@ -26,6 +27,12 @@ import {
   rtpRemaining,
   Prize
 } from './helpers';
+import { userService } from '../../services/userService';
+
+type UserProfile = {
+  plan?: string;
+  // ...other fields as needed
+};
 
 interface WinningTicket {
   totalPrizes: number;
@@ -71,7 +78,8 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
   marginTop = 3,
   refreshBoxes
 }) => {
-  const [user] = useAuthState(auth);
+  const [firebaseUser] = useAuthState(auth);
+  const { userProfile } = useUserProfile();
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';
   const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; boxId: string; boxName: string }>({
@@ -254,7 +262,7 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
     const updateEstimate = async () => {
       try {
         // Check if user is authenticated
-        if (!user?.uid) {
+  if (!firebaseUser?.uid) {
           console.warn('User not authenticated, cannot update box');
           return;
         }
@@ -307,7 +315,7 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
     const updateFirestore = async () => {
       try {
         // Check if user is authenticated
-        if (!user?.uid) {
+        if (!firebaseUser?.uid) {
           console.warn('User not authenticated, cannot update box');
           return;
         }
@@ -322,7 +330,7 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
     };
     
     void updateFirestore();
-  }, [user?.uid]);
+  }, [firebaseUser?.uid]);
 
   const renderPrizeButtons = (box: BoxItem) => {
     if (!box.winningTickets) return null;
@@ -511,8 +519,8 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
                         </Typography> */}
                       </>
                     )}
-                  {/* Advanced Metrics Section in Accordion */}
-                  {remainingTicketsInput[box.id] && (
+                  {/* Advanced Metrics Section in Accordion (Pro users only) */}
+                  {remainingTicketsInput[box.id] && firebaseUser && userProfile?.plan === 'pro' && (
                     <Accordion sx={{ mt: 2, maxWidth: 800, mx: 'auto' }} defaultExpanded={false}>
                       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

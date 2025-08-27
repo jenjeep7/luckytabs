@@ -172,7 +172,7 @@ function Layout({ children }: LayoutProps) {
           flexGrow: 1,
           width: '100%',
           // top padding to clear the AppBar when logged-in
-          pt: user ? { xs: 0, md: '64px' } : 0,
+          pt: user ? { xs: '56px', md: '64px' } : 0,
           // bottom padding to clear BottomNavigation on mobile
           pb: user ? { xs: 'calc(env(safe-area-inset-bottom) + 64px)', md: 0 } : 0,
         }}

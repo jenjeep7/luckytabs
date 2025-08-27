@@ -39,13 +39,13 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
   return (
     <Box sx={{ mt: 2, maxWidth: 800, mx: 'auto' }}>
       <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <span role="img" aria-label="analytics">📊</span> Advanced Analytics
+        <span role="img" aria-label="analytics">📊</span>📊 Advanced Analytics
       </Typography>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         {/* Core Metrics */}
         <Box>
           <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 2 }}>
-            📊 Core Metrics
+            Core Metrics
           </Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
             <Card variant="outlined" sx={{ flex: '1 1 200px' }}>

@@ -13,12 +13,6 @@ import {
   Grid,
   Card,
   CardContent,
-  IconButton,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  ListItemSecondaryAction,
   Autocomplete,
   CircularProgress,
   Alert,
@@ -29,8 +23,6 @@ import {
 import {
   Edit,
   PhotoCamera,
-  PersonAdd,
-  Delete,
   Save,
   Cancel
 } from '@mui/icons-material';
@@ -69,7 +61,6 @@ export const UserProfile: React.FC = () => {
   // Load user data when component mounts
   const loadUserData = useCallback(async () => {
     if (!user) return;
-    
     setLoading(true);
     try {
       // Load user profile from Firebase

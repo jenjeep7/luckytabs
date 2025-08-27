@@ -60,6 +60,8 @@ const Signup: React.FC = () => {
         username: data.username,
         displayName: data.username,
         createdAt: new Date(),
+        isAdmin: false,
+        plan: 'free',
       });
 
       // Send email verification
