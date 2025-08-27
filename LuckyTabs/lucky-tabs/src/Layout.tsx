@@ -32,7 +32,14 @@ import { auth } from './firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { Footer } from './components/Footer';
 
-const navItems = [
+type NavItem = {
+  label: string;
+  icon: React.ReactElement;
+  route?: string;
+  email?: string;
+};
+
+const navItems: NavItem[] = [
   { label: 'Play', route: '/play', icon: <HomeIcon /> },
   { label: 'Tracking', route: '/tracking', icon: <ListAltIcon /> },
   { label: 'Community', route: '/community', icon: <ExploreIcon /> },
