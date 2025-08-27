@@ -243,7 +243,7 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
                     </IconButton>
                   </Tooltip>
                 </Box>
-                <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', justifyContent: 'center' }}>
                   <Chip 
                     label={`Next 1: ${(profitTicketOdds.next1 * 100).toFixed(1)}%`} 
                     size="small" 

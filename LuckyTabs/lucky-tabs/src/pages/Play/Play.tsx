@@ -255,8 +255,8 @@ export const Play: React.FC = () => {
         minHeight: 'calc(100vh - 56px)', // Smaller AppBar on mobile
       }
     }}>
-      <Typography variant="h4" gutterBottom sx={{ textAlign: 'center' }}>
-        Play Pull Tabs
+      <Typography variant="h6" gutterBottom sx={{ textAlign: 'center' }}>
+        Box Dashboard
       </Typography>
 
       {/* Show location selector if no location is selected OR user wants to change location */}

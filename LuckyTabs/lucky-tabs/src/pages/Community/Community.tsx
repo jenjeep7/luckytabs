@@ -19,7 +19,8 @@ import {
   Chip,
   CircularProgress,
   Alert,
-  Snackbar
+  Snackbar,
+  LinearProgress,
 } from '@mui/material';
 import {
   Favorite,
@@ -30,13 +31,16 @@ import {
   Public,
   Group,
   Add,
-  Groups as GroupsIcon
+  Groups as GroupsIcon,
+  Image as ImageIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../../firebase';
 import { communityService, Post, Comment } from '../../services/communityService';
 import { userService, UserData } from '../../services/userService';
 import { GroupsManager } from '../GroupManager/GroupsManager';
+import { uploadPostImage } from '../../services/storageService';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -44,22 +48,10 @@ interface TabPanelProps {
   value: number;
 }
 
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-
+function TabPanel({ children, value, index, ...other }: TabPanelProps) {
   return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`community-tabpanel-${index}`}
-      aria-labelledby={`community-tab-${index}`}
-      {...other}
-    >
-      {value === index && (
-        <Box sx={{ p: 3 }}>
-          {children}
-        </Box>
-      )}
+    <div role="tabpanel" hidden={value !== index} id={`community-tabpanel-${index}`} aria-labelledby={`community-tab-${index}`} {...other}>
+      {value === index && <Box sx={{ p: { xs: 1.5, sm: 3 } }}>{children}</Box>}
     </div>
   );
 }
@@ -74,40 +66,63 @@ interface PostCardProps {
   authorProfile?: UserData;
 }
 
-function PostCard({ post, onLike, onComment, currentUserId, currentUserName, currentUserAvatar, authorProfile }: PostCardProps) {
+function PostCard({
+  post,
+  onLike,
+  onComment,
+  currentUserId,
+  currentUserName,
+  currentUserAvatar,
+  authorProfile,
+}: PostCardProps) {
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState<Comment[]>([]);
   const [loadingComments, setLoadingComments] = useState(false);
+  const [commentCount, setCommentCount] = useState<number>(0);
 
-  // Load comments when showComments is toggled
-  useEffect(() => {
-    if (showComments) {
-      setLoadingComments(true);
-      communityService.getComments(post.id)
-        .then(setComments)
-        .catch(console.error)
-        .finally(() => setLoadingComments(false));
-    }
-  }, [showComments, post.id]);
+// fetch count once (or when post.id changes)
+useEffect(() => {
+  let cancelled = false;
+  communityService.getCommentsCount(post.id)
+    .then((c) => { if (!cancelled) setCommentCount(c); })
+    .catch(() => { if (!cancelled) setCommentCount(0); });
+  return () => { cancelled = true; };
+}, [post.id]);
 
-  const handleComment = () => {
-    if (commentText.trim()) {
-      onComment(post.id, commentText);
-      setCommentText('');
-      // Reload comments after adding new one
-      if (showComments) {
-        communityService.getComments(post.id)
-          .then(setComments)
-          .catch(console.error);
-      }
-    }
-  };
+// existing effect -> also sync count after loading list
+useEffect(() => {
+  if (!showComments) return;
+  setLoadingComments(true);
+  communityService.getComments(post.id)
+    .then((list) => {
+      setComments(list);
+      setCommentCount(list.length); // keep UI in sync when open
+    })
+    .catch(console.error)
+    .finally(() => setLoadingComments(false));
+}, [showComments, post.id]);
+
+// when posting, bump count optimistically and refresh list if open
+const handleComment = () => {
+  if (!commentText.trim()) return;
+  onComment(post.id, commentText);
+  setCommentText('');
+  setCommentCount((c) => c + 1); // optimistic
+
+  if (showComments) {
+    communityService.getComments(post.id)
+      .then((list) => {
+        setComments(list);
+        setCommentCount(list.length);
+      })
+      .catch(console.error);
+  }
+};
 
   const formatTime = (date: Date) => {
     const now = new Date();
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
     if (diffInHours < 1) return 'Just now';
     if (diffInHours === 1) return '1 hour ago';
     if (diffInHours < 24) return `${diffInHours} hours ago`;
@@ -115,82 +130,85 @@ function PostCard({ post, onLike, onComment, currentUserId, currentUserName, cur
   };
 
   const getDisplayName = (authorId: string) => {
-    if (authorId === currentUserId) {
-      return currentUserName || 'You';
-    }
-    if (authorProfile && authorProfile.uid === authorId) {
-      return authorProfile.displayName;
-    }
-    // Fallback for when profile isn't loaded yet
+    if (authorId === currentUserId) return currentUserName || 'You';
+    if (authorProfile && authorProfile.uid === authorId) return authorProfile.displayName;
     return `User ${authorId.slice(0, 8)}`;
   };
 
   const getInitials = (authorId: string) => {
     if (authorId === currentUserId && currentUserName) {
-      return currentUserName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+      return currentUserName
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
     }
     if (authorProfile && authorProfile.uid === authorId) {
       if (authorProfile.firstName && authorProfile.lastName) {
         return (authorProfile.firstName[0] + authorProfile.lastName[0]).toUpperCase();
       }
-      return authorProfile.displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+      return authorProfile.displayName
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
     }
     return authorId.slice(0, 2).toUpperCase();
   };
 
   const getAvatarUrl = (authorId: string) => {
-    if (authorId === currentUserId) {
-      return currentUserAvatar;
-    }
-    if (authorProfile && authorProfile.uid === authorId) {
-      return authorProfile.avatar;
-    }
+    if (authorId === currentUserId) return currentUserAvatar;
+    if (authorProfile && authorProfile.uid === authorId) return authorProfile.avatar;
     return undefined;
   };
 
   const isLiked = currentUserId ? post.likes.includes(currentUserId) : false;
 
   return (
-    <Card sx={{ 
-      mb: 2,
-      bgcolor: 'background.paper',
-      color: 'text.primary',
-      border: '1px solid',
-      borderColor: 'divider'
-    }}>
-      <CardContent>
+    <Card
+      sx={{
+        mb: 2,
+        bgcolor: 'background.paper',
+        color: 'text.primary',
+        border: '1px solid',
+        borderColor: 'divider',
+      }}
+    >
+      <CardContent sx={{ '&:last-child': { pb: 2 } }}>
         {/* Post Header */}
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
           <Avatar
             src={getAvatarUrl(post.authorId)}
-            sx={{ 
-              width: 40, 
-              height: 40, 
-              mr: 2, 
+            sx={{
+              width: 40,
+              height: 40,
+              mr: 2,
               bgcolor: 'primary.main',
-              color: 'primary.contrastText'
+              color: 'primary.contrastText',
             }}
           >
             {getInitials(post.authorId)}
           </Avatar>
-          <Box sx={{ flexGrow: 1 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>
+          <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }} noWrap>
               {getDisplayName(post.authorId)}
             </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
               <Typography variant="caption" color="text.secondary">
                 {formatTime(post.timestamp)}
               </Typography>
-              <Chip 
+              <Chip
                 icon={post.type === 'public' ? <Public /> : <Group />}
                 label={post.type === 'public' ? 'Public' : 'Group'}
                 size="small"
                 variant="outlined"
-                sx={{ 
-                  fontSize: '0.7rem', 
+                sx={{
+                  fontSize: '0.7rem',
                   height: 20,
                   color: 'text.secondary',
-                  borderColor: 'divider'
+                  borderColor: 'divider',
                 }}
               />
             </Box>
@@ -200,13 +218,52 @@ function PostCard({ post, onLike, onComment, currentUserId, currentUserName, cur
           </IconButton>
         </Box>
 
-        {/* Post Content */}
-        <Typography variant="body1" sx={{ mb: 2, whiteSpace: 'pre-wrap', color: 'text.primary' }}>
-          {post.content}
-        </Typography>
+        {/* Post Text */}
+        {post.content && (
+          <Typography variant="body1" sx={{ mb: post.media?.length ? 1 : 2, whiteSpace: 'pre-wrap', color: 'text.primary' }}>
+            {post.content}
+          </Typography>
+        )}
+
+        {/* Post Images */}
+        {post.media && post.media.length > 0 && (
+          <Box
+            sx={{
+              mt: 1,
+              mb: 2,
+              display: 'grid',
+              gap: 1,
+              gridTemplateColumns: {
+                xs: post.media.length === 1 ? '1fr' : 'repeat(2, 1fr)',
+                sm: post.media.length >= 3 ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)',
+              },
+            }}
+          >
+            {post.media.slice(0, 4).map((m, idx) => (
+              <Box
+                key={idx}
+                sx={{
+                  position: 'relative',
+                  pt: '100%',
+                  borderRadius: 1,
+                  overflow: 'hidden',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                }}
+              >
+                <img
+                  src={m.url}
+                  alt=""
+                  loading="lazy"
+                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              </Box>
+            ))}
+          </Box>
+        )}
 
         {/* Post Actions */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
           <Button
             startIcon={isLiked ? <Favorite /> : <FavoriteBorder />}
             onClick={() => onLike(post.id)}
@@ -222,36 +279,36 @@ function PostCard({ post, onLike, onComment, currentUserId, currentUserName, cur
             size="small"
             sx={{ color: 'text.secondary' }}
           >
-            {comments.length}
+              {commentCount}
           </Button>
         </Box>
 
         {/* Comments Section */}
         {showComments && (
-          <Box sx={{ 
-            mt: 2, 
-            pt: 2, 
-            borderTop: 1, 
-            borderColor: 'divider',
-            bgcolor: 'background.default',
-            borderRadius: 1,
-            p: 2
-          }}>
-            {/* Loading Comments */}
+          <Box
+            sx={{
+              mt: 2,
+              pt: 2,
+              borderTop: 1,
+              borderColor: 'divider',
+              bgcolor: 'background.default',
+              borderRadius: 1,
+              p: 2,
+            }}
+          >
             {loadingComments ? (
               <CircularProgress size={20} sx={{ color: 'primary.main' }} />
             ) : (
               <>
-                {/* Existing Comments */}
                 {comments.map((comment) => (
                   <Box key={comment.id} sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                    <Avatar 
+                    <Avatar
                       src={getAvatarUrl(comment.authorId)}
-                      sx={{ 
-                        width: 24, 
-                        height: 24, 
+                      sx={{
+                        width: 24,
+                        height: 24,
                         bgcolor: 'secondary.main',
-                        color: 'secondary.contrastText'
+                        color: 'secondary.contrastText',
                       }}
                     >
                       {getInitials(comment.authorId)}
@@ -274,16 +331,21 @@ function PostCard({ post, onLike, onComment, currentUserId, currentUserName, cur
 
             {/* Add Comment */}
             <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
-              <Avatar 
+              <Avatar
                 src={getAvatarUrl(currentUserId || '')}
-                sx={{ 
-                  width: 24, 
-                  height: 24, 
+                sx={{
+                  width: 24,
+                  height: 24,
                   bgcolor: 'primary.main',
-                  color: 'primary.contrastText'
+                  color: 'primary.contrastText',
                 }}
               >
-                {getInitials(currentUserId || '')}
+                {currentUserName
+                  ?.split(' ')
+                  .map((n) => n[0])
+                  .join('')
+                  .toUpperCase()
+                  .slice(0, 2)}
               </Avatar>
               <TextField
                 fullWidth
@@ -297,29 +359,14 @@ function PostCard({ post, onLike, onComment, currentUserId, currentUserName, cur
                   '& .MuiOutlinedInput-root': {
                     bgcolor: 'background.paper',
                     color: 'text.primary',
-                    '& fieldset': {
-                      borderColor: 'divider',
-                    },
-                    '&:hover fieldset': {
-                      borderColor: 'primary.main',
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: 'primary.main',
-                    },
+                    '& fieldset': { borderColor: 'divider' },
+                    '&:hover fieldset': { borderColor: 'primary.main' },
+                    '&.Mui-focused fieldset': { borderColor: 'primary.main' },
                   },
-                  '& .MuiInputBase-input::placeholder': {
-                    color: 'text.secondary',
-                    opacity: 1,
-                  },
+                  '& .MuiInputBase-input::placeholder': { color: 'text.secondary', opacity: 1 },
                 }}
               />
-              <Button 
-                onClick={handleComment}
-                disabled={!commentText.trim()}
-                variant="contained"
-                size="small"
-                startIcon={<Send />}
-              >
+              <Button onClick={handleComment} disabled={!commentText.trim()} variant="contained" size="small" startIcon={<Send />}>
                 Post
               </Button>
             </Box>
@@ -332,68 +379,58 @@ function PostCard({ post, onLike, onComment, currentUserId, currentUserName, cur
 
 export const Community: React.FC = () => {
   const [user] = useAuthState(auth);
-  const [activeTab, setActiveTab] = useState(0);
+  const [activeTab, setActiveTab] = useState(0); // 0=Public, 1=Group, 2=My Groups
   const [posts, setPosts] = useState<Post[]>([]);
   const [newPostDialog, setNewPostDialog] = useState(false);
   const [newPostContent, setNewPostContent] = useState('');
+  const [files, setFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<number[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userProfiles, setUserProfiles] = useState<Map<string, UserData>>(new Map());
   const [currentUserProfile, setCurrentUserProfile] = useState<UserData | null>(null);
-  const [snackbar, setSnackbar] = useState<{
-    open: boolean;
-    message: string;
-    severity: 'success' | 'error';
-  }>({
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false,
     message: '',
-    severity: 'success'
+    severity: 'success',
   });
 
-  // Load posts when component mounts or tab changes
+  // Load posts (on mount / tab change)
   useEffect(() => {
     const loadPosts = async () => {
       if (!user) return;
-      
       setLoading(true);
       try {
         const feedType = activeTab === 0 ? 'public' : 'group';
         const fetchedPosts = await communityService.getPosts(feedType);
         setPosts(fetchedPosts);
 
-        // Load user profiles for post authors
-        const authorIds = Array.from(new Set(fetchedPosts.map(post => post.authorId)));
+        // Load author profiles
+        const authorIds = Array.from(new Set(fetchedPosts.map((p) => p.authorId)));
         const profiles = new Map<string, UserData>();
-        
         await Promise.all(
-          authorIds.map(async (authorId: string) => {
+          authorIds.map(async (authorId) => {
             try {
               const profile = await userService.getUserProfile(authorId);
-              if (profile) {
-                profiles.set(authorId, profile);
-              }
-            } catch (error) {
-              console.error(`Error loading profile for user ${authorId}:`, error);
+              if (profile) profiles.set(authorId, profile);
+            } catch (e) {
+              console.error(`Error loading profile for ${authorId}:`, e);
             }
-          })
+          }),
         );
-        
         setUserProfiles(profiles);
 
-        // Load current user profile if not already loaded
         if (!currentUserProfile) {
           try {
-            const userProfile = await userService.getUserProfile(user.uid);
-            setCurrentUserProfile(userProfile);
-          } catch (error) {
-            console.error('Error loading current user profile:', error);
+            const up = await userService.getUserProfile(user.uid);
+            setCurrentUserProfile(up);
+          } catch (e) {
+            console.error('Error loading current user profile:', e);
           }
         }
-      } catch (error) {
-        setSnackbar({
-          open: true,
-          message: 'Failed to load posts',
-          severity: 'error'
-        });
+      } catch {
+        setSnackbar({ open: true, message: 'Failed to load posts', severity: 'error' });
       } finally {
         setLoading(false);
       }
@@ -402,88 +439,95 @@ export const Community: React.FC = () => {
     void loadPosts();
   }, [activeTab, user, currentUserProfile]);
 
-  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
-    setActiveTab(newValue);
-  };
+  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => setActiveTab(newValue);
 
   const handleLike = async (postId: string) => {
     if (!user) return;
-    
     try {
       await communityService.likePost(postId, user.uid);
-      // Reload posts to get updated likes
       const feedType = activeTab === 0 ? 'public' : 'group';
-      const updatedPosts = await communityService.getPosts(feedType);
-      setPosts(updatedPosts);
-    } catch (error) {
-      setSnackbar({
-        open: true,
-        message: 'Failed to update like',
-        severity: 'error'
-      });
+      const updated = await communityService.getPosts(feedType);
+      setPosts(updated);
+    } catch {
+      setSnackbar({ open: true, message: 'Failed to update like', severity: 'error' });
     }
   };
 
   const handleComment = async (postId: string, commentContent: string) => {
     if (!user) return;
-    
     try {
       await communityService.createComment(postId, user.uid, commentContent);
-      setSnackbar({
-        open: true,
-        message: 'Comment added successfully!',
-        severity: 'success'
-      });
-    } catch (error) {
-      setSnackbar({
-        open: true,
-        message: 'Failed to add comment',
-        severity: 'error'
-      });
+      setSnackbar({ open: true, message: 'Comment added successfully!', severity: 'success' });
+    } catch {
+      setSnackbar({ open: true, message: 'Failed to add comment', severity: 'error' });
     }
   };
 
-  const handleCreatePost = async () => {
-    if (!newPostContent.trim() || !user) return;
+  const onPickFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = Array.from(e.target.files ?? []).slice(0, 4); // limit to 4 images
+    setFiles(f);
+    setPreviews(f.map((file) => URL.createObjectURL(file)));
+    setUploadProgress(new Array(f.length).fill(0));
+  };
 
+  const clearComposer = () => {
+    setNewPostContent('');
+    setFiles([]);
+    setPreviews([]);
+    setUploadProgress([]);
+  };
+
+  const handleCreatePost = async () => {
+    if (!user) return;
+    if (!newPostContent.trim() && files.length === 0) return;
+
+    setUploading(true);
     try {
       const feedType = activeTab === 0 ? 'public' : 'group';
-      await communityService.createPost(user.uid, newPostContent, feedType);
-      
-      setNewPostContent('');
+
+      // Upload images in parallel and collect media descriptors
+      const media =
+        files.length > 0
+          ? await Promise.all(
+              files.map((f, idx) =>
+                uploadPostImage(user.uid, /* postId path key */ crypto.randomUUID(), f, (pct) => {
+                  setUploadProgress((prev) => {
+                    const next = [...prev];
+                    next[idx] = pct;
+                    return next;
+                  });
+                }),
+              ),
+            )
+          : [];
+
+      await communityService.createPost(user.uid, newPostContent, feedType, /* groupId */ undefined, media);
+
+      clearComposer();
       setNewPostDialog(false);
-      
-      // Reload posts to show the new one
-      const updatedPosts = await communityService.getPosts(feedType);
-      setPosts(updatedPosts);
-      
-      setSnackbar({
-        open: true,
-        message: 'Post created successfully!',
-        severity: 'success'
-      });
-    } catch (error) {
-      setSnackbar({
-        open: true,
-        message: 'Failed to create post',
-        severity: 'error'
-      });
+
+      const updated = await communityService.getPosts(feedType);
+      setPosts(updated);
+      setSnackbar({ open: true, message: 'Post created successfully!', severity: 'success' });
+    } catch (e) {
+      console.error(e);
+      setSnackbar({ open: true, message: 'Failed to create post', severity: 'error' });
+    } finally {
+      setUploading(false);
     }
   };
 
   if (!user) {
     return (
       <Container maxWidth="md" sx={{ py: 4, bgcolor: 'background.default', minHeight: '100vh' }}>
-        <Alert 
+        <Alert
           severity="info"
           sx={{
             bgcolor: 'background.paper',
             color: 'text.primary',
             border: '1px solid',
             borderColor: 'divider',
-            '& .MuiAlert-icon': {
-              color: 'info.main',
-            },
+            '& .MuiAlert-icon': { color: 'info.main' },
           }}
         >
           Please log in to access the community features.
@@ -493,62 +537,48 @@ export const Community: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="md" sx={{ py: 4, bgcolor: 'background.default', minHeight: '100vh' }}>
-      <Typography variant="h4" sx={{ mb: 4, fontWeight: 600, color: 'text.primary' }}>
+    <Container maxWidth="md" sx={{ py: 2, bgcolor: 'background.default', minHeight: '100vh' }}>
+      <Typography variant="h4" sx={{ mb: 2.5, fontWeight: 600, color: 'text.primary' }}>
         Community
       </Typography>
 
-      <Paper sx={{ 
-        mb: 3,
-        bgcolor: 'background.paper',
-        border: '1px solid',
-        borderColor: 'divider',
-        boxShadow: (theme) => theme.palette.mode === 'dark' ? 'none' : 1
-      }}>
-        <Tabs 
-          value={activeTab} 
-          onChange={handleTabChange} 
+      <Paper
+        sx={{
+          mb: 2,
+          bgcolor: 'background.paper',
+          border: '1px solid',
+          borderColor: 'divider',
+          boxShadow: (theme) => (theme.palette.mode === 'dark' ? 'none' : 1),
+        }}
+      >
+        <Tabs
+          value={activeTab}
+          onChange={handleTabChange}
           variant="fullWidth"
-          sx={{ 
-            borderBottom: 1, 
+          sx={{
+            borderBottom: 1,
             borderColor: 'divider',
             '& .MuiTab-root': {
               color: 'text.secondary',
-              '&.Mui-selected': {
-                color: 'primary.main',
-              },
+              minHeight: 44,
+              '&.Mui-selected': { color: 'primary.main' },
             },
-            '& .MuiTabs-indicator': {
-              backgroundColor: 'primary.main',
-            },
+            '& .MuiTabs-indicator': { backgroundColor: 'primary.main' },
           }}
         >
-          <Tab 
-            icon={<Public />} 
-            label="Public Feed" 
-            iconPosition="start"
-          />
-          <Tab 
-            icon={<Group />} 
-            label="Group Feed" 
-            iconPosition="start"
-          />
-          <Tab 
-            icon={<GroupsIcon />} 
-            label="My Groups" 
-            iconPosition="start"
-          />
+          <Tab icon={<Public />} label="Public Feed" iconPosition="start" />
+          <Tab icon={<Group />} label="Group Feed" iconPosition="start" />
+          <Tab icon={<GroupsIcon />} label="My Groups" iconPosition="start" />
         </Tabs>
 
+        {/* PUBLIC FEED */}
         <TabPanel value={activeTab} index={0}>
-          {/* Public Feed Content */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Typography variant="h6" sx={{ color: 'text.primary' }}>Public Community</Typography>
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-              onClick={() => setNewPostDialog(true)}
-            >
+          {/* Composer trigger on mobile, dialog button on desktop */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6" sx={{ color: 'text.primary' }}>
+              Public Community
+            </Typography>
+            <Button variant="contained" startIcon={<Add />} onClick={() => setNewPostDialog(true)}>
               New Post
             </Button>
           </Box>
@@ -566,8 +596,12 @@ export const Community: React.FC = () => {
               <PostCard
                 key={post.id}
                 post={post}
-                onLike={(postId) => { void handleLike(postId); }}
-                onComment={(postId, content) => { void handleComment(postId, content); }}
+                onLike={(postId) => {
+                  void handleLike(postId);
+                }}
+                onComment={(postId, content) => {
+                  void handleComment(postId, content);
+                }}
                 currentUserId={user?.uid}
                 currentUserName={currentUserProfile?.displayName || user?.displayName || undefined}
                 currentUserAvatar={currentUserProfile?.avatar || user?.photoURL || undefined}
@@ -577,15 +611,13 @@ export const Community: React.FC = () => {
           )}
         </TabPanel>
 
+        {/* GROUP FEED */}
         <TabPanel value={activeTab} index={1}>
-          {/* Group Feed Content */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Typography variant="h6" sx={{ color: 'text.primary' }}>Group Posts</Typography>
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-              onClick={() => setNewPostDialog(true)}
-            >
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6" sx={{ color: 'text.primary' }}>
+              Group Posts
+            </Typography>
+            <Button variant="contained" startIcon={<Add />} onClick={() => setNewPostDialog(true)}>
               New Post
             </Button>
           </Box>
@@ -603,8 +635,12 @@ export const Community: React.FC = () => {
               <PostCard
                 key={post.id}
                 post={post}
-                onLike={(postId) => { void handleLike(postId); }}
-                onComment={(postId, content) => { void handleComment(postId, content); }}
+                onLike={(postId) => {
+                  void handleLike(postId);
+                }}
+                onComment={(postId, content) => {
+                  void handleComment(postId, content);
+                }}
                 currentUserId={user?.uid}
                 currentUserName={currentUserProfile?.displayName || user?.displayName || undefined}
                 currentUserAvatar={currentUserProfile?.avatar || user?.photoURL || undefined}
@@ -614,16 +650,13 @@ export const Community: React.FC = () => {
           )}
         </TabPanel>
 
+        {/* GROUPS MANAGEMENT */}
         <TabPanel value={activeTab} index={2}>
-          {/* Groups Management */}
-          <GroupsManager 
-            currentUserId={user.uid}
-            currentUserName={currentUserProfile?.displayName || user?.displayName || undefined}
-          />
+          <GroupsManager currentUserId={user.uid} currentUserName={currentUserProfile?.displayName || user?.displayName || undefined} />
         </TabPanel>
       </Paper>
 
-      {/* New Post Dialog */}
+      {/* New Post Dialog (with images) */}
       <Dialog
         open={newPostDialog}
         onClose={() => setNewPostDialog(false)}
@@ -638,8 +671,11 @@ export const Community: React.FC = () => {
           },
         }}
       >
-        <DialogTitle sx={{ color: 'text.primary' }}>
+        <DialogTitle sx={{ color: 'text.primary', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           Create New Post
+          <IconButton size="small" onClick={() => setNewPostDialog(false)}>
+            <CloseIcon />
+          </IconButton>
         </DialogTitle>
         <DialogContent>
           <TextField
@@ -649,52 +685,87 @@ export const Community: React.FC = () => {
             placeholder={`What's on your mind? Share with the ${activeTab === 0 ? 'public' : 'group'} community...`}
             value={newPostContent}
             onChange={(e) => setNewPostContent(e.target.value)}
-            sx={{ 
+            sx={{
               mt: 1,
               '& .MuiOutlinedInput-root': {
                 bgcolor: 'background.default',
                 color: 'text.primary',
-                '& fieldset': {
-                  borderColor: 'divider',
-                },
-                '&:hover fieldset': {
-                  borderColor: 'primary.main',
-                },
-                '&.Mui-focused fieldset': {
-                  borderColor: 'primary.main',
-                },
+                '& fieldset': { borderColor: 'divider' },
+                '&:hover fieldset': { borderColor: 'primary.main' },
+                '&.Mui-focused fieldset': { borderColor: 'primary.main' },
               },
-              '& .MuiInputBase-input::placeholder': {
-                color: 'text.secondary',
-                opacity: 1,
-              },
+              '& .MuiInputBase-input::placeholder': { color: 'text.secondary', opacity: 1 },
             }}
           />
+
+          {/* Image picker + previews */}
+          <Box sx={{ display: 'flex', gap: 1, mt: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Button variant="outlined" component="label" startIcon={<ImageIcon />}>
+              Add Images
+              <input hidden accept="image/*" multiple type="file" onChange={onPickFiles} />
+            </Button>
+            {!!files.length && (
+              <Typography variant="caption" color="text.secondary">
+                {files.length} image{files.length > 1 ? 's' : ''} selected
+              </Typography>
+            )}
+          </Box>
+
+          {previews.length > 0 && (
+            <Box
+              sx={{
+                mt: 1.5,
+                display: 'grid',
+                gap: 1,
+                gridTemplateColumns: {
+                  xs: previews.length === 1 ? '1fr' : 'repeat(2, 1fr)',
+                  sm: previews.length >= 3 ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)',
+                },
+              }}
+            >
+              {previews.map((src, i) => (
+                <Box
+                  key={i}
+                  sx={{
+                    position: 'relative',
+                    pt: '100%',
+                    borderRadius: 1,
+                    overflow: 'hidden',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                  }}
+                >
+                  <img src={src} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                  {uploading && (
+                    <Box sx={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
+                      <LinearProgress variant="determinate" value={uploadProgress[i] || 0} />
+                    </Box>
+                  )}
+                </Box>
+              ))}
+            </Box>
+          )}
         </DialogContent>
         <DialogActions sx={{ bgcolor: 'background.paper' }}>
-          <Button onClick={() => setNewPostDialog(false)} sx={{ color: 'text.secondary' }}>
+          <Button
+            onClick={() => {
+              clearComposer();
+              setNewPostDialog(false);
+            }}
+            sx={{ color: 'text.secondary' }}
+            disabled={uploading}
+          >
             Cancel
           </Button>
-          <Button 
-            onClick={() => { void handleCreatePost(); }}
-            variant="contained"
-            disabled={!newPostContent.trim()}
-          >
-            Post
+          <Button onClick={() => void handleCreatePost()} variant="contained" disabled={uploading || (!newPostContent.trim() && files.length === 0)}>
+            {uploading ? 'Posting…' : 'Post'}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar for notifications */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-      >
-        <Alert 
-          severity={snackbar.severity} 
-          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-        >
+      {/* Snackbar */}
+      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}>
+        <Alert severity={snackbar.severity} onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}>
           {snackbar.message}
         </Alert>
       </Snackbar>
