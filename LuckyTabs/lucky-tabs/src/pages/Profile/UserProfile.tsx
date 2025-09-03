@@ -329,18 +329,6 @@ export const UserProfile: React.FC = () => {
 
       {/* Flare Sheet Section */}
       <Box sx={{ mb: 3, display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 2, justifyContent: 'center', alignItems: 'center', bgcolor: 'background.paper', borderRadius: 2, boxShadow: 2, py: 2 }}>
-        <Typography
-          variant="subtitle1"
-          sx={{
-            fontWeight: 600,
-            color: 'text.secondary',
-            width: '100%',
-            textAlign: 'center',
-            mb: 1,
-          }}
-        >
-          Explore Tabsy Wins
-        </Typography>
         <Button
           variant="contained"
           color="primary"
