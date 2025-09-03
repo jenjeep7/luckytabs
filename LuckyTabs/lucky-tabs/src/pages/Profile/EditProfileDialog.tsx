@@ -50,18 +50,6 @@ const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
           </label>
         </Box>
         <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-          <TextField
-            fullWidth
-            label="First Name"
-            value={editForm.firstName}
-            onChange={(e) => setEditForm((prev) => ({ ...prev, firstName: e.target.value }))}
-          />
-          <TextField
-            fullWidth
-            label="Last Name"
-            value={editForm.lastName}
-            onChange={(e) => setEditForm((prev) => ({ ...prev, lastName: e.target.value }))}
-          />
         </Box>
         <TextField
           fullWidth

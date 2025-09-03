@@ -40,11 +40,10 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
+  { label: 'Profile', route: '/profile', icon: <PersonIcon /> },
   { label: 'Play', route: '/play', icon: <HomeIcon /> },
   { label: 'Tracking', route: '/tracking', icon: <ListAltIcon /> },
   { label: 'Community', route: '/community', icon: <ExploreIcon /> },
-  { label: 'Profile', route: '/profile', icon: <PersonIcon /> },
-  // { label: 'Contact', email: 'tabsywins@gmail.com', icon: <MailIcon /> },
 ];
 
 interface LayoutProps {

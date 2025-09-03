@@ -309,21 +309,21 @@ export const UserProfile: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="md" sx={{ p: 3 }}>
+    <Container maxWidth="md" sx={{ p: 2 }}>
             <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
               <Typography
                 variant="h4"
                 sx={{
-                  mb: 4,
                   fontWeight: 700,
                   color: 'primary.main',
                   fontFamily: 'Bitcount',
                   letterSpacing: 2,
                   px: 1,
-                  py: 1,
+                  pb: 1,
+                  mt: 0,
                 }}
               >
-                {`Welcome ${userData ? userData.displayName : ''}!`}
+                {`${userData ? userData.displayName : ''}`}
               </Typography>
             </Box>
 
@@ -377,19 +377,15 @@ export const UserProfile: React.FC = () => {
           <Grid size={{ xs: 12, md: 8 }}>
             <Card>
               <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                   <Avatar
                     src={userData.avatar}
                     sx={{ width: 80, height: 80, mr: 3 }}
                   >
-                    {userData.firstName[0]}{userData.lastName[0]}
                   </Avatar>
                   <Box sx={{ flexGrow: 1 }}>
                     <Typography variant="h5" sx={{ fontWeight: 600 }}>
                       {userData.displayName}
-                    </Typography>
-                    <Typography variant="body1" color="text.secondary">
-                      {userData.firstName} {userData.lastName}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       {userData.email}
@@ -415,7 +411,7 @@ export const UserProfile: React.FC = () => {
 
                 <Divider sx={{ my: 2 }} />
 
-                <Typography variant="h6" sx={{ mb: 2 }}>
+                <Typography variant="h6" sx={{ my: 1 }}>
                   Account Information
                 </Typography>
                 <Stack spacing={1}>

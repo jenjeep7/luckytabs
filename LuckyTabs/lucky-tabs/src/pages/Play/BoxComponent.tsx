@@ -3,7 +3,6 @@ import { useUserProfile } from '../../context/UserProfileContext';
 import {
   Box,
   Typography,
-  Paper,
   Button,
   IconButton,
   TextField,
@@ -100,6 +99,18 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
     boxId: '',
     boxName: ''
   });
+  
+  // Local state to immediately track claimed prizes for real-time dialog updates
+  const [localClaimedPrizes, setLocalClaimedPrizes] = useState<{ [boxId: string]: ClaimedPrize[] }>({});
+
+  // Helper function to get claimed prizes (local state first, then box data)
+  const getClaimedPrizes = useCallback((boxId: string): ClaimedPrize[] => {
+    if (localClaimedPrizes[boxId]) {
+      return localClaimedPrizes[boxId];
+    }
+    const box = boxes.find(b => b.id === boxId);
+    return box?.claimedPrizes || [];
+  }, [localClaimedPrizes, boxes]);
 
   // Helper function to determine EV color based on three-tier system
   // Green: RTP >= 100% (Excellent)
@@ -304,6 +315,12 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
 
   const handleEstimateCancel = () => {
     setEstimateDialog({ open: false, boxId: '', boxName: '' });
+    // Clear local state for this box
+    setLocalClaimedPrizes(prev => {
+      const newState = { ...prev };
+      delete newState[estimateDialog.boxId];
+      return newState;
+    });
   };
 
   const handleAddWin = useCallback(
@@ -315,11 +332,20 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
           
           if (boxDoc.exists()) {
             const existingPrizes = (boxDoc.data().claimedPrizes as ClaimedPrize[]) || [];
+            const updatedPrizes = [...existingPrizes, claimedPrize];
+            
+            // Update Firestore
             await updateDoc(boxRef, {
-              claimedPrizes: [...existingPrizes, claimedPrize]
+              claimedPrizes: updatedPrizes
             });
             
-            // Refresh the box data to show new markers
+            // Immediately update local state for real-time UI update
+            setLocalClaimedPrizes(prev => ({
+              ...prev,
+              [estimateDialog.boxId]: updatedPrizes
+            }));
+            
+            // Refresh the box data in the background
             if (refreshBoxes) {
               refreshBoxes();
             }
@@ -595,7 +621,7 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
         boxType={boxes.find(b => b.id === estimateDialog.boxId)?.type === 'wall' ? 'wall' : 'bar'}
         currentValue={Number(remainingTicketsInput[estimateDialog.boxId] || '0')}
         currentRowEstimates={boxes.find(b => b.id === estimateDialog.boxId)?.rowEstimates}
-        claimedPrizes={boxes.find(b => b.id === estimateDialog.boxId)?.claimedPrizes || []}
+        claimedPrizes={getClaimedPrizes(estimateDialog.boxId)}
         availablePrizes={boxes.find(b => b.id === estimateDialog.boxId)?.winningTickets?.map(ticket => Number(ticket.prize)).filter(prize => prize > 0) || []}
         onUpdate={handleEstimateUpdate}
         onCancel={handleEstimateCancel}
