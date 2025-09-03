@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
+  IconButton,
   Container,
   Typography,
   Avatar,
@@ -21,14 +22,12 @@ import {
   Stack
 } from '@mui/material';
 import {
-  Edit,
-  PhotoCamera,
-  Save,
-  Cancel
+  Edit
 } from '@mui/icons-material';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../../firebase';
 import { userService, UserData, GroupMember } from '../../services/userService';
+import EditProfileDialog from './EditProfileDialog';
 
 export const UserProfile: React.FC = () => {
   const [user] = useAuthState(auth);
@@ -310,10 +309,67 @@ export const UserProfile: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
-      <Typography variant="h4" sx={{ mb: 4, fontWeight: 600 }}>
-        User Profile
-      </Typography>
+    <Container maxWidth="md" sx={{ p: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+              <Typography
+                variant="h4"
+                sx={{
+                  mb: 4,
+                  fontWeight: 700,
+                  color: 'primary.main',
+                  fontFamily: 'Bitcount',
+                  letterSpacing: 2,
+                  px: 1,
+                  py: 1,
+                }}
+              >
+                {`Welcome ${userData ? userData.displayName : ''}!`}
+              </Typography>
+            </Box>
+
+      {/* Flare Sheet Section */}
+      <Box sx={{ mb: 3, display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 2, justifyContent: 'center', alignItems: 'center', bgcolor: 'background.paper', borderRadius: 2, boxShadow: 2, py: 2 }}>
+        <Typography
+          variant="subtitle1"
+          sx={{
+            fontWeight: 600,
+            color: 'text.secondary',
+            width: '100%',
+            textAlign: 'center',
+            mb: 1,
+          }}
+        >
+          Explore Tabsy Wins
+        </Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          size="small"
+          sx={{ minWidth: 64, fontWeight: 600, fontSize: 13, px: 1, py: 0.5 }}
+          onClick={() => window.location.href = '/play'}
+        >
+          Locations
+        </Button>
+        <Button variant="contained" color="secondary" size="small" sx={{ minWidth: 64, fontWeight: 600, fontSize: 13, px: 1, py: 0.5 }} onClick={() => window.location.href = '/community'}>
+          Community
+        </Button>
+        <Button variant="contained" color="success" size="small" sx={{ minWidth: 64, fontWeight: 600, fontSize: 13, px: 1, py: 0.5 }}>
+          Groups
+        </Button>
+        <Button variant="contained" color="warning" size="small" sx={{ minWidth: 64, fontWeight: 600, fontSize: 13, px: 1, py: 0.5 }}>
+          Support
+        </Button>
+        <Button variant="contained" color="info" size="small" sx={{ minWidth: 64, fontWeight: 600, fontSize: 13, px: 1, py: 0.5 }}>
+          Budget
+        </Button>
+        <Button variant="contained" color="primary" size="small" sx={{ minWidth: 64, fontWeight: 600, fontSize: 13, px: 1, py: 0.5 }}>
+          Learn Metrics
+        </Button>
+        <Button variant="contained" color="success" size="small" sx={{ minWidth: 64, fontWeight: 600, fontSize: 13, px: 1, py: 0.5 }}>
+         Go Pro
+        </Button>
+
+      </Box>
 
       {userData && (
         <Grid container spacing={3}>
@@ -339,14 +395,22 @@ export const UserProfile: React.FC = () => {
                       {userData.email}
                     </Typography>
                   </Box>
-                  <Button
-                    variant="outlined"
-                    startIcon={<Edit />}
-                    color="primary"
-                    onClick={handleEditClick}
-                  >
-                    Edit Profile
-                  </Button>
+                  {/* Show IconButton on mobile, outlined button on desktop */}
+                  <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+                    <IconButton color="primary" onClick={handleEditClick} aria-label="Edit Profile">
+                      <Edit />
+                    </IconButton>
+                  </Box>
+                  <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+                    <Button
+                      variant="outlined"
+                      startIcon={<Edit />}
+                      color="primary"
+                      onClick={handleEditClick}
+                    >
+                      Edit Profile
+                    </Button>
+                  </Box>
                 </Box>
 
                 <Divider sx={{ my: 2 }} />
@@ -364,6 +428,19 @@ export const UserProfile: React.FC = () => {
                   <Typography variant="body2">
                     <strong>Friends:</strong> {userData.friends.length}
                   </Typography>
+                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                     <Typography variant="body2" sx={{ flexGrow: 1 }}>
+                       <strong>Plan:</strong> {userData.plan}
+                     </Typography>
+                     <Button
+                       size="small"
+                       variant="contained"
+                       color={userData.plan === 'pro' ? 'primary' : 'success'}
+                       sx={{ minWidth: 80, fontWeight: 500 }}
+                     >
+                       {userData.plan === 'pro' ? 'Manage Plan' : 'Go Pro'}
+                     </Button>
+                   </Box>
                 </Stack>
               </CardContent>
             </Card>
@@ -372,79 +449,15 @@ export const UserProfile: React.FC = () => {
       )}
 
       {/* Edit Profile Dialog */}
-      <Dialog open={editDialog} onClose={() => setEditDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Edit Profile</DialogTitle>
-        <DialogContent>
-          <Box sx={{ mt: 2 }}>
-            {/* Avatar Upload */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
-              <Avatar
-                src={editForm.avatar}
-                sx={{ width: 100, height: 100, mb: 2 }}
-              >
-                {editForm.firstName[0]}{editForm.lastName[0]}
-              </Avatar>
-              <input
-                accept="image/*"
-                style={{ display: 'none' }}
-                id="avatar-upload"
-                type="file"
-                onChange={(e) => void handleAvatarUpload(e)}
-              />
-              <label htmlFor="avatar-upload">
-                <Button
-                  variant="outlined"
-                  component="span"
-                  startIcon={<PhotoCamera />}
-                  size="small"
-                >
-                  Change Avatar
-                </Button>
-              </label>
-            </Box>
-
-            <Grid container spacing={2}>
-              <Grid size={{ xs: 6 }}>
-                <TextField
-                  fullWidth
-                  label="First Name"
-                  value={editForm.firstName}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, firstName: e.target.value }))}
-                />
-              </Grid>
-              <Grid size={{ xs: 6 }}>
-                <TextField
-                  fullWidth
-                  label="Last Name"
-                  value={editForm.lastName}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, lastName: e.target.value }))}
-                />
-              </Grid>
-              <Grid size={{ xs: 12 }}>
-                <TextField
-                  fullWidth
-                  label="Display Name"
-                  value={editForm.displayName}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, displayName: e.target.value }))}
-                />
-              </Grid>
-            </Grid>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditDialog(false)} startIcon={<Cancel />}>
-            Cancel
-          </Button>
-          <Button
-            onClick={() => void handleSaveProfile()}
-            variant="contained"
-            disabled={saving}
-            startIcon={saving ? <CircularProgress size={16} /> : <Save />}
-          >
-            {saving ? 'Saving...' : 'Save Changes'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <EditProfileDialog
+        open={editDialog}
+        onClose={() => setEditDialog(false)}
+        onSave={() => void handleSaveProfile()}
+        saving={saving}
+        editForm={editForm}
+        setEditForm={setEditForm}
+        handleAvatarUpload={(e) => void handleAvatarUpload(e)}
+      />
 
       {/* Add User to Group Dialog */}
       <Dialog open={addUserDialog} onClose={() => setAddUserDialog(false)} maxWidth="sm" fullWidth>

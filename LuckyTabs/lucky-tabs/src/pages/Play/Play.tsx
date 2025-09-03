@@ -11,7 +11,6 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  SelectChangeEvent,
   Button,
   Dialog,
   DialogTitle,
@@ -31,6 +30,7 @@ import { EditBoxForm } from "./EditBox";
 import { BoxComponent } from "./BoxComponent";
 import { LocationManager } from "./LocationManager";
 import { LocationsMapSafe } from "./LocationsMapSafe";
+import { useLocation } from "../../hooks/useLocation";
 
 interface Location {
   id: string;
@@ -59,10 +59,26 @@ interface BoxItem {
 }
 
 export const Play: React.FC = () => {
+  // Use location context instead of local state
+  const { 
+    selectedLocation, 
+    setSelectedLocation, 
+    selectedLocationObj, 
+    setSelectedLocationObj 
+  } = useLocation();
+
   // Restore missing helper functions
   const handleChange = (event: any) => {
-    setSelectedLocation(event.target.value as string);
-    if (event.target.value) {
+    const locationId = event.target.value as string;
+    setSelectedLocation(locationId);
+    
+    // Update the location object in context
+    const location = locations.find(loc => loc.id === locationId);
+    if (location) {
+      setSelectedLocationObj(location);
+    }
+    
+    if (locationId) {
       setShowLocationSelector(false);
     }
   };
@@ -129,7 +145,6 @@ export const Play: React.FC = () => {
   };
   const [locations, setLocations] = useState<Location[]>([]);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [selectedLocation, setSelectedLocation] = useState<string>("");
   const [boxes, setBoxes] = useState<BoxItem[]>([]);
   const [openCreateBox, setOpenCreateBox] = useState(false);
   const [openLocationManager, setOpenLocationManager] = useState(false);
@@ -240,7 +255,16 @@ export const Play: React.FC = () => {
     void fetchBoxes();
   }, [selectedLocation]);
 
-  const selectedLocationObj = locations.find((loc) => loc.id === selectedLocation);
+  // Update selectedLocationObj in context when locations load
+  useEffect(() => {
+    if (selectedLocation && locations.length > 0 && !selectedLocationObj) {
+      const locationObj = locations.find((loc) => loc.id === selectedLocation);
+      if (locationObj) {
+        setSelectedLocationObj(locationObj);
+      }
+    }
+  }, [selectedLocation, locations, selectedLocationObj, setSelectedLocationObj]);
+
   const wallBoxes = boxes.filter((box) => box.type === "wall");
   const barBoxes = boxes.filter((box) => box.type === "bar box");
 
@@ -267,7 +291,13 @@ export const Play: React.FC = () => {
             <LocationsMapSafe
               locations={sortedLocations}
               selectedLocationId={selectedLocation}
-              onLocationSelect={setSelectedLocation}
+              onLocationSelect={(locationId: string) => {
+                setSelectedLocation(locationId);
+                const location = locations.find(loc => loc.id === locationId);
+                if (location) {
+                  setSelectedLocationObj(location);
+                }
+              }}
               height={400}
             />
           )}

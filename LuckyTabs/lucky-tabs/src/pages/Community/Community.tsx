@@ -81,44 +81,48 @@ function PostCard({
   const [loadingComments, setLoadingComments] = useState(false);
   const [commentCount, setCommentCount] = useState<number>(0);
 
-// fetch count once (or when post.id changes)
-useEffect(() => {
-  let cancelled = false;
-  communityService.getCommentsCount(post.id)
-    .then((c) => { if (!cancelled) setCommentCount(c); })
-    .catch(() => { if (!cancelled) setCommentCount(0); });
-  return () => { cancelled = true; };
-}, [post.id]);
+  // Image modal state
+  const [imageModalOpen, setImageModalOpen] = React.useState<boolean>(false);
+  const [imageModalIndex, setImageModalIndex] = React.useState<number>(0);
 
-// existing effect -> also sync count after loading list
-useEffect(() => {
-  if (!showComments) return;
-  setLoadingComments(true);
-  communityService.getComments(post.id)
-    .then((list) => {
-      setComments(list);
-      setCommentCount(list.length); // keep UI in sync when open
-    })
-    .catch(console.error)
-    .finally(() => setLoadingComments(false));
-}, [showComments, post.id]);
+  // fetch count once (or when post.id changes)
+  useEffect(() => {
+    let cancelled = false;
+    communityService.getCommentsCount(post.id)
+      .then((c) => { if (!cancelled) setCommentCount(c); })
+      .catch(() => { if (!cancelled) setCommentCount(0); });
+    return () => { cancelled = true; };
+  }, [post.id]);
 
-// when posting, bump count optimistically and refresh list if open
-const handleComment = () => {
-  if (!commentText.trim()) return;
-  onComment(post.id, commentText);
-  setCommentText('');
-  setCommentCount((c) => c + 1); // optimistic
-
-  if (showComments) {
+  // existing effect -> also sync count after loading list
+  useEffect(() => {
+    if (!showComments) return;
+    setLoadingComments(true);
     communityService.getComments(post.id)
       .then((list) => {
         setComments(list);
-        setCommentCount(list.length);
+        setCommentCount(list.length); // keep UI in sync when open
       })
-      .catch(console.error);
-  }
-};
+      .catch(console.error)
+      .finally(() => setLoadingComments(false));
+  }, [showComments, post.id]);
+
+  // when posting, bump count optimistically and refresh list if open
+  const handleComment = () => {
+    if (!commentText.trim()) return;
+    onComment(post.id, commentText);
+    setCommentText('');
+    setCommentCount((c) => c + 1); // optimistic
+
+    if (showComments) {
+      communityService.getComments(post.id)
+        .then((list) => {
+          setComments(list);
+          setCommentCount(list.length);
+        })
+        .catch(console.error);
+    }
+  };
 
   const formatTime = (date: Date) => {
     const now = new Date();
@@ -227,39 +231,75 @@ const handleComment = () => {
 
         {/* Post Images */}
         {post.media && post.media.length > 0 && (
-          <Box
-            sx={{
-              mt: 1,
-              mb: 2,
-              display: 'grid',
-              gap: 1,
-              gridTemplateColumns: {
-                xs: post.media.length === 1 ? '1fr' : 'repeat(2, 1fr)',
-                sm: post.media.length >= 3 ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)',
-              },
-            }}
-          >
-            {post.media.slice(0, 4).map((m, idx) => (
-              <Box
-                key={idx}
-                sx={{
-                  position: 'relative',
-                  pt: '100%',
-                  borderRadius: 1,
-                  overflow: 'hidden',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                }}
-              >
+          <>
+            <Box
+              sx={{
+                mt: 1,
+                mb: 2,
+                display: 'grid',
+                gap: 1,
+                gridTemplateColumns: {
+                  xs: post.media.length === 1 ? '1fr' : 'repeat(2, 1fr)',
+                  sm: post.media.length >= 3 ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)',
+                },
+              }}
+            >
+              {post.media.slice(0, 4).map((m, idx) => (
+                <Box
+                  key={idx}
+                  sx={{
+                    position: 'relative',
+                    pt: '100%',
+                    borderRadius: 1,
+                    overflow: 'hidden',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => {
+                    setImageModalOpen(true);
+                    setImageModalIndex(idx);
+                  }}
+                >
+                  <img
+                    src={m.url}
+                    alt=""
+                    loading="lazy"
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                </Box>
+              ))}
+            </Box>
+            <Dialog open={imageModalOpen} onClose={() => setImageModalOpen(false)} maxWidth="md" fullWidth>
+              <DialogContent sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative', bgcolor: 'black', p: 0 }}>
+                <IconButton
+                  sx={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', color: 'white', zIndex: 2 }}
+                  onClick={() => setImageModalIndex((prev) => (prev > 0 ? prev - 1 : (post.media ? post.media.length - 1 : 0)))}
+                  disabled={!post.media || post.media.length <= 1}
+                >
+                  {'<'}
+                </IconButton>
                 <img
-                  src={m.url}
-                  alt=""
-                  loading="lazy"
-                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                  src={post.media[imageModalIndex]?.url}
+                  alt="Post Media"
+                  style={{ maxHeight: '80vh', maxWidth: '100%', margin: 'auto', display: 'block' }}
                 />
-              </Box>
-            ))}
-          </Box>
+                <IconButton
+                  sx={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', color: 'white', zIndex: 2 }}
+                  onClick={() => setImageModalIndex((prev) => (prev < (post.media?.length ?? 0) - 1 ? prev + 1 : 0))}
+                  disabled={post.media.length <= 1}
+                >
+                  {'>'}
+                </IconButton>
+                <IconButton
+                  sx={{ position: 'absolute', top: 8, right: 8, color: 'white', zIndex: 2 }}
+                  onClick={() => setImageModalOpen(false)}
+                >
+                  <CloseIcon />
+                </IconButton>
+              </DialogContent>
+            </Dialog>
+          </>
         )}
 
         {/* Post Actions */}

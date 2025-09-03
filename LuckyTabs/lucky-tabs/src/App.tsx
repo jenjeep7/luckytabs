@@ -5,6 +5,7 @@ import { ThemeProvider, createTheme, CssBaseline, useMediaQuery } from '@mui/mat
 import { getDesignTokens } from './theme';
 import AppRoutes from './AppRoutes';
 import { UserProfileProvider } from './context/UserProfileContext';
+import { LocationProvider } from './context/LocationContext';
 
 function App() {
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
@@ -18,9 +19,11 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <UserProfileProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
+        <LocationProvider>
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </LocationProvider>
       </UserProfileProvider>
     </ThemeProvider>
   );
