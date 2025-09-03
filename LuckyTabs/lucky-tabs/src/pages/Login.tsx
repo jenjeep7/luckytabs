@@ -65,13 +65,14 @@ const Login: React.FC = () => {
         <Typography variant="h4" gutterBottom>
           Login
         </Typography>
-        <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           <TextField
             label="Email"
             type="email"
             fullWidth
             {...register('email')}
             required
+            size="small"
           />
           <TextField
             label="Password"
@@ -79,6 +80,7 @@ const Login: React.FC = () => {
             fullWidth
             {...register('password')}
             required
+            size="small"
           />
           <Button variant="contained" color="primary" type="submit">
             Login

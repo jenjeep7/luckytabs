@@ -40,11 +40,10 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
+  { label: 'Profile', route: '/profile', icon: <PersonIcon /> },
   { label: 'Play', route: '/play', icon: <HomeIcon /> },
   { label: 'Tracking', route: '/tracking', icon: <ListAltIcon /> },
   { label: 'Community', route: '/community', icon: <ExploreIcon /> },
-  { label: 'Profile', route: '/profile', icon: <PersonIcon /> },
-  // { label: 'Contact', email: 'tabsywins@gmail.com', icon: <MailIcon /> },
 ];
 
 interface LayoutProps {
@@ -85,15 +84,7 @@ function Layout({ children }: LayoutProps) {
   const drawer = (
     <Box onClick={handleDrawerToggle} sx={{ textAlign: 'center' }}>
       <Typography variant="h6" sx={{ my: 2 }}>Pull Tab Community</Typography>
-      <Divider />
       <List>
-        {navItems.map((item) => (
-          <ListItem key={item.label} disablePadding>
-            <ListItemButton onClick={() => handleNavItemClick(item)}>
-              <ListItemText primary={item.label} />
-            </ListItemButton>
-          </ListItem>
-        ))}
         {!!user && (
           <>
             <Divider />
@@ -102,6 +93,7 @@ function Layout({ children }: LayoutProps) {
                 <ListItemText primary="Logout" />
               </ListItemButton>
             </ListItem>
+         
           </>
         )}
       </List>
@@ -172,7 +164,7 @@ function Layout({ children }: LayoutProps) {
           flexGrow: 1,
           width: '100%',
           // top padding to clear the AppBar when logged-in
-          pt: user ? { xs: 0, md: '64px' } : 0,
+          pt: user ? { xs: '56px', md: '64px' } : 0,
           // bottom padding to clear BottomNavigation on mobile
           pb: user ? { xs: 'calc(env(safe-area-inset-bottom) + 64px)', md: 0 } : 0,
         }}
@@ -199,6 +191,10 @@ function Layout({ children }: LayoutProps) {
             showLabels
             value={bottomValue}
             onChange={(_e: React.SyntheticEvent, newIndex: number) => handleNavItemClick(navItems[newIndex])}
+            sx={{
+              pb: 2,
+              pt: 1,
+            }}
           >
             {navItems.map((item) => (
               <BottomNavigationAction

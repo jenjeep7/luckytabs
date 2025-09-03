@@ -3,9 +3,9 @@ import { Loader } from '@googlemaps/js-api-loader';
 const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
 let loaderInstance: Loader | null = null;
-let loadingPromise: Promise<void> | null = null;
+let loadingPromise: Promise<typeof google> | null = null;
 
-export const getGoogleMapsLoader = (): Promise<void> => {
+export const getGoogleMapsLoader = (): Promise<typeof google> => {
   if (!GOOGLE_MAPS_API_KEY) {
     return Promise.reject(new Error('Google Maps API key is missing. Please check your .env file.'));
   }

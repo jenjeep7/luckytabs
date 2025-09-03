@@ -4,6 +4,8 @@ import { BrowserRouter } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline, useMediaQuery } from '@mui/material';
 import { getDesignTokens } from './theme';
 import AppRoutes from './AppRoutes';
+import { UserProfileProvider } from './context/UserProfileContext';
+import { LocationProvider } from './context/LocationContext';
 
 function App() {
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
@@ -16,9 +18,13 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
+      <UserProfileProvider>
+        <LocationProvider>
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </LocationProvider>
+      </UserProfileProvider>
     </ThemeProvider>
   );
 }

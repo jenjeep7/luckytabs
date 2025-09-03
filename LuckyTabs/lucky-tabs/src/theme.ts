@@ -75,6 +75,15 @@ export const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => ({
     borderRadius: 10,
   },
   components: {
+     MuiCardContent: {
+    styleOverrides: {
+      root: {
+        '&:last-child': {
+          paddingBottom: '16px',
+        },
+      },
+    },
+  },
     MuiButton: {
       styleOverrides: {
         root: {

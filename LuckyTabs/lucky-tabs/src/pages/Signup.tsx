@@ -14,7 +14,11 @@ import {
   Typography,
   Alert,
   Paper,
+  FormControlLabel,
+  Checkbox,
+  Link,
 } from '@mui/material';
+import { BetaTestingAgreementDialog } from '../components/BetaTestingAgreementDialog';
 
 interface SignupFormInputs {
   email: string;
@@ -38,6 +42,8 @@ const Signup: React.FC = () => {
   const { register, handleSubmit } = useForm<SignupFormInputs>();
   const [error, setError] = useState('');
   const [verificationSent, setVerificationSent] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
   const navigate = useNavigate();
 
   const onSubmit = async (data: SignupFormInputs) => {
@@ -60,6 +66,8 @@ const Signup: React.FC = () => {
         username: data.username,
         displayName: data.username,
         createdAt: new Date(),
+        isAdmin: false,
+        plan: 'free',
       });
 
       // Send email verification
@@ -72,7 +80,16 @@ const Signup: React.FC = () => {
       // Do not navigate until verified
     } catch (err: unknown) {
       if (err instanceof Error) {
-        setError(err.message);
+        // Handle specific Firebase error codes with user-friendly messages
+        if (err.message.includes('EMAIL_EXISTS') || err.message.includes('email-already-in-use')) {
+          setError('This email is already registered. Please log in instead or use a different email address.');
+        } else if (err.message.includes('WEAK_PASSWORD') || err.message.includes('weak-password')) {
+          setError('Password is too weak. Please choose a stronger password with at least 6 characters.');
+        } else if (err.message.includes('INVALID_EMAIL') || err.message.includes('invalid-email')) {
+          setError('Please enter a valid email address.');
+        } else {
+          setError(err.message);
+        }
       } else {
         setError('An unexpected error occurred.');
       }
@@ -85,20 +102,54 @@ const Signup: React.FC = () => {
         <Typography variant="h4" gutterBottom>
           Sign Up
         </Typography>
+        <Button variant="outlined" sx={{ my: 3, textAlign: 'center' }} color="primary" onClick={() => navigate('/login')}>
+          Already have an account? Login
+        </Button>
+
         {!verificationSent ? (
           <Box
             component="form"
             onSubmit={handleSubmit(onSubmit)}
-            sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+            sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}
           >
-            <TextField label="Username" fullWidth {...register('username')} required />
-            <TextField label="Email" type="email" fullWidth {...register('email')} required />
-            <TextField label="Password" type="password" fullWidth {...register('password')} required />
-            <Button variant="contained" color="primary" type="submit">
+            <TextField label="Username" fullWidth {...register('username')} required size="small" />
+            <TextField label="Email" type="email" fullWidth {...register('email')} required size="small" />
+            <TextField label="Password" type="password" fullWidth {...register('password')} required size="small" />
+            
+            {/* Terms and Conditions Checkbox */}
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={termsAccepted}
+                  onChange={(e) => setTermsAccepted(e.target.checked)}
+                  color="primary"
+                />
+              }
+              label={
+                <Typography variant="body2">
+                  I agree to the{' '}
+                  <Link
+                    component="button"
+                    variant="body2"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setShowTermsModal(true);
+                    }}
+                    sx={{ cursor: 'pointer' }}
+                  >
+                    {`Beta Testing Agreement`}
+                  </Link>
+                </Typography>
+              }
+            />
+            
+            <Button 
+              variant="contained" 
+              color="primary" 
+              type="submit"
+              disabled={!termsAccepted}
+            >
               Sign Up
-            </Button>
-            <Button variant="outlined" color="primary" onClick={() => navigate('/login')}>
-              Already have an account? Login
             </Button>
             <Button variant="text" color="secondary" onClick={() => navigate('/')}>Return to Home</Button>
           </Box>
@@ -118,6 +169,12 @@ const Signup: React.FC = () => {
           </Alert>
         )}
       </Paper>
+
+      {/* Beta Testing Agreement Modal */}
+      <BetaTestingAgreementDialog
+        open={showTermsModal}
+        onClose={() => setShowTermsModal(false)}
+      />
     </Container>
   );
 };

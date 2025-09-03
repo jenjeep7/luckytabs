@@ -11,7 +11,20 @@ import {
   Slider,
   useMediaQuery,
   useTheme,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Alert,
 } from '@mui/material';
+
+// Interface for claimed prizes on wall boxes
+export interface ClaimedPrize {
+  prizeAmount: number;
+  row: number; // 1-4 for rows
+  positionInRow: number; // 0-100 percentage position in the row
+  claimedAt: Date;
+}
 
 interface ConfirmRemoveDialogProps {
   open: boolean;
@@ -83,9 +96,10 @@ interface RowSliderProps {
   value: number;
   onChange: (value: number) => void;
   isMobile: boolean;
+  claimedPrizes?: ClaimedPrize[]; // Claimed prizes for this specific row
 }
 
-const RowSlider: React.FC<RowSliderProps> = ({ label, value, onChange, isMobile }) => {
+const RowSlider: React.FC<RowSliderProps> = ({ label, value, onChange, isMobile, claimedPrizes = [] }) => {
   const handleSliderChange = (_: Event, newValue: number | number[]) => {
     const val = Array.isArray(newValue) ? newValue[0] : newValue;
     onChange(val);
@@ -101,6 +115,7 @@ const RowSlider: React.FC<RowSliderProps> = ({ label, value, onChange, isMobile 
     onChange(num);
   };
 
+  // Standard marks for ticket counts
   const marks = [
     { value: 0, label: '0' },
     { value: 200, label: '200' },
@@ -109,8 +124,23 @@ const RowSlider: React.FC<RowSliderProps> = ({ label, value, onChange, isMobile 
     { value: 800, label: '800' }
   ];
 
+  // Calculate prize markers based on FIXED positions (not current slider value)
+  const prizeMarkers = claimedPrizes.map((prize, index) => {
+    // Calculate the fixed ticket position based on percentage of full row (800 tickets)
+    const ticketPosition = Math.round((prize.positionInRow / 100) * 800);
+    // Don't clamp to current value - keep the original position even if slider is below it
+    
+    return {
+      value: ticketPosition, // Fixed position based on 800-ticket scale
+      label: `$${prize.prizeAmount}`,
+      isPrize: true,
+      prizeAmount: prize.prizeAmount,
+      index
+    };
+  });
+
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: 350 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: 350, position: 'relative' }}>
       <Typography 
         variant={isMobile ? "caption" : "subtitle2"} 
         sx={{ 
@@ -137,48 +167,264 @@ const RowSlider: React.FC<RowSliderProps> = ({ label, value, onChange, isMobile 
           borderRadius: 4,
         }}
       />
-      <Slider
-        orientation="vertical"
-        value={value}
-        onChange={handleSliderChange}
-        onChangeCommitted={(_event: React.SyntheticEvent | Event, newValue: number | number[]) => handleSliderChange(_event as Event, newValue)}
-        max={800}
-        min={0}
-        step={isMobile ? 2 : 1}
-        marks={marks}
-        sx={{
-          height: isMobile ? 330 : 330,
-          mb: 2,
-          '& .MuiSlider-thumb': {
-            backgroundColor: '#e140a1',
-            border: isMobile ? '3px solid #fff' : '2px solid #fff',
-            width: isMobile ? 28 : 20,
-            height: isMobile ? 28 : 20,
-          },
-          '& .MuiSlider-track': {
-            backgroundColor: '#e140a1',
-            width: isMobile ? 8 : 4,
-          },
-          '& .MuiSlider-rail': {
-            backgroundColor: '#ddd',
-            width: isMobile ? 8 : 4,
-          },
-          '& .MuiSlider-mark': {
-            backgroundColor: '#e140a1',
-            ...(isMobile && { width: 4, height: 4 }),
-          },
-          '& .MuiSlider-markLabel': {
-            color: 'text.primary',
-            fontSize: isMobile ? '0.65rem' : '0.75rem',
-            ...(isMobile && { transform: 'translateX(-50%)' }),
-          },
-        }}
-        {...(isMobile && {
-          disableSwap: true,
-          size: 'medium',
+      
+      {/* Container for slider and prize markers */}
+      <Box sx={{ position: 'relative', height: isMobile ? 330 : 330, overflow: 'visible', width: 'fit-content' }}>
+        <Slider
+          orientation="vertical"
+          value={value}
+          onChange={handleSliderChange}
+          onChangeCommitted={(_event: React.SyntheticEvent | Event, newValue: number | number[]) => handleSliderChange(_event as Event, newValue)}
+          max={800}
+          min={0}
+          step={isMobile ? 2 : 1}
+          marks={marks}
+          sx={{
+            height: isMobile ? 330 : 330,
+            mb: 2,
+            '& .MuiSlider-thumb': {
+              backgroundColor: '#e140a1',
+              border: '2px solid #fff',
+              width: 20,
+              height: 20,
+            },
+            '& .MuiSlider-track': {
+              backgroundColor: '#e140a1',
+              width: 4,
+            },
+            '& .MuiSlider-rail': {
+              backgroundColor: '#ddd',
+              width: 4,
+            },
+            '& .MuiSlider-mark': {
+              backgroundColor: '#e140a1',
+              ...(isMobile && { width: 4, height: 4 }),
+            },
+            '& .MuiSlider-markLabel': {
+              color: 'text.primary',
+              fontSize: isMobile ? '0.65rem' : '0.75rem',
+              ...(isMobile && { transform: 'translateX(-50%)' }),
+            },
+          }}
+          {...(isMobile && {
+            disableSwap: true,
+            size: 'medium',
+          })}
+        />
+        
+        {/* Prize markers overlay */}
+        {prizeMarkers.map((marker, index) => {
+          // Calculate position from bottom (since slider is vertical and starts from bottom)
+          const percentageFromBottom = (marker.value / 800) * 100;
+          const positionFromBottom = `${percentageFromBottom}%`;
+          
+          return (
+            <Box
+              key={`prize-${index}`}
+              sx={{
+                position: 'absolute',
+                left: '50%',
+                bottom: positionFromBottom,
+                transform: 'translate(-50%, 50%)',
+                zIndex: 5,
+                pointerEvents: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-start',
+                width: 'auto',
+                minWidth: 0,
+              }}
+            >
+              {/* Prize marker dot */}
+              <Box
+                sx={{
+                  width: 12,
+                  height: 12,
+                  borderRadius: '50%',
+                  backgroundColor: '#ff6b35',
+                  border: '2px solid #fff',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                  flexShrink: 0,
+                }}
+              />
+              {/* Prize label */}
+              <Typography
+                variant="caption"
+                sx={{
+                  marginLeft: '8px',
+                  backgroundColor: '#ff6b35',
+                  color: 'white',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  fontSize: '0.7rem',
+                  fontWeight: 'bold',
+                  whiteSpace: 'nowrap',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                  lineHeight: 1,
+                }}
+              >
+                ${marker.prizeAmount}
+              </Typography>
+            </Box>
+          );
         })}
-      />
+      </Box>
     </Box>
+  );
+};
+
+// Add Wins Dialog for tracking claimed prizes on wall boxes
+interface AddWinsDialogProps {
+  open: boolean;
+  boxName: string;
+  availablePrizes: number[]; // Array of available prize amounts
+  onAddWin: (claimedPrize: ClaimedPrize) => void;
+  onCancel: () => void;
+}
+
+export const AddWinsDialog: React.FC<AddWinsDialogProps> = ({
+  open,
+  boxName,
+  availablePrizes,
+  onAddWin,
+  onCancel,
+}) => {
+  const [selectedRow, setSelectedRow] = useState<number>(1);
+  const [positionInRow, setPositionInRow] = useState<number>(400); // Now represents ticket position (0-800)
+  const [selectedPrize, setSelectedPrize] = useState<number>(0);
+  const [error, setError] = useState<string>('');
+  const [successMessage, setSuccessMessage] = useState<string>('');
+
+  const handleSubmit = () => {
+    if (selectedPrize === 0) {
+      setError('Please select a prize amount');
+      return;
+    }
+
+    // Convert ticket position to percentage for storage
+    const positionPercentage = (positionInRow / 800) * 100;
+
+    const claimedPrize: ClaimedPrize = {
+      prizeAmount: selectedPrize,
+      row: selectedRow,
+      positionInRow: positionPercentage, // Store as percentage for consistency
+      claimedAt: new Date()
+    };
+
+    onAddWin(claimedPrize);
+    
+    // Show success message
+    setSuccessMessage(`Win added: $${selectedPrize} at Row ${selectedRow}, Ticket #${positionInRow}`);
+    
+    // Reset form for next win but keep dialog open
+    setSelectedPrize(0);
+    setError('');
+    
+    // Clear success message after 3 seconds
+    setTimeout(() => setSuccessMessage(''), 3000);
+    // Keep selectedRow and positionInRow as they are for convenience
+  };
+
+  const handleCancel = () => {
+    setSelectedRow(1);
+    setPositionInRow(400); // Reset to middle position (400 tickets)
+    setSelectedPrize(0);
+    setError('');
+    setSuccessMessage('');
+    onCancel();
+  };
+
+  return (
+    <Dialog open={open} onClose={handleCancel} maxWidth="sm" fullWidth>
+      <DialogTitle>Add Win - {boxName}</DialogTitle>
+      <DialogContent>
+        <DialogContentText sx={{ mb: 3 }}>
+          Record a win by selecting the row, position, and prize amount.
+        </DialogContentText>
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+
+        {successMessage && (
+          <Alert severity="success" sx={{ mb: 2 }}>
+            {successMessage}
+          </Alert>
+        )}
+
+        {/* Row Selection */}
+        <FormControl fullWidth sx={{ mb: 3 }}>
+          <InputLabel>Row</InputLabel>
+          <Select
+            value={selectedRow}
+            label="Row"
+            onChange={(e) => setSelectedRow(Number(e.target.value))}
+          >
+            <MenuItem value={1}>Row 1</MenuItem>
+            <MenuItem value={2}>Row 2</MenuItem>
+            <MenuItem value={3}>Row 3</MenuItem>
+            <MenuItem value={4}>Row 4</MenuItem>
+          </Select>
+        </FormControl>
+
+        {/* Position in Row Slider */}
+        <Box sx={{ mb: 3 }}>
+          <Typography gutterBottom>
+            Position in Row {selectedRow} (Ticket #{positionInRow})
+          </Typography>
+          <Slider
+            value={positionInRow}
+            onChange={(_, value: number | number[]) => {
+              const numValue = Array.isArray(value) ? value[0] : value;
+              setPositionInRow(numValue);
+            }}
+            min={0}
+            max={800}
+            step={50}
+            marks={[
+              { value: 0, label: '0' },
+              { value: 100, label: '100' },
+              { value: 200, label: '200' },
+              { value: 300, label: '300' },
+              { value: 400, label: '400' },
+              { value: 500, label: '500' },
+              { value: 600, label: '600' },
+              { value: 700, label: '700' },
+              { value: 800, label: '800' }
+            ]}
+            valueLabelDisplay="auto"
+            valueLabelFormat={(value) => `#${value}`}
+          />
+        </Box>
+
+        {/* Prize Amount Selection */}
+        <FormControl fullWidth sx={{ mb: 2 }}>
+          <InputLabel>Prize Amount</InputLabel>
+          <Select
+            value={selectedPrize}
+            label="Prize Amount"
+            onChange={(e) => setSelectedPrize(Number(e.target.value))}
+          >
+            <MenuItem value={0}>Select Prize Amount</MenuItem>
+            {availablePrizes.map((prize) => (
+              <MenuItem key={prize} value={prize}>
+                ${prize}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleCancel} variant="outlined" color="secondary">
+          Done
+        </Button>
+        <Button onClick={handleSubmit} color="primary" variant="contained">
+          Add This Win
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 };
 
@@ -186,6 +432,9 @@ interface EstimateRemainingDialogProps {
   open: boolean;
   boxName: string;
   currentValue: number;
+  boxType?: 'wall' | 'bar'; // Add box type to determine if Add Wins button should show
+  availablePrizes?: number[]; // Available prize amounts for wall boxes
+  claimedPrizes?: ClaimedPrize[]; // All claimed prizes for this box
   currentRowEstimates?: {
     row1: number;
     row2: number;
@@ -193,6 +442,7 @@ interface EstimateRemainingDialogProps {
     row4: number;
   };
   onUpdate: (totalTickets: number, rowEstimates: { row1: number; row2: number; row3: number; row4: number }) => void;
+  onAddWin?: (claimedPrize: ClaimedPrize) => void; // Callback for adding wins
   onCancel: () => void;
 }
 
@@ -200,8 +450,12 @@ export const EstimateRemainingDialog: React.FC<EstimateRemainingDialogProps> = (
   open,
   boxName,
   currentValue,
+  boxType,
+  availablePrizes = [],
+  claimedPrizes = [],
   currentRowEstimates,
   onUpdate,
+  onAddWin,
   onCancel,
 }) => {
   const [row1, setRow1] = useState(0);
@@ -209,9 +463,15 @@ export const EstimateRemainingDialog: React.FC<EstimateRemainingDialogProps> = (
   const [row3, setRow3] = useState(0);
   const [row4, setRow4] = useState(0);
   const [initialized, setInitialized] = useState(false);
+  const [addWinsDialogOpen, setAddWinsDialogOpen] = useState(false);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  // Filter claimed prizes by row
+  const getClaimedPrizesForRow = (rowNumber: number) => {
+    return claimedPrizes.filter(prize => prize.row === rowNumber);
+  };
 
   // Initialize sliders with saved row estimates or distributed current value when dialog opens
   React.useEffect(() => {
@@ -260,21 +520,37 @@ export const EstimateRemainingDialog: React.FC<EstimateRemainingDialogProps> = (
     onCancel();
   };
 
+  const handleAddWinClick = () => {
+    setAddWinsDialogOpen(true);
+  };
+
+  const handleAddWin = (claimedPrize: ClaimedPrize) => {
+    if (onAddWin) {
+      onAddWin(claimedPrize);
+    }
+    setAddWinsDialogOpen(false);
+  };
+
+  const handleAddWinCancel = () => {
+    setAddWinsDialogOpen(false);
+  };
+
   return (
-    <Dialog 
-      open={open} 
-      onClose={onCancel} 
-      maxWidth="md" 
-      fullWidth
-      fullScreen={isMobile}
-      sx={{
-        '& .MuiDialog-paper': {
-          margin: { xs: 0, md: 'auto' },
-          height: { xs: '100%', md: 'auto' },
-          maxHeight: { xs: '100%', md: '90vh' }
-        }
-      }}
-    >
+    <>
+      <Dialog 
+        open={open} 
+        onClose={onCancel} 
+        maxWidth="md" 
+        fullWidth
+        fullScreen={isMobile}
+        sx={{
+          '& .MuiDialog-paper': {
+            margin: { xs: 0, md: 'auto' },
+            height: { xs: '100%', md: 'auto' },
+            maxHeight: { xs: '100%', md: '90vh' }
+          }
+        }}
+      >
       <DialogTitle>Estimate Remaining Tickets - {boxName}</DialogTitle>
       <DialogContent>
         <DialogContentText sx={{ mb: 3 }}>
@@ -291,32 +567,56 @@ export const EstimateRemainingDialog: React.FC<EstimateRemainingDialogProps> = (
             minHeight: 400 
           }}
         >
-          <RowSlider label="Row 1" value={row1} onChange={setRow1} isMobile={false} />
-          <RowSlider label="Row 2" value={row2} onChange={setRow2} isMobile={false} />
-          <RowSlider label="Row 3" value={row3} onChange={setRow3} isMobile={false} />
-          <RowSlider label="Row 4" value={row4} onChange={setRow4} isMobile={false} />
+          <RowSlider label="Row 1" value={row1} onChange={setRow1} isMobile={false} claimedPrizes={getClaimedPrizesForRow(1)} />
+          <RowSlider label="Row 2" value={row2} onChange={setRow2} isMobile={false} claimedPrizes={getClaimedPrizesForRow(2)} />
+          <RowSlider label="Row 3" value={row3} onChange={setRow3} isMobile={false} claimedPrizes={getClaimedPrizesForRow(3)} />
+          <RowSlider label="Row 4" value={row4} onChange={setRow4} isMobile={false} claimedPrizes={getClaimedPrizesForRow(4)} />
         </Box>
 
         {/* Mobile Layout - Taller, Touch-Friendly Vertical Sliders */}
         <Box sx={{ py: 2, display: { xs: 'flex', md: 'none' }, justifyContent: 'space-around', alignItems: 'flex-end', minHeight: 400 }}>
-          <RowSlider label="Row 1" value={row1} onChange={setRow1} isMobile={true} />
-          <RowSlider label="Row 2" value={row2} onChange={setRow2} isMobile={true} />
-          <RowSlider label="Row 3" value={row3} onChange={setRow3} isMobile={true} />
-          <RowSlider label="Row 4" value={row4} onChange={setRow4} isMobile={true} />
+          <RowSlider label="Row 1" value={row1} onChange={setRow1} isMobile={true} claimedPrizes={getClaimedPrizesForRow(1)} />
+          <RowSlider label="Row 2" value={row2} onChange={setRow2} isMobile={true} claimedPrizes={getClaimedPrizesForRow(2)} />
+          <RowSlider label="Row 3" value={row3} onChange={setRow3} isMobile={true} claimedPrizes={getClaimedPrizesForRow(3)} />
+          <RowSlider label="Row 4" value={row4} onChange={setRow4} isMobile={true} claimedPrizes={getClaimedPrizesForRow(4)} />
         </Box>
 
-        <Typography variant="h6" color="text.primary" sx={{ textAlign: 'center', mt: 3 }}>
-          Total Estimated Tickets: {totalTickets}
-        </Typography>
+        {/* Total Tickets Display - Full Width Below Sliders with clear separation */}
+        <Box sx={{ mt: 10, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="h6" color="text.primary" sx={{ textAlign: 'center', fontWeight: 'bold' }}>
+            Total Estimated Tickets: {totalTickets}
+          </Typography>
+        </Box>
+      
       </DialogContent>
       <DialogActions>
         <Button onClick={handleCancel} variant="outlined" color="secondary">
           Cancel
         </Button>
+        {boxType === 'wall' && onAddWin && (
+          <Button 
+            onClick={handleAddWinClick} 
+            variant="outlined" 
+            color="info"
+            sx={{ mr: 1 }}
+          >
+            Add Wins
+          </Button>
+        )}
         <Button onClick={handleUpdate} color="primary" variant="contained">
           Update
         </Button>
       </DialogActions>
     </Dialog>
+
+    {/* Add Wins Dialog */}
+    <AddWinsDialog
+      open={addWinsDialogOpen}
+      boxName={boxName}
+      availablePrizes={availablePrizes}
+      onAddWin={handleAddWin}
+      onCancel={handleAddWinCancel}
+    />
+  </>
   );
 };

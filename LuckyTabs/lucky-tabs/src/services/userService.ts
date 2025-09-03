@@ -24,6 +24,7 @@ export interface UserData {
   isAdmin: boolean;
   createdAt: Date;
   updatedAt: Date;
+  plan: string;
 }
 
 export interface GroupMember {
@@ -35,15 +36,20 @@ export interface GroupMember {
 }
 
 class UserService {
-  // Get user profile data
-  async getUserProfile(userId: string): Promise<UserData | null> {
+  private cachedProfile: UserData | null = null;
+  private cachedProfileUid: string | null = null;
+  // Get user profile data, with optional forceRefresh
+  async getUserProfile(userId: string, forceRefresh = false): Promise<UserData | null> {
+    // Use cache if available and not forcing refresh
+    if (!forceRefresh && this.cachedProfile && this.cachedProfileUid === userId) {
+      return this.cachedProfile;
+    }
     try {
       const userDocRef = doc(db, 'users', userId);
       const userDoc = await getDoc(userDocRef);
       
       if (userDoc.exists()) {
         const data = userDoc.data();
-        
         // Safely handle timestamp fields that might be undefined
         const createdAt = data.createdAt 
           ? (data.createdAt as Timestamp).toDate() 
@@ -51,8 +57,7 @@ class UserService {
         const updatedAt = data.updatedAt 
           ? (data.updatedAt as Timestamp).toDate() 
           : new Date();
-        
-        return {
+        const profile: UserData = {
           uid: userDoc.id,
           email: data.email as string || '',
           displayName: data.displayName as string || 'Anonymous User',
@@ -63,10 +68,17 @@ class UserService {
           friends: (data.friends as string[]) || [],
           isAdmin: data.isAdmin as boolean || false,
           createdAt,
-          updatedAt
-        } as UserData;
+          updatedAt,
+          plan: data.plan as string || 'free',
+        };
+        // Cache the profile
+        this.cachedProfile = profile;
+        this.cachedProfileUid = userId;
+        return profile;
       }
-      
+      // If not found, clear cache
+      this.cachedProfile = null;
+      this.cachedProfileUid = null;
       return null;
     } catch (error) {
       console.error('Error getting user profile:', error);
@@ -92,7 +104,8 @@ class UserService {
         friends: [],
         isAdmin: false,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        plan: 'free',
       };
 
       const firestoreData = {
@@ -111,15 +124,22 @@ class UserService {
   // Update user profile
   async updateUserProfile(
     userId: string, 
-    updates: Partial<Pick<UserData, 'displayName' | 'firstName' | 'lastName' | 'avatar'>>
+    updates: Partial<Pick<UserData, 'displayName' | 'firstName' | 'lastName' | 'avatar' | 'plan' | 'isAdmin'>>
   ): Promise<void> {
     try {
       const updateData = {
         ...updates,
         updatedAt: Timestamp.fromDate(new Date())
       };
-
       await updateDoc(doc(db, 'users', userId), updateData);
+      // If cache exists and matches, update cache
+      if (this.cachedProfile && this.cachedProfileUid === userId) {
+        this.cachedProfile = {
+          ...this.cachedProfile,
+          ...updates,
+          updatedAt: new Date()
+        };
+      }
     } catch (error) {
       console.error('Error updating user profile:', error);
       throw error;

@@ -25,18 +25,24 @@ interface LocationsMapProps {
   height?: number;
 }
 
+const MILES_TO_METERS = 1609.34;
+
 export const LocationsMapSafe: React.FC<LocationsMapProps> = ({
   locations,
   selectedLocationId,
   onLocationSelect,
-  height = 250, // Reduced from 400 to 250
+  height = 250,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
   const isUnmountedRef = useRef(false);
   const initializingRef = useRef(false);
-  
+
+  // track if we already centered based on user location (so we don't auto-fit to markers after)
+  const centeredByUserRef = useRef(false);
+
+  const userMarkerRef = useRef<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mapReady, setMapReady] = useState(false);
@@ -45,12 +51,10 @@ export const LocationsMapSafe: React.FC<LocationsMapProps> = ({
   const cleanupMarkers = () => {
     markersRef.current.forEach((marker) => {
       try {
-        if (marker.infoWindow) {
-          marker.infoWindow.close();
-        }
+        if (marker.infoWindow) marker.infoWindow.close();
         marker.map = null;
-      } catch (error) {
-        // Ignore cleanup errors
+      } catch {
+        /* ignore */
       }
     });
     markersRef.current = [];
@@ -58,41 +62,41 @@ export const LocationsMapSafe: React.FC<LocationsMapProps> = ({
 
   // Initialize Google Maps once
   useEffect(() => {
-    // Prevent multiple initializations and handle React Strict Mode
     if (initializingRef.current || mapInstanceRef.current) {
-      if (mapInstanceRef.current) {
-        setIsLoading(false);
-      }
+      if (mapInstanceRef.current) setIsLoading(false);
       return;
     }
 
     initializingRef.current = true;
     isUnmountedRef.current = false;
 
-    // Calculate map center based on locations
-    const locationsWithCoords = locations.filter(loc => loc.coordinates);
-    let center = { lat: 46.7296, lng: -94.6859 }; // Minnesota center as default
-    
+    // Fallback center: Minnesota
+    const locationsWithCoords = locations.filter((loc) => loc.coordinates);
+    let center = { lat: 46.7296, lng: -94.6859 };
+
     if (locationsWithCoords.length > 0) {
-      // Calculate the center of all locations
-      const avgLat = locationsWithCoords.reduce((sum, loc) => sum + (loc.coordinates?.lat || 0), 0) / locationsWithCoords.length;
-      const avgLng = locationsWithCoords.reduce((sum, loc) => sum + (loc.coordinates?.lng || 0), 0) / locationsWithCoords.length;
+      const avgLat =
+        locationsWithCoords.reduce((s, loc) => s + (loc.coordinates?.lat || 0), 0) /
+        locationsWithCoords.length;
+      const avgLng =
+        locationsWithCoords.reduce((s, loc) => s + (loc.coordinates?.lng || 0), 0) /
+        locationsWithCoords.length;
       center = { lat: avgLat, lng: avgLng };
     }
 
     const initializeMap = async () => {
       try {
         await getGoogleMapsLoader();
-        
+
         if (isUnmountedRef.current) {
           initializingRef.current = false;
           return;
         }
-        
+
         if (!mapContainerRef.current) {
           setTimeout(() => {
             if (!isUnmountedRef.current && mapContainerRef.current) {
-              void createMapInstance();
+              createMapInstance();
             } else {
               initializingRef.current = false;
               if (!isUnmountedRef.current) {
@@ -122,12 +126,14 @@ export const LocationsMapSafe: React.FC<LocationsMapProps> = ({
         }
 
         const map = new (window as any).google.maps.Map(mapContainerRef.current, {
-          zoom: 10,
-          center: center,
+          zoom: 6,
+          center,
           mapId: 'DEMO_MAP_ID',
           mapTypeControl: false,
           streetViewControl: false,
           fullscreenControl: false,
+          clickableIcons: false,        // ← disables default POI popups
+          gestureHandling: 'greedy',
         });
 
         if (isUnmountedRef.current) {
@@ -135,11 +141,67 @@ export const LocationsMapSafe: React.FC<LocationsMapProps> = ({
           return;
         }
 
-        setMapReady(true);
         mapInstanceRef.current = map;
+        setMapReady(true);
         initializingRef.current = false;
         setIsLoading(false);
-        
+
+        // Try to center on the user's current location (5 mile radius)
+        if ('geolocation' in navigator) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              if (!mapInstanceRef.current) return;
+              const userLatLng = new (window as any).google.maps.LatLng(
+                pos.coords.latitude,
+                pos.coords.longitude
+              );
+
+              // Add/replace a subtle “you are here” marker (Advanced or default marker)
+              try {
+                const dot = document.createElement('div');
+                dot.style.cssText = `
+                  width: 14px; height: 14px; border-radius: 50%;
+                  background: #0ea5e9; border: 2px solid white;
+                  box-shadow: 0 0 6px rgba(0,0,0,0.35);
+                `;
+                const am = new (window as any).google.maps.marker.AdvancedMarkerElement({
+                  position: userLatLng,
+                  map: mapInstanceRef.current,
+                  title: 'Your location',
+                  content: dot,
+                });
+                userMarkerRef.current = am;
+              } catch {
+                // Fallback to default marker if AdvancedMarker isn't available
+                userMarkerRef.current = new (window as any).google.maps.Marker({
+                  position: userLatLng,
+                  map: mapInstanceRef.current,
+                  title: 'Your location',
+                });
+              }
+
+              // Fit to ~5 mile radius around user
+              const circle = new (window as any).google.maps.Circle({
+                center: userLatLng,
+                radius: 1 * MILES_TO_METERS, // ~8047 meters
+              });
+              // fitBounds on the circle's bounds for a nice radius view
+              const b = circle.getBounds?.();
+              if (b) {
+                mapInstanceRef.current.fitBounds(b);
+              } else {
+                mapInstanceRef.current.setCenter(userLatLng);
+                mapInstanceRef.current.setZoom(6); // fallback zoom ~ city scale
+              }
+
+              centeredByUserRef.current = true;
+            },
+            () => {
+              // user denied or failed—keep default center
+            },
+            { enableHighAccuracy: false, maximumAge: 60000, timeout: 8000 }
+          );
+        }
       } catch (err) {
         console.error('LocationsMapSafe: Error creating map instance:', err);
         initializingRef.current = false;
@@ -151,62 +213,42 @@ export const LocationsMapSafe: React.FC<LocationsMapProps> = ({
     };
 
     void initializeMap();
-  }, [locations]); // Include locations to re-center when they change
+  }, [locations]);
 
   // Update markers when locations or selection changes
   useEffect(() => {
-    if (!mapInstanceRef.current || initializingRef.current || !mapReady) {
-      return;
-    }
+    if (!mapInstanceRef.current || initializingRef.current || !mapReady) return;
 
     // Clean up existing markers
     cleanupMarkers();
 
-    if (locations.length === 0) {
-      return;
-    }
+    if (locations.length === 0) return;
 
     const map = mapInstanceRef.current;
     const bounds = new (window as any).google.maps.LatLngBounds();
     const newMarkers: any[] = [];
 
     locations.forEach((location) => {
-      if (!location.coordinates) {
-        return;
-      }
+      if (!location.coordinates) return;
 
       try {
-        // Create custom marker element
         const markerElement = document.createElement('div');
         markerElement.style.cssText = `
-          width: 24px;
-          height: 24px;
-          border-radius: 50%;
+          width: 24px; height: 24px; border-radius: 50%;
           background-color: ${selectedLocationId === location.id ? '#dc2626' : '#2563eb'};
-          border: 2px solid white;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          font-size: 10px;
-          font-weight: bold;
+          border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          cursor: pointer; display: flex; align-items: center; justify-content: center;
+          color: white; font-size: 10px; font-weight: bold;
         `;
         markerElement.textContent = location.name.charAt(0).toUpperCase();
 
-        // Create advanced marker
         const marker = new (window as any).google.maps.marker.AdvancedMarkerElement({
-          position: {
-            lat: location.coordinates.lat,
-            lng: location.coordinates.lng,
-          },
-          map: map,
+          position: { lat: location.coordinates.lat, lng: location.coordinates.lng },
+          map,
           title: location.name,
           content: markerElement,
         });
 
-        // Create info window
         const infoWindow = new (window as any).google.maps.InfoWindow({
           content: `
             <div style="padding: 8px; max-width: 200px;">
@@ -216,30 +258,18 @@ export const LocationsMapSafe: React.FC<LocationsMapProps> = ({
           `,
         });
 
-        // Add click listener
         marker.addListener('click', () => {
-          // Close all other info windows
           markersRef.current.forEach((m) => {
-            if (m.infoWindow) {
-              m.infoWindow.close();
-            }
+            if (m.infoWindow) m.infoWindow.close();
           });
-
-          // Open this info window
           infoWindow.open(map, marker);
-          
-          // Notify parent of selection
-          if (onLocationSelect) {
-            onLocationSelect(location.id);
-          }
+          onLocationSelect?.(location.id);
         });
 
-        // Store references
         marker.infoWindow = infoWindow;
         marker.locationId = location.id;
         newMarkers.push(marker);
 
-        // Add to bounds
         bounds.extend(marker.position);
       } catch (error) {
         console.error('Error creating marker for location:', location.name, error);
@@ -248,20 +278,19 @@ export const LocationsMapSafe: React.FC<LocationsMapProps> = ({
 
     markersRef.current = newMarkers;
 
-    // Fit map to show all markers
+    // If we already centered using the user's location, don't auto-fit to markers again.
     try {
-      if (newMarkers.length > 1) {
-        map.fitBounds(bounds);
-        // Add padding to prevent markers from being on the edge
-        const listener = map.addListener('bounds_changed', () => {
-          if (map.getZoom() > 15) {
-            map.setZoom(15);
-          }
-          (window as any).google.maps.event.removeListener(listener);
-        });
-      } else if (newMarkers.length === 1) {
-        map.setCenter(newMarkers[0].position);
-        map.setZoom(15);
+      if (!centeredByUserRef.current) {
+        if (newMarkers.length > 1) {
+          map.fitBounds(bounds);
+          const listener = map.addListener('bounds_changed', () => {
+            if (map.getZoom() > 6) map.setZoom(6);
+            (window as any).google.maps.event.removeListener(listener);
+          });
+        } else if (newMarkers.length === 1) {
+          map.setCenter(newMarkers[0].position);
+          map.setZoom(8);
+        }
       }
     } catch (error) {
       console.warn('Error fitting map bounds:', error);
@@ -273,33 +302,29 @@ export const LocationsMapSafe: React.FC<LocationsMapProps> = ({
     return () => {
       isUnmountedRef.current = true;
       initializingRef.current = false;
-      
-      // Clean up markers
+
       if (markersRef.current) {
         markersRef.current.forEach((marker) => {
           try {
-            if (marker.infoWindow) {
-              marker.infoWindow.close();
-            }
-            if (marker.map) {
-              marker.map = null;
-            }
-          } catch (error) {
-            // Ignore cleanup errors
+            if (marker.infoWindow) marker.infoWindow.close();
+            if (marker.map) marker.map = null;
+          } catch {
+            /* ignore */
           }
         });
         markersRef.current = [];
       }
 
-      // Clean up map instance
-      if (mapInstanceRef.current) {
+      if (userMarkerRef.current) {
         try {
-          // Don't try to destroy the map - just clear references
-          mapInstanceRef.current = null;
-        } catch (error) {
-          // Ignore cleanup errors
+          userMarkerRef.current.map = null;
+        } catch {
+          /* ignore */
         }
+        userMarkerRef.current = null;
       }
+
+      mapInstanceRef.current = null;
     };
   }, []);
 
@@ -313,11 +338,11 @@ export const LocationsMapSafe: React.FC<LocationsMapProps> = ({
 
   if (locations.length === 0) {
     return (
-      <Box 
-        sx={{ 
-          height, 
-          display: 'flex', 
-          alignItems: 'center', 
+      <Box
+        sx={{
+          height,
+          display: 'flex',
+          alignItems: 'center',
           justifyContent: 'center',
           bgcolor: 'grey.100',
           borderRadius: 1,
@@ -325,9 +350,7 @@ export const LocationsMapSafe: React.FC<LocationsMapProps> = ({
           border: '1px solid #e0e0e0',
         }}
       >
-        <Typography color="text.secondary">
-          No locations to display on map
-        </Typography>
+        <Typography color="text.secondary">No locations to display on map</Typography>
       </Box>
     );
   }
@@ -351,21 +374,12 @@ export const LocationsMapSafe: React.FC<LocationsMapProps> = ({
           overflow: 'hidden',
         }}
       >
-        <div
-          ref={mapContainerRef}
-          style={{
-            width: '100%',
-            height: '100%',
-          }}
-        />
+        <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />
         {isLoading && (
           <Box
             sx={{
               position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
+              inset: 0,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',

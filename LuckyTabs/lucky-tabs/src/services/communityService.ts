@@ -12,7 +12,8 @@ import {
   onSnapshot, 
   Timestamp,
   arrayUnion,
-  arrayRemove
+  arrayRemove,
+  getCountFromServer,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -31,12 +32,20 @@ export interface Post {
   authorId: string;
   content: string;
   timestamp: Date;
-  likes: string[]; // Array of user IDs who liked
+  likes: string[];
   type: 'public' | 'group';
-  groupId?: string; // Only for group posts
+  groupId?: string;
   edited?: boolean;
   editedAt?: Date;
+  media?: Array<{
+    url: string;
+    width?: number;
+    height?: number;
+    contentType?: string; // image/jpeg, image/png, image/webp
+  }>;
+  topicId?: string; // optional: for public topics
 }
+
 
 export interface Comment {
   id: string;
@@ -66,60 +75,75 @@ export interface FriendRequest {
   status: 'pending' | 'accepted' | 'declined';
   createdAt: Date;
 }
-
+interface FirestorePostData {
+  authorId: string;
+  content: string;
+  timestamp: Timestamp;
+  likes?: string[];
+  type: 'public' | 'group';
+  groupId?: string;
+  edited?: boolean;
+  editedAt?: Timestamp;
+  media?: { url: string; width?: number; height?: number; contentType?: string }[];
+}
 class CommunityService {
   // Posts
-  async createPost(authorId: string, content: string, type: 'public' | 'group', groupId?: string): Promise<string> {
-    const postData: Omit<Post, 'id'> = {
-      authorId,
-      content,
-      timestamp: new Date(),
-      likes: [],
-      type,
-      ...(groupId && { groupId })
-    };
+ // services/communityService.ts
+async createPost(
+  authorId: string,
+  content: string,
+  type: 'public' | 'group',
+  groupId?: string,
+  media?: Array<{ url: string; width?: number; height?: number; contentType?: string }>
+): Promise<string> {
+  const postData = {
+    authorId,
+    content,
+    timestamp: new Date(),
+    likes: [],
+    type,
+    ...(groupId && { groupId }),
+    ...(media && media.length ? { media } : {}),
+  };
 
-    const docRef = await addDoc(collection(db, 'posts'), {
-      ...postData,
-      timestamp: Timestamp.fromDate(postData.timestamp)
-    });
-    
-    return docRef.id;
-  }
+  const docRef = await addDoc(collection(db, 'posts'), {
+    ...postData,
+    timestamp: Timestamp.fromDate(postData.timestamp),
+  });
+  return docRef.id;
+}
+
 
   async getPosts(type: 'public' | 'group', groupId?: string): Promise<Post[]> {
-    const postsRef = collection(db, 'posts');
-    let q = query(
+  const postsRef = collection(db, 'posts');
+  let q = query(postsRef, where('type', '==', type), orderBy('timestamp', 'desc'));
+  if (type === 'group' && groupId) {
+    q = query(
       postsRef,
       where('type', '==', type),
+      where('groupId', '==', groupId),
       orderBy('timestamp', 'desc')
     );
-
-    if (type === 'group' && groupId) {
-      q = query(
-        postsRef,
-        where('type', '==', type),
-        where('groupId', '==', groupId),
-        orderBy('timestamp', 'desc')
-      );
-    }
-
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        authorId: data.authorId as string,
-        content: data.content as string,
-        timestamp: (data.timestamp as Timestamp).toDate(),
-        likes: (data.likes as string[]) || [],
-        type: data.type as 'public' | 'group',
-        ...(data.groupId && { groupId: data.groupId as string }),
-        ...(data.edited && { edited: data.edited as boolean }),
-        ...(data.editedAt && { editedAt: (data.editedAt as Timestamp).toDate() })
-      } as Post;
-    });
   }
+
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(docSnap => {
+    const data = docSnap.data() as FirestorePostData;
+    return {
+      id: docSnap.id,
+      authorId: data.authorId ,
+      content: data.content ,
+      timestamp: (data.timestamp ).toDate(),
+      likes: (data.likes as string[]) || [],
+      type: data.type ,
+      ...(data.groupId && { groupId: data.groupId  }),
+      ...(data.edited && { edited: data.edited as boolean }),
+      ...(data.editedAt && { editedAt: (data.editedAt ).toDate() }),
+      media: (data.media as any[]) || [],             // ← add this line
+    } as Post;
+  });
+}
+
 
   async likePost(postId: string, userId: string): Promise<void> {
     const postRef = doc(db, 'posts', postId);
@@ -282,44 +306,45 @@ class CommunityService {
   }
 
   // Real-time listeners
-  onPostsChange(
-    type: 'public' | 'group', 
-    callback: (posts: Post[]) => void,
-    groupId?: string
-  ): () => void {
-    const postsRef = collection(db, 'posts');
-    let q = query(
+  onPostsChange(type: 'public' | 'group', callback: (posts: Post[]) => void, groupId?: string): () => void {
+  const postsRef = collection(db, 'posts');
+  let q = query(postsRef, where('type', '==', type), orderBy('timestamp', 'desc'));
+  if (type === 'group' && groupId) {
+    q = query(
       postsRef,
       where('type', '==', type),
+      where('groupId', '==', groupId),
       orderBy('timestamp', 'desc')
     );
+  }
 
-    if (type === 'group' && groupId) {
-      q = query(
-        postsRef,
-        where('type', '==', type),
-        where('groupId', '==', groupId),
-        orderBy('timestamp', 'desc')
-      );
-    }
-
-    return onSnapshot(q, (snapshot) => {
-      const posts = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          authorId: data.authorId as string,
-          content: data.content as string,
-          timestamp: (data.timestamp as Timestamp).toDate(),
-          likes: (data.likes as string[]) || [],
-          type: data.type as 'public' | 'group',
-          ...(data.groupId && { groupId: data.groupId as string }),
-          ...(data.edited && { edited: data.edited as boolean }),
-          ...(data.editedAt && { editedAt: (data.editedAt as Timestamp).toDate() })
-        } as Post;
-      });
-      callback(posts);
+  return onSnapshot(q, (snapshot) => {
+    const posts = snapshot.docs.map(docSnap => {
+      const data = docSnap.data() as FirestorePostData;
+      return {
+        id: docSnap.id,
+        authorId: data.authorId ,
+        content: data.content ,
+        timestamp: (data.timestamp ).toDate(),
+        likes: (data.likes as string[]) || [],
+        type: data.type ,
+        ...(data.groupId && { groupId: data.groupId  }),
+        ...(data.edited && { edited: data.edited as boolean }),
+        ...(data.editedAt && { editedAt: (data.editedAt ).toDate() }),
+        media: (data.media as any[]) || [],           // ← add this line
+      } as Post;
     });
+    callback(posts);
+  });
+}
+
+  async getCommentsCount(postId: string): Promise<number> {
+    const q = query(
+      collection(db, 'comments'),
+      where('postId', '==', postId)
+    );
+    const snap = await getCountFromServer(q);
+    return snap.data().count;
   }
 
   onCommentsChange(postId: string, callback: (comments: Comment[]) => void): () => void {
