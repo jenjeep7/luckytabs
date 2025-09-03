@@ -22,6 +22,7 @@ import { boxService } from '../../services/boxService';
 interface ShareBoxDialogProps {
   open: boolean;
   onClose: () => void;
+  onShare?: () => void; // Callback to refresh boxes after sharing
   boxId: string;
   boxName: string;
   currentUserId: string;
@@ -30,6 +31,7 @@ interface ShareBoxDialogProps {
 const ShareBoxDialog: React.FC<ShareBoxDialogProps> = ({
   open,
   onClose,
+  onShare,
   boxId,
   boxName,
   currentUserId
@@ -38,6 +40,7 @@ const ShareBoxDialog: React.FC<ShareBoxDialogProps> = ({
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string>('');
 
   const loadGroups = useCallback(async () => {
@@ -77,8 +80,17 @@ const ShareBoxDialog: React.FC<ShareBoxDialogProps> = ({
       // Share with groups
       await boxService.shareBox(boxId, currentUserId, selectedGroups, 'group');
       
-      onClose();
+      setSuccess(true);
       setSelectedGroups([]);
+      
+      // Close dialog after a brief success message
+      setTimeout(() => {
+        onClose();
+        // Call the refresh callback after closing dialog to ensure smooth UX
+        if (onShare) {
+          onShare();
+        }
+      }, 500);
     } catch (err) {
       console.error('Error sharing box:', err);
       setError('Failed to share box');
@@ -90,6 +102,8 @@ const ShareBoxDialog: React.FC<ShareBoxDialogProps> = ({
   const handleClose = () => {
     setSelectedGroups([]);
     setError('');
+    setSuccess(false);
+    setSharing(false);
     onClose();
   };
 
@@ -103,9 +117,20 @@ const ShareBoxDialog: React.FC<ShareBoxDialogProps> = ({
           </Alert>
         )}
         
+        {success && (
+          <Alert severity="success" sx={{ mb: 2 }}>
+            Box shared successfully! Refreshing your boxes...
+          </Alert>
+        )}
+        
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
             <CircularProgress />
+          </Box>
+        ) : success ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+            <CircularProgress />
+            <Typography sx={{ ml: 2 }}>Updating boxes...</Typography>
           </Box>
         ) : groups.length === 0 ? (
           <Typography color="text.secondary" sx={{ textAlign: 'center', py: 3 }}>
@@ -150,10 +175,12 @@ const ShareBoxDialog: React.FC<ShareBoxDialogProps> = ({
         <Button
           onClick={() => { void handleShare(); }}
           variant="contained"
-          disabled={selectedGroups.length === 0 || sharing}
+          disabled={selectedGroups.length === 0 || sharing || success}
         >
           {sharing ? (
             <CircularProgress size={20} />
+          ) : success ? (
+            'Shared!'
           ) : (
             `Share with ${selectedGroups.length} ${
               selectedGroups.length === 1 ? 'group' : 'groups'

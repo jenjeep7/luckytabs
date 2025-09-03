@@ -744,6 +744,9 @@ export const Play: React.FC = () => {
         <ShareBoxDialog
           open={shareDialogOpen}
           onClose={() => setShareDialogOpen(false)}
+          onShare={() => {
+            void refreshBoxes();
+          }}
           boxId={shareBoxId}
           boxName={shareBoxName}
           currentUserId={user.uid}
