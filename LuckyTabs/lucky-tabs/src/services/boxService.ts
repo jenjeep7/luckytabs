@@ -80,16 +80,20 @@ class BoxService {
       const snapshot = await getDocs(boxesRef);
       const allBoxes = this.mapBoxData(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       
-      // Filter boxes that are shared with user's groups
+      // Filter boxes that are explicitly shared with user's groups
       const sharedBoxes = allBoxes.filter(box => {
+        // Must have shares array and at least one share
         if (!box.shares || box.shares.length === 0) return false;
         
+        // Check if any share is with a group that the user belongs to
         return box.shares.some(share => {
-          // Only check if shared with any of user's groups
           if (share.shareType === 'group' && userGroups.length > 0) {
             return share.sharedWith.some(groupId => userGroups.includes(groupId));
           }
-          
+          // Could also check for direct user shares if needed
+          if (share.shareType === 'user') {
+            return share.sharedWith.includes(userId);
+          }
           return false;
         });
       });

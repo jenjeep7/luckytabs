@@ -36,6 +36,7 @@ import { LocationsMapSafe } from "./LocationsMapSafe";
 import { useLocation } from "../../hooks/useLocation";
 import { boxService, BoxItem } from "../../services/boxService";
 import { userService, UserData } from "../../services/userService";
+import { groupService, GroupData } from "../../services/groupService";
 import ShareBoxDialog from "./ShareBoxDialog";
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../../firebase';
@@ -64,9 +65,14 @@ export const Play: React.FC = () => {
   // Auth and user state
   const [user] = useAuthState(auth);
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [userGroups, setUserGroups] = useState<GroupData[]>([]);
 
   // Box view toggle state
   const [boxView, setBoxView] = useState<'my' | 'group'>('my');
+  
+  // Group filtering state
+  const [selectedGroupId, setSelectedGroupId] = useState<string>('');
+  const [allGroupBoxes, setAllGroupBoxes] = useState<BoxItem[]>([]);
 
   // Box state
   const [myBoxes, setMyBoxes] = useState<BoxItem[]>([]);
@@ -97,6 +103,27 @@ export const Play: React.FC = () => {
     setShowLocationSelector(true);
   };
 
+  // Filter group boxes based on selected group
+  const filterGroupBoxes = useCallback((boxes: BoxItem[], groupId: string) => {
+    if (!groupId) {
+      setGroupBoxes([]);
+      return;
+    }
+    
+    const filteredBoxes = boxes.filter(box => {
+      if (!box.shares || box.shares.length === 0) return false;
+      
+      return box.shares.some(share => {
+        if (share.shareType === 'group') {
+          return share.sharedWith.includes(groupId);
+        }
+        return false;
+      });
+    });
+    
+    setGroupBoxes(filteredBoxes);
+  }, []);
+
   const refreshBoxes = useCallback(async (boxIdToUpdate?: string) => {
     if (selectedLocation && user) {
       try {
@@ -111,7 +138,7 @@ export const Play: React.FC = () => {
         // Get both my boxes and shared boxes
         const { myBoxes: userBoxes, sharedBoxes } = await boxService.getAllBoxesForLocation(
           user.uid, 
-          userData?.groups || [], 
+          userGroups.map(group => group.id), 
           selectedLocation
         );
 
@@ -120,7 +147,26 @@ export const Play: React.FC = () => {
         const enrichedSharedBoxes = await boxService.enrichBoxesWithOwnerInfo(sharedBoxes);
 
         setMyBoxes(enrichedMyBoxes);
-        setGroupBoxes(enrichedSharedBoxes);
+        setAllGroupBoxes(enrichedSharedBoxes);
+        
+        // Initialize selected group on first load - find group with boxes
+        if (!selectedGroupId && userGroups.length > 0) {
+          // Find a group that has boxes, or default to first group
+          const groupWithBoxes = userGroups.find(group => {
+            return enrichedSharedBoxes.some(box => 
+              box.shares?.some(share => 
+                share.shareType === 'group' && share.sharedWith.includes(group.id)
+              )
+            );
+          });
+          
+          const defaultGroupId = groupWithBoxes ? groupWithBoxes.id : userGroups[0].id;
+          setSelectedGroupId(defaultGroupId);
+          filterGroupBoxes(enrichedSharedBoxes, defaultGroupId);
+        } else if (selectedGroupId) {
+          // Filter with existing selection
+          filterGroupBoxes(enrichedSharedBoxes, selectedGroupId);
+        }
         
         // If dialog is open, update editBox with latest data
         if (editBox && boxIdToUpdate) {
@@ -135,7 +181,7 @@ export const Play: React.FC = () => {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedLocation, user, userData]);
+  }, [selectedLocation, user, userData, userGroups, selectedGroupId]);
 
   // Keep the old refresh method as fallback
   const refreshBoxesOld = async (boxIdToUpdate?: string) => {
@@ -304,6 +350,10 @@ export const Play: React.FC = () => {
           const userProfile = await userService.getUserProfile(user.uid);
           if (userProfile) {
             setUserData(userProfile);
+            
+            // Also load group details
+            const groups = await groupService.getUserGroups(user.uid);
+            setUserGroups(groups);
           }
         } catch (error) {
           console.error('Error loading user data:', error);
@@ -313,12 +363,29 @@ export const Play: React.FC = () => {
     void loadUserData();
   }, [user, userData]);
 
+  // Initialize selected group when userData loads
+  useEffect(() => {
+    if (userGroups.length > 0 && !selectedGroupId) {
+      // Find a group that has boxes, or default to first group
+      const groupWithBoxes = userGroups.find(group => {
+        return allGroupBoxes.some(box => 
+          box.shares?.some(share => 
+            share.shareType === 'group' && share.sharedWith.includes(group.id)
+          )
+        );
+      });
+      
+      const defaultGroupId = groupWithBoxes ? groupWithBoxes.id : userGroups[0].id;
+      setSelectedGroupId(defaultGroupId);
+    }
+  }, [userGroups, selectedGroupId, allGroupBoxes]);
+
   // Load boxes when location or user changes
   useEffect(() => {
     if (selectedLocation && user) {
       void refreshBoxes();
     }
-  }, [selectedLocation, user, userData, refreshBoxes]);
+  }, [selectedLocation, user, userData, userGroups, refreshBoxes]);
 
   // Get current boxes to display based on toggle
   const currentBoxes = boxView === 'my' ? myBoxes : groupBoxes;
@@ -502,6 +569,53 @@ export const Play: React.FC = () => {
               </ToggleButton>
             </ToggleButtonGroup>
           </Box>
+
+          {/* Group Selector - only show when in group view */}
+          {boxView === 'group' && (
+            <Box sx={{ mb: 3 }}>
+              {userGroups.length > 0 ? (
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                  <FormControl sx={{ minWidth: 300 }}>
+                    <InputLabel>Select Group</InputLabel>
+                    <Select
+                      value={selectedGroupId}
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        setSelectedGroupId(value);
+                        filterGroupBoxes(allGroupBoxes, value);
+                      }}
+                      label="Select Group"
+                    >
+                      {userGroups.map((group) => (
+                        <MenuItem key={group.id} value={group.id}>
+                          {group.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                  <Typography variant="body2" color="text.secondary">
+                    Showing boxes shared with this group
+                  </Typography>
+                </Box>
+              ) : (
+                <Paper sx={{ p: 4, textAlign: 'center', maxWidth: 600, mx: 'auto' }}>
+                  <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
+                    You&apos;re not in any groups yet
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                    Join or create groups to start sharing boxes with friends and see their shared boxes here.
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => window.location.href = '/community?tab=groups'}
+                  >
+                    Go to Community Groups
+                  </Button>
+                </Paper>
+              )}
+            </Box>
+          )}
 
           {/* Box Dashboard Grid */}
           <Box sx={{ 
