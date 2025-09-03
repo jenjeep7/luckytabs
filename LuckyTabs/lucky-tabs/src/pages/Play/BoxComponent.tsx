@@ -14,7 +14,7 @@ import { Delete as DeleteIcon } from '@mui/icons-material';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { db, auth } from '../../firebase';
-import { ConfirmRemoveDialog, EstimateRemainingDialog } from './BoxDialogs';
+import { ConfirmRemoveDialog, EstimateRemainingDialog, ClaimedPrize } from './BoxDialogs';
 import { formatCurrency } from '../../utils/formatters';
 import { AdvancedAnalytics } from './AdvancedAnalytics';
 import { Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
@@ -51,6 +51,7 @@ interface BoxItem {
   ownerId: string;
   isActive?: boolean;
   winningTickets?: WinningTicket[];
+  claimedPrizes?: ClaimedPrize[];
   estimatedRemainingTickets?: number;
   rowEstimates?: {
     row1: number;
@@ -304,6 +305,35 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
   const handleEstimateCancel = () => {
     setEstimateDialog({ open: false, boxId: '', boxName: '' });
   };
+
+  const handleAddWin = useCallback(
+    (claimedPrize: ClaimedPrize) => {
+      const addWin = async () => {
+        try {
+          const boxRef = doc(db, 'boxes', estimateDialog.boxId);
+          const boxDoc = await getDoc(boxRef);
+          
+          if (boxDoc.exists()) {
+            const existingPrizes = (boxDoc.data().claimedPrizes as ClaimedPrize[]) || [];
+            await updateDoc(boxRef, {
+              claimedPrizes: [...existingPrizes, claimedPrize]
+            });
+            
+            // Refresh the box data to show new markers
+            if (refreshBoxes) {
+              refreshBoxes();
+            }
+          }
+        } catch (error) {
+          console.error('Error adding win:', error);
+          alert('Failed to add win. Please try again.');
+        }
+      };
+      
+      void addWin();
+    },
+    [estimateDialog.boxId, refreshBoxes]
+  );
 
   const handleRemainingTicketsChange = useCallback((boxId: string, ticketsRemaining: number) => {
     setRemainingTicketsInput(prev => ({
@@ -562,10 +592,14 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
       <EstimateRemainingDialog
         open={estimateDialog.open}
         boxName={estimateDialog.boxName}
+        boxType={boxes.find(b => b.id === estimateDialog.boxId)?.type === 'wall' ? 'wall' : 'bar'}
         currentValue={Number(remainingTicketsInput[estimateDialog.boxId] || '0')}
         currentRowEstimates={boxes.find(b => b.id === estimateDialog.boxId)?.rowEstimates}
+        claimedPrizes={boxes.find(b => b.id === estimateDialog.boxId)?.claimedPrizes || []}
+        availablePrizes={boxes.find(b => b.id === estimateDialog.boxId)?.winningTickets?.map(ticket => Number(ticket.prize)).filter(prize => prize > 0) || []}
         onUpdate={handleEstimateUpdate}
         onCancel={handleEstimateCancel}
+        onAddWin={handleAddWin}
       />
     </>
   );
