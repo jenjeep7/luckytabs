@@ -95,9 +95,6 @@ export const MemberSearch: React.FC<MemberSearchProps> = ({
             </Avatar>
             <Box>
               <Typography variant="body1">{option.displayName}</Typography>
-              <Typography variant="caption" color="text.secondary">
-                {option.firstName} {option.lastName}
-              </Typography>
             </Box>
           </Box>
         )}

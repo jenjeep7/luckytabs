@@ -29,7 +29,11 @@ export const GroupsManager: React.FC<GroupsManagerProps> = ({ currentUserId, cur
     setLoading(true);
     try {
       const userGroups = await groupService.getUserGroups(currentUserId);
-      setGroups(userGroups);
+      // Filter out any group named "Public" as it's not a user-created group
+      const filteredGroups = userGroups.filter(group => 
+        group.name.toLowerCase() !== 'public'
+      );
+      setGroups(filteredGroups);
     } catch (error) {
     } finally {
       setLoading(false);

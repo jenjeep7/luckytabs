@@ -217,9 +217,9 @@ function PostCard({
               />
             </Box>
           </Box>
-          <IconButton size="small" sx={{ color: 'text.secondary' }}>
+          {/* <IconButton size="small" sx={{ color: 'text.secondary' }}>
             <MoreVert />
-          </IconButton>
+          </IconButton> */}
         </Box>
 
         {/* Post Text */}
