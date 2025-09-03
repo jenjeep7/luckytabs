@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react/prop-types */
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   Box,
   Typography,
@@ -20,9 +20,12 @@ import {
   CardContent,
   Chip,
   Paper,
+  ToggleButtonGroup,
+  ToggleButton,
 } from "@mui/material";
 import CloseIcon from '@mui/icons-material/Close';
 import PlaceIcon from '@mui/icons-material/Place';
+import ShareIcon from '@mui/icons-material/Share';
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../firebase";
 import { CreateBoxForm } from "./AddBox";
@@ -31,6 +34,11 @@ import { BoxComponent } from "./BoxComponent";
 import { LocationManager } from "./LocationManager";
 import { LocationsMapSafe } from "./LocationsMapSafe";
 import { useLocation } from "../../hooks/useLocation";
+import { boxService, BoxItem } from "../../services/boxService";
+import { userService, UserData } from "../../services/userService";
+import ShareBoxDialog from "./ShareBoxDialog";
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '../../firebase';
 
 interface Location {
   id: string;
@@ -44,20 +52,6 @@ interface WinningTicket {
   prize: string;
 }
 
-interface BoxItem {
-  id: string;
-  boxName: string;
-  boxNumber: string;
-  pricePerTicket: string;
-  type: "wall" | "bar box";
-  locationId: string;
-  ownerId: string;
-  isActive?: boolean;
-  winningTickets?: WinningTicket[];
-  estimatedRemainingTickets?: number;
-  [key: string]: any;
-}
-
 export const Play: React.FC = () => {
   // Use location context instead of local state
   const { 
@@ -66,6 +60,22 @@ export const Play: React.FC = () => {
     selectedLocationObj, 
     setSelectedLocationObj 
   } = useLocation();
+
+  // Auth and user state
+  const [user] = useAuthState(auth);
+  const [userData, setUserData] = useState<UserData | null>(null);
+
+  // Box view toggle state
+  const [boxView, setBoxView] = useState<'my' | 'group'>('my');
+
+  // Box state
+  const [myBoxes, setMyBoxes] = useState<BoxItem[]>([]);
+  const [groupBoxes, setGroupBoxes] = useState<BoxItem[]>([]);
+
+  // Dialog state
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shareBoxId, setShareBoxId] = useState<string>('');
+  const [shareBoxName, setShareBoxName] = useState<string>('');
 
   // Restore missing helper functions
   const handleChange = (event: any) => {
@@ -87,7 +97,48 @@ export const Play: React.FC = () => {
     setShowLocationSelector(true);
   };
 
-  const refreshBoxes = async (boxIdToUpdate?: string) => {
+  const refreshBoxes = useCallback(async (boxIdToUpdate?: string) => {
+    if (selectedLocation && user) {
+      try {
+        // Load user data if not already loaded
+        if (!userData) {
+          const userProfile = await userService.getUserProfile(user.uid);
+          if (userProfile) {
+            setUserData(userProfile);
+          }
+        }
+
+        // Get both my boxes and shared boxes
+        const { myBoxes: userBoxes, sharedBoxes } = await boxService.getAllBoxesForLocation(
+          user.uid, 
+          userData?.groups || [], 
+          selectedLocation
+        );
+
+        // Enrich boxes with owner information
+        const enrichedMyBoxes = await boxService.enrichBoxesWithOwnerInfo(userBoxes);
+        const enrichedSharedBoxes = await boxService.enrichBoxesWithOwnerInfo(sharedBoxes);
+
+        setMyBoxes(enrichedMyBoxes);
+        setGroupBoxes(enrichedSharedBoxes);
+        
+        // If dialog is open, update editBox with latest data
+        if (editBox && boxIdToUpdate) {
+          const allBoxes = [...enrichedMyBoxes, ...enrichedSharedBoxes];
+          const updatedBox = allBoxes.find(b => b.id === boxIdToUpdate);
+          if (updatedBox) setEditBox(updatedBox);
+        }
+      } catch (error) {
+        console.error("Error fetching boxes:", error);
+        // Fallback to old method if new service fails
+        await refreshBoxesOld(boxIdToUpdate);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedLocation, user, userData]);
+
+  // Keep the old refresh method as fallback
+  const refreshBoxesOld = async (boxIdToUpdate?: string) => {
     if (selectedLocation) {
       try {
         const snapshot = await getDocs(collection(db, "boxes"));
@@ -106,7 +157,14 @@ export const Play: React.FC = () => {
           };
         })
         .filter((box) => box.locationId === selectedLocation && box.isActive);
-        setBoxes(data);
+        
+        // Split into my boxes and others
+        const userBoxes = data.filter(box => box.ownerId === user?.uid);
+        const otherBoxes = data.filter(box => box.ownerId !== user?.uid);
+        
+        setMyBoxes(userBoxes);
+        setGroupBoxes(otherBoxes);
+        
         // If dialog is open, update editBox with latest data
         if (editBox && boxIdToUpdate) {
           const updatedBox = data.find(b => b.id === boxIdToUpdate);
@@ -145,7 +203,6 @@ export const Play: React.FC = () => {
   };
   const [locations, setLocations] = useState<Location[]>([]);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [boxes, setBoxes] = useState<BoxItem[]>([]);
   const [openCreateBox, setOpenCreateBox] = useState(false);
   const [openLocationManager, setOpenLocationManager] = useState(false);
   const [editBox, setEditBox] = useState<BoxItem | null>(null);
@@ -227,33 +284,7 @@ export const Play: React.FC = () => {
     void fetchLocations();
   }, []);
 
-  useEffect(() => {
-    const fetchBoxes = async () => {
-      if (!selectedLocation) return;
-      try {
-        const snapshot = await getDocs(collection(db, "boxes"));
-        const data: BoxItem[] = snapshot.docs.map((doc) => {
-          const docData = doc.data();
-          return {
-            id: doc.id,
-            boxName: (docData.boxName as string) || '',
-            boxNumber: (docData.boxNumber as string) || '',
-            pricePerTicket: (docData.pricePerTicket as string) || '',
-            type: (docData.type as "wall" | "bar box") || 'wall',
-            locationId: (docData.locationId as string) || '',
-            ownerId: (docData.ownerId as string) || '',
-            isActive: docData.isActive !== false, // Default to true if not specified
-            ...docData,
-          };
-        })
-        .filter((box) => box.locationId === selectedLocation && box.isActive);
-        setBoxes(data);
-      } catch (error) {
-        console.error("Error fetching boxes:", error);
-      }
-    };
-    void fetchBoxes();
-  }, [selectedLocation]);
+
 
   // Update selectedLocationObj in context when locations load
   useEffect(() => {
@@ -265,8 +296,41 @@ export const Play: React.FC = () => {
     }
   }, [selectedLocation, locations, selectedLocationObj, setSelectedLocationObj]);
 
-  const wallBoxes = boxes.filter((box) => box.type === "wall");
-  const barBoxes = boxes.filter((box) => box.type === "bar box");
+  // Load user data when component mounts
+  useEffect(() => {
+    const loadUserData = async () => {
+      if (user && !userData) {
+        try {
+          const userProfile = await userService.getUserProfile(user.uid);
+          if (userProfile) {
+            setUserData(userProfile);
+          }
+        } catch (error) {
+          console.error('Error loading user data:', error);
+        }
+      }
+    };
+    void loadUserData();
+  }, [user, userData]);
+
+  // Load boxes when location or user changes
+  useEffect(() => {
+    if (selectedLocation && user) {
+      void refreshBoxes();
+    }
+  }, [selectedLocation, user, userData, refreshBoxes]);
+
+  // Get current boxes to display based on toggle
+  const currentBoxes = boxView === 'my' ? myBoxes : groupBoxes;
+  const wallBoxes = currentBoxes.filter((box) => box.type === "wall");
+  const barBoxes = currentBoxes.filter((box) => box.type === "bar box");
+
+  // Share box handlers
+  const handleShareBox = (boxId: string, boxName: string) => {
+    setShareBoxId(boxId);
+    setShareBoxName(boxName);
+    setShareDialogOpen(true);
+  };
 
   return (
     <Box sx={{ 
@@ -418,6 +482,27 @@ export const Play: React.FC = () => {
       {/* Display Box Dashboard */}
       {selectedLocation && (
         <Box sx={{ mt: 2 }}>
+          {/* Box View Toggle */}
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+            <ToggleButtonGroup
+              value={boxView}
+              exclusive
+              onChange={(_, newView: 'my' | 'group' | null) => {
+                if (newView !== null) {
+                  setBoxView(newView);
+                }
+              }}
+              aria-label="box view toggle"
+            >
+              <ToggleButton value="my" aria-label="my boxes">
+                My Boxes ({myBoxes.length})
+              </ToggleButton>
+              <ToggleButton value="group" aria-label="group boxes">
+                Group Boxes ({groupBoxes.length})
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+
           {/* Box Dashboard Grid */}
           <Box sx={{ 
             display: 'grid', 
@@ -504,6 +589,9 @@ export const Play: React.FC = () => {
                         </Typography>
                         <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.9rem', mt: 0.5 }}>
                           #{box.boxNumber} • {box.type === 'wall' ? 'Wall Box' : 'Bar Box'}
+                          {boxView === 'group' && box.ownerName && (
+                            <><br />by {box.ownerName}</>
+                          )}
                         </Typography>
                       </Box>
                       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 70 }}>
@@ -543,6 +631,22 @@ export const Play: React.FC = () => {
                         updated: {lastUpdated}
                       </Typography>
                     )}
+                    
+                    {/* Share button for my boxes */}
+                    {boxView === 'my' && (
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleShareBox(box.id, box.boxName);
+                          }}
+                          sx={{ color: 'primary.main' }}
+                        >
+                          <ShareIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    )}
                   </CardContent>
                 </Card>
               );
@@ -553,18 +657,23 @@ export const Play: React.FC = () => {
           {wallBoxes.length === 0 && barBoxes.length === 0 && (
             <Paper sx={{ p: 4, textAlign: 'center' }}>
               <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
-                No boxes found for this location
+                {boxView === 'my' ? 'No boxes created yet' : 'No shared boxes for this location'}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Create your first box to get started with pull tab tracking
+                {boxView === 'my' 
+                  ? 'Create your first box to get started with pull tab tracking'
+                  : 'Boxes shared with you by friends will appear here'
+                }
               </Typography>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={() => setOpenCreateBox(true)}
-              >
-                Create Your First Box
-              </Button>
+              {boxView === 'my' && (
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={() => setOpenCreateBox(true)}
+                >
+                  Create Your First Box
+                </Button>
+              )}
             </Paper>
           )}
         </Box>
@@ -607,7 +716,7 @@ export const Play: React.FC = () => {
             <Box sx={{ p: 1, pt: 3 }}>
               <BoxComponent
                 title=""
-                boxes={[editBox]}
+                boxes={[editBox as any]}
                 onBoxClick={() => { /* No action needed since we're already in the detail view */ }}
                 onBoxRemoved={() => {
                   void refreshBoxes();
@@ -629,6 +738,17 @@ export const Play: React.FC = () => {
         locations={locations}
         onLocationAdded={() => { void refreshLocations(); }}
       />
+
+      {/* Share Box Dialog */}
+      {user && (
+        <ShareBoxDialog
+          open={shareDialogOpen}
+          onClose={() => setShareDialogOpen(false)}
+          boxId={shareBoxId}
+          boxName={shareBoxName}
+          currentUserId={user.uid}
+        />
+      )}
     </Box>
   );
 };
