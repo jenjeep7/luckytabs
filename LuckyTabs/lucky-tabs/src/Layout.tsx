@@ -84,23 +84,21 @@ function Layout({ children }: LayoutProps) {
   const drawer = (
     <Box onClick={handleDrawerToggle} sx={{ textAlign: 'center' }}>
       <Typography variant="h6" sx={{ my: 2 }}>Pull Tab Community</Typography>
-      <Divider />
       <List>
-        {navItems.map((item) => (
-          <ListItem key={item.label} disablePadding>
-            <ListItemButton onClick={() => handleNavItemClick(item)}>
-              <ListItemText primary={item.label} />
-            </ListItemButton>
-          </ListItem>
-        ))}
         {!!user && (
           <>
             <Divider />
+            <ListItem disablePadding>
+              <ListItemButton onClick={() => void navigate('/tabsy')}>
+                <ListItemText primary="Tabsy" />
+              </ListItemButton>
+            </ListItem>
             <ListItem disablePadding>
               <ListItemButton onClick={() => void handleLogout()}>
                 <ListItemText primary="Logout" />
               </ListItemButton>
             </ListItem>
+         
           </>
         )}
       </List>

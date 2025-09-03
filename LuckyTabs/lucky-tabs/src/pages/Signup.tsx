@@ -87,20 +87,21 @@ const Signup: React.FC = () => {
         <Typography variant="h4" gutterBottom>
           Sign Up
         </Typography>
+        <Button variant="outlined" sx={{ my: 3, textAlign: 'center' }} color="primary" onClick={() => navigate('/login')}>
+          Already have an account? Login
+        </Button>
+
         {!verificationSent ? (
           <Box
             component="form"
             onSubmit={handleSubmit(onSubmit)}
-            sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+            sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}
           >
-            <TextField label="Username" fullWidth {...register('username')} required />
-            <TextField label="Email" type="email" fullWidth {...register('email')} required />
-            <TextField label="Password" type="password" fullWidth {...register('password')} required />
+            <TextField label="Username" fullWidth {...register('username')} required size="small" />
+            <TextField label="Email" type="email" fullWidth {...register('email')} required size="small" />
+            <TextField label="Password" type="password" fullWidth {...register('password')} required size="small" />
             <Button variant="contained" color="primary" type="submit">
               Sign Up
-            </Button>
-            <Button variant="outlined" color="primary" onClick={() => navigate('/login')}>
-              Already have an account? Login
             </Button>
             <Button variant="text" color="secondary" onClick={() => navigate('/')}>Return to Home</Button>
           </Box>

@@ -29,6 +29,7 @@ function AppRoutes() {
         <Route path="/tracking" element={<Tracking />} />
         <Route path="/community" element={<Community />} />
         <Route path="/profile" element={<UserProfile />} />
+        <Route path="/tabsy" element={<LandingPage />} />
       </Route>
       {/* Login/Signup redirect to /play if logged in */}
       <Route path="/login" element={user ? <Navigate to="/profile" /> : <Login />} />

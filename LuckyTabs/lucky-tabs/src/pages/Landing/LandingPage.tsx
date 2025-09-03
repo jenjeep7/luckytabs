@@ -109,15 +109,8 @@ export const LandingPage: React.FC = () => {
             />
           </Box>
 
-          <Typography variant="h5" fontWeight="bold" gutterBottom>
-            {`Ready to turn your pull tab passion into a `}
-            <Box component="span" sx={{ color: 'success.main', display: 'block', fontWeight: 'bold' }}>
-              {`WINNING`}
-            </Box>
-            {` adventure?`}
-          </Typography>
-          <Typography variant="body1" maxWidth={600} mx="auto" gutterBottom>
-            {`Introducing a new pull tab community player experience – where every win, every game, and every insight is better together!`}
+          <Typography variant="body1" fontWeight="bold" gutterBottom>
+            {`Welcome to Tabsy's community of pull tab enthusiasts, where you can track your individual play to improve your odds of winning, share ups and downs, swap tips and tricks, track patterns, and pull responsibly—with Tabsy cheering you on the whole way!`}
           </Typography>
           <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap' }}>
             <Stack
@@ -128,7 +121,7 @@ export const LandingPage: React.FC = () => {
             >
               {!user && (
                 <Button
-                  href="/login"
+                  href="/signup"
                   size="large"
                   variant="contained"
                   color="success"
@@ -141,7 +134,7 @@ export const LandingPage: React.FC = () => {
                     boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
                   }}
                 >
-                  {`Login to Play`}
+                  {`Join`}
                 </Button>
               )}
 
