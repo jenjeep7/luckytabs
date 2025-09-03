@@ -74,7 +74,16 @@ const Signup: React.FC = () => {
       // Do not navigate until verified
     } catch (err: unknown) {
       if (err instanceof Error) {
-        setError(err.message);
+        // Handle specific Firebase error codes with user-friendly messages
+        if (err.message.includes('EMAIL_EXISTS') || err.message.includes('email-already-in-use')) {
+          setError('This email is already registered. Please log in instead or use a different email address.');
+        } else if (err.message.includes('WEAK_PASSWORD') || err.message.includes('weak-password')) {
+          setError('Password is too weak. Please choose a stronger password with at least 6 characters.');
+        } else if (err.message.includes('INVALID_EMAIL') || err.message.includes('invalid-email')) {
+          setError('Please enter a valid email address.');
+        } else {
+          setError(err.message);
+        }
       } else {
         setError('An unexpected error occurred.');
       }

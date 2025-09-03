@@ -89,11 +89,6 @@ function Layout({ children }: LayoutProps) {
           <>
             <Divider />
             <ListItem disablePadding>
-              <ListItemButton onClick={() => void navigate('/tabsy')}>
-                <ListItemText primary="Tabsy" />
-              </ListItemButton>
-            </ListItem>
-            <ListItem disablePadding>
               <ListItemButton onClick={() => void handleLogout()}>
                 <ListItemText primary="Logout" />
               </ListItemButton>
