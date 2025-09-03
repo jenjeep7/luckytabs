@@ -14,7 +14,11 @@ import {
   Typography,
   Alert,
   Paper,
+  FormControlLabel,
+  Checkbox,
+  Link,
 } from '@mui/material';
+import { BetaTestingAgreementDialog } from '../components/BetaTestingAgreementDialog';
 
 interface SignupFormInputs {
   email: string;
@@ -38,6 +42,8 @@ const Signup: React.FC = () => {
   const { register, handleSubmit } = useForm<SignupFormInputs>();
   const [error, setError] = useState('');
   const [verificationSent, setVerificationSent] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
   const navigate = useNavigate();
 
   const onSubmit = async (data: SignupFormInputs) => {
@@ -109,7 +115,40 @@ const Signup: React.FC = () => {
             <TextField label="Username" fullWidth {...register('username')} required size="small" />
             <TextField label="Email" type="email" fullWidth {...register('email')} required size="small" />
             <TextField label="Password" type="password" fullWidth {...register('password')} required size="small" />
-            <Button variant="contained" color="primary" type="submit">
+            
+            {/* Terms and Conditions Checkbox */}
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={termsAccepted}
+                  onChange={(e) => setTermsAccepted(e.target.checked)}
+                  color="primary"
+                />
+              }
+              label={
+                <Typography variant="body2">
+                  I agree to the{' '}
+                  <Link
+                    component="button"
+                    variant="body2"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setShowTermsModal(true);
+                    }}
+                    sx={{ cursor: 'pointer' }}
+                  >
+                    {`Beta Testing Agreement`}
+                  </Link>
+                </Typography>
+              }
+            />
+            
+            <Button 
+              variant="contained" 
+              color="primary" 
+              type="submit"
+              disabled={!termsAccepted}
+            >
               Sign Up
             </Button>
             <Button variant="text" color="secondary" onClick={() => navigate('/')}>Return to Home</Button>
@@ -130,6 +169,12 @@ const Signup: React.FC = () => {
           </Alert>
         )}
       </Paper>
+
+      {/* Beta Testing Agreement Modal */}
+      <BetaTestingAgreementDialog
+        open={showTermsModal}
+        onClose={() => setShowTermsModal(false)}
+      />
     </Container>
   );
 };
