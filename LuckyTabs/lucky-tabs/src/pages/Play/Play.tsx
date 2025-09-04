@@ -958,7 +958,10 @@ export const Play: React.FC = () => {
       {/* Full-Screen Box Details Dialog */}
       <Dialog 
         open={!!editBox}
-        onClose={() => setEditBox(null)}
+        onClose={() => {
+          void refreshBoxes(); // Refresh boxes to get updated estimated tickets
+          setEditBox(null);
+        }}
         maxWidth={false}
         fullWidth
         slotProps={{
@@ -983,7 +986,10 @@ export const Play: React.FC = () => {
           <Typography variant="h5" component="span">
             {editBox?.boxName}
           </Typography>
-          <IconButton onClick={() => setEditBox(null)}>
+          <IconButton onClick={() => {
+            void refreshBoxes(); // Refresh boxes to get updated estimated tickets
+            setEditBox(null);
+          }}>
             <CloseIcon />
           </IconButton>
         </DialogTitle>

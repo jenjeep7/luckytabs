@@ -170,13 +170,16 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
     // Initialize remaining tickets input from database values
     const initializeRemainingTickets = () => {
       if (boxes.length > 0) {
-        const initialValues: { [boxId: string]: string } = {};
-        boxes.forEach(box => {
-          if (box.estimatedRemainingTickets !== undefined && box.estimatedRemainingTickets !== null) {
-            initialValues[box.id] = box.estimatedRemainingTickets.toString();
-          }
+        setRemainingTicketsInput(prev => {
+          const newValues = { ...prev };
+          boxes.forEach(box => {
+            // Only initialize if we don't already have a value for this box
+            if (!prev[box.id] && box.estimatedRemainingTickets !== undefined && box.estimatedRemainingTickets !== null) {
+              newValues[box.id] = box.estimatedRemainingTickets.toString();
+            }
+          });
+          return newValues;
         });
-        setRemainingTicketsInput(initialValues);
       }
     };
 
@@ -292,6 +295,14 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
   };
 
   const handleEstimateClick = (box: BoxItem) => {
+    // Sync the input with the database value when opening dialog
+    if (box.estimatedRemainingTickets !== undefined && box.estimatedRemainingTickets !== null) {
+      setRemainingTicketsInput(prev => ({
+        ...prev,
+        [box.id]: String(box.estimatedRemainingTickets)
+      }));
+    }
+    
     setEstimateDialog({
       open: true,
       boxId: box.id,
@@ -409,13 +420,18 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
         await updateDoc(boxRef, {
           estimatedRemainingTickets: ticketsRemaining
         });
+        
+        // Refresh the parent component's boxes state with the updated data
+        if (refreshBoxes) {
+          refreshBoxes(boxId);
+        }
       } catch (error) {
         console.error('Error updating remaining tickets:', error);
       }
     };
     
     void updateFirestore();
-  }, [firebaseUser?.uid]);
+  }, [firebaseUser?.uid, refreshBoxes]);
 
   const renderPrizeButtons = (box: BoxItem) => {
     if (!box.winningTickets) return null;
