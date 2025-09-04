@@ -100,7 +100,7 @@ const Signup: React.FC = () => {
     <Container maxWidth="sm">
       <Paper elevation={3} sx={{ mt: 10, p: 4, textAlign: 'center' }}>
         <Typography variant="h4" gutterBottom>
-          Sign Up
+          {`Welcome`}
         </Typography>
         <Button variant="outlined" sx={{ my: 3, textAlign: 'center' }} color="primary" onClick={() => navigate('/login')}>
           Already have an account? Login

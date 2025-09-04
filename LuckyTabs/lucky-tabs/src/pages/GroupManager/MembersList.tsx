@@ -72,7 +72,6 @@ export const MembersList: React.FC<MembersListProps> = ({
             </ListItemAvatar>
             <ListItemText
               primary={member.displayName}
-              secondary={`${member.firstName} ${member.lastName}`}
             />
           </ListItem>
         ))}

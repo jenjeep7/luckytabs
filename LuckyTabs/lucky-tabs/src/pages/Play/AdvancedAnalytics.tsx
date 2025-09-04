@@ -51,6 +51,21 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
   const [goodnessTooltipOpen, setGoodnessTooltipOpen] = React.useState(false);
   const handleGoodnessTooltipToggle = () => setGoodnessTooltipOpen((open) => !open);
   const handleGoodnessTooltipClose = () => setGoodnessTooltipOpen(false);
+  const [evPerDollarTooltipOpen, setEvPerDollarTooltipOpen] = React.useState(false);
+  const handleEvPerDollarTooltipToggle = () => setEvPerDollarTooltipOpen((open) => !open);
+  const handleEvPerDollarTooltipClose = () => setEvPerDollarTooltipOpen(false);
+  const [valueRiskTooltipOpen, setValueRiskTooltipOpen] = React.useState(false);
+  const handleValueRiskTooltipToggle = () => setValueRiskTooltipOpen((open) => !open);
+  const handleValueRiskTooltipClose = () => setValueRiskTooltipOpen(false);
+  const [probabilityOfProfitTooltipOpen, setProbabilityOfProfitTooltipOpen] = React.useState(false);
+  const handleProbabilityOfProfitTooltipToggle = () => setProbabilityOfProfitTooltipOpen((open) => !open);
+  const handleProbabilityOfProfitTooltipClose = () => setProbabilityOfProfitTooltipOpen(false);
+  const [bigHitTooltipOpen, setBigHitTooltipOpen] = React.useState(false);
+  const handleBigHitTooltipToggle = () => setBigHitTooltipOpen((open) => !open);
+  const handleBigHitTooltipClose = () => setBigHitTooltipOpen(false);
+  const [bigHit100TooltipOpen, setBigHit100TooltipOpen] = React.useState(false);
+  const handleBigHit100TooltipToggle = () => setBigHit100TooltipOpen((open) => !open);
+  const handleBigHit100TooltipClose = () => setBigHit100TooltipOpen(false);
   if (!box || !remainingTickets) return null;
   const metrics = calculateAdvancedMetrics(box, remainingTickets);
   // Calculate profit ticket odds for next 1, 10, and 20 pulls
@@ -100,6 +115,90 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
                   </Tooltip>
                   <Typography variant="h6" sx={{ color: getEvColor(metrics.evPerTicket, metrics.rtpRemaining, false), ml: 1 }}>
                     {metrics.evPerTicket >= 0 ? '+' : ''}${metrics.evPerTicket.toFixed(2)}
+                  </Typography>
+                </Box>
+              </CardContent>
+            </Card>
+            <Card variant="outlined" sx={{ flex: '1 1 200px' }}>
+              <CardContent sx={{ p: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center' }}>
+                  <Typography variant="caption" color="text.secondary">{`EV per Dollar`}</Typography>
+                  <Tooltip
+                    title={
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ mb: 1 }}>{`EV per Dollar (Return Multiple)`}</Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>{`Shows how much you get back for every dollar spent. This is the most important metric for comparing boxes.`}</Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          <strong>Above 1.0:</strong> Excellent! You expect to get more than you spend<br/>
+                          <strong>0.8-1.0:</strong> Decent (75-100% return rate)<br/>
+                          <strong>0.6-0.8:</strong> Poor (60-75% return rate)<br/>
+                          <strong>Below 0.6:</strong> Very Poor (less than 60% return)
+                        </Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          <strong>Example:</strong> 0.85 means you expect to get $0.85 back for every $1.00 spent on average.
+                        </Typography>
+                        <Typography variant="body2"><em>This accounts for all remaining prizes and tickets, giving you the true expected return rate.</em></Typography>
+                      </Box>
+                    }
+                    arrow
+                    placement="top"
+                    open={evPerDollarTooltipOpen}
+                    onClose={handleEvPerDollarTooltipClose}
+                    disableFocusListener
+                    disableHoverListener
+                    disableTouchListener
+                  >
+                    <IconButton size="small" sx={{ p: 0.25 }} onClick={handleEvPerDollarTooltipToggle}>
+                      <InfoIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Typography variant="h6" sx={{ color: getEvColor(metrics.evPerTicket, metrics.rtpRemaining, false), ml: 1 }}>
+                    ${metrics.evPerDollar.toFixed(2)}
+                  </Typography>
+                </Box>
+              </CardContent>
+            </Card>
+            <Card variant="outlined" sx={{ flex: '1 1 200px' }}>
+                <CardContent sx={{ p: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center' }}>
+                  <Typography variant="caption" color="text.secondary">{`Value/Risk Ratio`}</Typography>
+                  <Tooltip
+                    title={
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ mb: 1 }}>{`Value/Risk Ratio (Risk-Adjusted Return)`}</Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>{`A Sharpe-like ratio that measures expected value relative to volatility. This helps you find boxes with good returns that won't bankrupt you with bad streaks.`}</Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          <strong>Above 0.1:</strong> Excellent risk-adjusted returns<br/>
+                          <strong>0.0 to 0.1:</strong> Good, manageable risk for the expected return<br/>
+                          <strong>-0.1 to 0.0:</strong> Poor, high risk for small expected gains<br/>
+                          <strong>Below -0.1:</strong> Very Poor, high risk with expected losses
+                        </Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          <strong>How to use:</strong> Higher values mean better bang for your buck with less wild swings. Great for budget-conscious players.
+                        </Typography>
+                        <Typography variant="body2"><em>Calculated as Expected Value ÷ Standard Deviation of payouts</em></Typography>
+                      </Box>
+                    }
+                    arrow
+                    placement="top"
+                    open={valueRiskTooltipOpen}
+                    onClose={handleValueRiskTooltipClose}
+                    disableFocusListener
+                    disableHoverListener
+                    disableTouchListener
+                  >
+                    <IconButton size="small" sx={{ p: 0.25 }} onClick={handleValueRiskTooltipToggle}>
+                      <InfoIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      ml: 1,
+                      color: metrics.valueRiskRatio > 0 ? 'success.main' : 'error.main'
+                    }}
+                  >
+                    {metrics.valueRiskRatio.toFixed(2)}
                   </Typography>
                 </Box>
               </CardContent>
@@ -170,6 +269,220 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
           </Box>
         </Box>
 
+        {/* Probability of Profit for Different Budgets */}
+        <Box>
+          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', my: 1 }}>{`🎲 Probability of Profit`}</Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+            <Card variant="outlined" sx={{ flex: '1 1 250px' }}>
+              <CardContent sx={{ p: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, justifyContent: 'center' }}>
+                  <Typography variant="subtitle2">{`Budget Analysis`}</Typography>
+                  <Tooltip
+                    title={
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ mb: 1 }}>{`Probability of Profit by Budget`}</Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>{`Shows your realistic chances of walking away with more money than you spent for different budget levels. This uses advanced statistical modeling.`}</Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          <strong>How it works:</strong> Uses normal distribution approximation with finite population correction to account for drawing tickets without replacement (like real life).
+                        </Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          <strong>Color coding:</strong><br/>
+                          🟢 Green (&gt;50%): Good odds of profit<br/>
+                          🟡 Yellow (30-50%): Fair odds, some risk<br/>
+                          🔴 Red (&lt;30%): Poor odds, high risk of loss
+                        </Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          <strong>Strategy tips:</strong><br/>
+                          • For $20: Look for &gt;40% for casual play<br/>
+                          • For $50+: Look for &gt;30% for serious play<br/>
+                          • Higher budgets often have better odds due to law of large numbers
+                        </Typography>
+                        <Typography variant="body2"><em>This is your most reliable predictor of actual gambling success.</em></Typography>
+                      </Box>
+                    }
+                    arrow
+                    placement="top"
+                    open={probabilityOfProfitTooltipOpen}
+                    onClose={handleProbabilityOfProfitTooltipClose}
+                    disableFocusListener
+                    disableHoverListener
+                    disableTouchListener
+                  >
+                    <IconButton size="small" sx={{ p: 0.25 }} onClick={handleProbabilityOfProfitTooltipToggle}>
+                      <InfoIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="body2">$20 Budget:</Typography>
+                    <Chip 
+                      label={`${(metrics.probabilityOfProfit.budget20 * 100).toFixed(1)}%`} 
+                      size="small" 
+                      color={metrics.probabilityOfProfit.budget20 > 0.5 ? "success" : metrics.probabilityOfProfit.budget20 > 0.3 ? "warning" : "error"}
+                    />
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="body2">$50 Budget:</Typography>
+                    <Chip 
+                      label={`${(metrics.probabilityOfProfit.budget50 * 100).toFixed(1)}%`} 
+                      size="small" 
+                      color={metrics.probabilityOfProfit.budget50 > 0.5 ? "success" : metrics.probabilityOfProfit.budget50 > 0.3 ? "warning" : "error"}
+                    />
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="body2">$100 Budget:</Typography>
+                    <Chip 
+                      label={`${(metrics.probabilityOfProfit.budget100 * 100).toFixed(1)}%`} 
+                      size="small" 
+                      color={metrics.probabilityOfProfit.budget100 > 0.5 ? "success" : metrics.probabilityOfProfit.budget100 > 0.3 ? "warning" : "error"}
+                    />
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Box>
+        </Box>
+
+        {/* Big Hit Analysis */}
+        <Box>
+          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', my: 1 }}>{`🎯 Big Hit Analysis`}</Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+            <Card variant="outlined" sx={{ flex: '1 1 300px' }}>
+              <CardContent sx={{ p: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, justifyContent: 'center' }}>
+                  <Typography variant="subtitle2">{`$50+ Prize Odds`}</Typography>
+                  <Tooltip
+                    title={
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ mb: 1 }}>{`Big Hit Odds - $50+ Prizes`}</Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>{`Shows your exact probability of hitting at least one prize worth $50 or more with different budget levels. Perfect for players targeting medium-sized wins.`}</Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          <strong>How it works:</strong> Uses hypergeometric probability distribution to give you precise odds without replacement - the same math casinos use.
+                        </Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          <strong>Strategy guide:</strong><br/>
+                          • &lt;5%: Very unlikely, not worth chasing<br/>
+                          • 5-15%: Reasonable chase odds<br/>
+                          • 15-30%: Good chase odds<br/>
+                          • &gt;30%: Excellent chase odds
+                        </Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          <strong>When to use:</strong> Great for players who want decent-sized wins without going for the absolute biggest prizes. Good balance of risk and reward.
+                        </Typography>
+                        <Typography variant="body2"><em>This tells you if it&apos;s worth spending more to chase bigger wins in this specific box.</em></Typography>
+                      </Box>
+                    }
+                    arrow
+                    placement="top"
+                    open={bigHitTooltipOpen}
+                    onClose={handleBigHitTooltipClose}
+                    disableFocusListener
+                    disableHoverListener
+                    disableTouchListener
+                  >
+                    <IconButton size="small" sx={{ p: 0.25 }} onClick={handleBigHitTooltipToggle}>
+                      <InfoIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="body2">$20:</Typography>
+                    <Chip 
+                      label={`${(metrics.bigHitOdds.over50.budget20 * 100).toFixed(1)}%`} 
+                      size="small" 
+                      color="secondary"
+                    />
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="body2">$50:</Typography>
+                    <Chip 
+                      label={`${(metrics.bigHitOdds.over50.budget50 * 100).toFixed(1)}%`} 
+                      size="small" 
+                      color="secondary"
+                    />
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="body2">$100:</Typography>
+                    <Chip 
+                      label={`${(metrics.bigHitOdds.over50.budget100 * 100).toFixed(1)}%`} 
+                      size="small" 
+                      color="secondary"
+                    />
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+            <Card variant="outlined" sx={{ flex: '1 1 300px' }}>
+              <CardContent sx={{ p: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, justifyContent: 'center' }}>
+                  <Typography variant="subtitle2">{`Top 2 Prize Odds`}</Typography>
+                  <Tooltip
+                    title={
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ mb: 1 }}>{`Top 2 Prize Odds (Highest Value Targets)`}</Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>{`Shows your exact probability of hitting at least one of the top 2 highest-value prizes remaining in this box. This adapts to what's actually available.`}</Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          <strong>How it works:</strong> We identify the 2 highest prize values left in the box and calculate your odds of hitting at least one of them with different budgets.
+                        </Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          <strong>Strategic advantage:</strong><br/>
+                          • &lt;5%: Very unlikely, probably not worth targeting<br/>
+                          • 5-15%: Fair chase odds for premium prizes<br/>
+                          • 15-30%: Good chase odds, worth considering<br/>
+                          • &gt;30%: Excellent opportunity for top prizes
+                        </Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          <strong>When to use:</strong> Perfect for targeting the absolute best prizes without being locked into arbitrary dollar amounts. If the biggest prize is $25, you&apos;ll see odds for that instead of impossible $100+ odds.
+                        </Typography>
+                        <Typography variant="body2"><em>This dynamically shows the most relevant big prize opportunities for each specific box.</em></Typography>
+                      </Box>
+                    }
+                    arrow
+                    placement="top"
+                    open={bigHit100TooltipOpen}
+                    onClose={handleBigHit100TooltipClose}
+                    disableFocusListener
+                    disableHoverListener
+                    disableTouchListener
+                  >
+                    <IconButton size="small" sx={{ p: 0.25 }} onClick={handleBigHit100TooltipToggle}>
+                      <InfoIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="body2">$20:</Typography>
+                    <Chip 
+                      label={`${(metrics.bigHitOdds.top2Prizes.budget20 * 100).toFixed(1)}%`} 
+                      size="small" 
+                      color="info"
+                    />
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="body2">$50:</Typography>
+                    <Chip 
+                      label={`${(metrics.bigHitOdds.top2Prizes.budget50 * 100).toFixed(1)}%`} 
+                      size="small" 
+                      color="info"
+                    />
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="body2">$100:</Typography>
+                    <Chip 
+                      label={`${(metrics.bigHitOdds.top2Prizes.budget100 * 100).toFixed(1)}%`} 
+                      size="small" 
+                      color="info"
+                    />
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Box>
+        </Box>
+
         {/* Odds Analysis */}
         <Box>
           <Typography variant="subtitle1" sx={{ fontWeight: 'bold', my: 1 }}>{`🎯 Odds Analysis`}</Typography>
@@ -181,9 +494,21 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
                   <Tooltip
                     title={
                       <Box>
-                        <Typography variant="subtitle2" sx={{ mb: 1 }}>{`Top Prize Odds`}</Typography>
-                        <Typography variant="body2" sx={{ mb: 1 }}>{`Shows your chance of getting the top prize in the next 1, 10, or 20 pulls.`}</Typography>
-                        <Typography variant="body2">{`Higher percentages mean better short-term chances for hitting the top prize.`}</Typography>
+                        <Typography variant="subtitle2" sx={{ mb: 1 }}>{`Top Prize Odds (Premium Tier)`}</Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>{`Shows your chance of getting prizes in the top 20% by value in the next 1, 10, or 20 pulls. These are the highest-value prizes remaining in the box.`}</Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          <strong>How we calculate &quot;top prizes&quot;:</strong> We rank all remaining prizes by value and take the top 20% as &quot;premium tier&quot; prizes.
+                        </Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          <strong>Reading the odds:</strong><br/>
+                          • Next 1: Your chance on the very next ticket<br/>
+                          • Next 10: Odds of hitting at least one in your next 10 tickets<br/>
+                          • Next 20: Odds across a larger sample size
+                        </Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          <strong>Strategy:</strong> Higher percentages mean better short-term chances for hitting the biggest remaining prizes. Great for players who want to target the most valuable tickets.
+                        </Typography>
+                        <Typography variant="body2"><em>Use this to decide if it&apos;s worth making a focused play on the biggest prizes left.</em></Typography>
                       </Box>
                     }
                     arrow
@@ -225,9 +550,22 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
                   <Tooltip
                     title={
                       <Box>
-                        <Typography variant="subtitle2" sx={{ mb: 1 }}>{`Profit Ticket Odds`}</Typography>
-                        <Typography variant="body2" sx={{ mb: 1 }}>{`Shows your chance of getting a ticket that pays out more than its cost in the next 1, 5, or 10 pulls.`}</Typography>
-                        <Typography variant="body2">{`Higher percentages mean better short-term chances for a profitable ticket.`}</Typography>
+                        <Typography variant="subtitle2" sx={{ mb: 1 }}>{`Profit Ticket Odds (Break-Even+)`}</Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>{`Shows your chance of getting a ticket that pays out more than its cost in the next 1, 10, or 20 pulls. This is about consistent profitability, not big wins.`}</Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          <strong>What counts as &quot;profit&quot;:</strong> Any ticket that pays more than the ticket price. If tickets cost $2, then any prize &gt;$2 counts as profit.
+                        </Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          <strong>Strategy guide:</strong><br/>
+                          • &gt;50%: Excellent odds for steady wins<br/>
+                          • 30-50%: Good odds for regular play<br/>
+                          • 10-30%: Fair odds, expect some dry spells<br/>
+                          • &lt;10%: Poor odds, mostly losing tickets left
+                        </Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          <strong>Best for:</strong> Players who want consistent smaller wins rather than chasing jackpots. Good for building confidence and maintaining bankroll.
+                        </Typography>
+                        <Typography variant="body2"><em>High profit ticket odds mean you&apos;ll have more frequent wins to keep you in the game longer.</em></Typography>
                       </Box>
                     }
                     arrow
@@ -274,9 +612,22 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
               <Tooltip
                 title={
                   <Box>
-                    <Typography variant="subtitle2" sx={{ mb: 1 }}>{`Risk per Ticket`}</Typography>
-                    <Typography variant="body2" sx={{ mb: 1 }}>{`Shows how much the payout for each ticket can vary from the average. Higher risk means more unpredictable results—some tickets may win big, others may win nothing.`}</Typography>
-                    <Typography variant="body2"><em>{`Low risk: Consistent payouts. High risk: Big swings possible.`}</em></Typography>
+                    <Typography variant="subtitle2" sx={{ mb: 1 }}>{`Risk per Ticket (Standard Deviation)`}</Typography>
+                    <Typography variant="body2" sx={{ mb: 1 }}>{`Shows how much the payout for each ticket can vary from the average. This measures volatility - how &quot;swingy&quot; your results will be.`}</Typography>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      <strong>Understanding risk levels:</strong><br/>
+                      • $0-5: Low risk, consistent payouts<br/>
+                      • $5-15: Moderate risk, some big swings<br/>
+                      • $15-30: High risk, expect wild variations<br/>
+                      • $30+: Extreme risk, feast or famine
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      <strong>How to use:</strong> Lower risk means more predictable results. Higher risk means you could win big or lose big - perfect for thrill-seekers with proper bankrolls.
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      <strong>Strategy:</strong> Match risk level to your bankroll. If you have $50, don&apos;t play boxes with $40+ risk per ticket.
+                    </Typography>
+                    <Typography variant="body2"><em>This is calculated using statistical standard deviation of all remaining prize values.</em></Typography>
                   </Box>
                 }
                 arrow

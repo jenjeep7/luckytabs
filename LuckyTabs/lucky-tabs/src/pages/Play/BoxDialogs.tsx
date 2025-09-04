@@ -16,6 +16,9 @@ import {
   FormControl,
   InputLabel,
   Alert,
+  ToggleButton,
+  ToggleButtonGroup,
+  TextField,
 } from '@mui/material';
 
 // Interface for claimed prizes on wall boxes
@@ -295,6 +298,32 @@ export const AddWinsDialog: React.FC<AddWinsDialogProps> = ({
   const [error, setError] = useState<string>('');
   const [successMessage, setSuccessMessage] = useState<string>('');
 
+  const handleRowChange = (
+    _event: React.MouseEvent<HTMLElement>,
+    newRow: number,
+  ) => {
+    if (newRow !== null) {
+      setSelectedRow(newRow);
+    }
+  };
+
+  const handlePositionSliderChange = (_: Event, value: number | number[]) => {
+    const numValue = Array.isArray(value) ? value[0] : value;
+    setPositionInRow(numValue);
+  };
+
+  const handlePositionInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
+    if (value === '') {
+      setPositionInRow(0);
+      return;
+    }
+    const numValue = Math.max(0, Math.min(800, Number(value)));
+    if (!isNaN(numValue)) {
+      setPositionInRow(numValue);
+    }
+  };
+
   const handleSubmit = () => {
     if (selectedPrize === 0) {
       setError('Please select a prize amount');
@@ -312,22 +341,16 @@ export const AddWinsDialog: React.FC<AddWinsDialogProps> = ({
     };
 
     onAddWin(claimedPrize);
-    
-    // Show success message
     setSuccessMessage(`Win added: $${selectedPrize} at Row ${selectedRow}, Ticket #${positionInRow}`);
-    
-    // Reset form for next win but keep dialog open
-    setSelectedPrize(0);
+        setSelectedPrize(0);
     setError('');
     
-    // Clear success message after 3 seconds
     setTimeout(() => setSuccessMessage(''), 3000);
-    // Keep selectedRow and positionInRow as they are for convenience
   };
 
   const handleCancel = () => {
     setSelectedRow(1);
-    setPositionInRow(400); // Reset to middle position (400 tickets)
+    setPositionInRow(400);
     setSelectedPrize(0);
     setError('');
     setSuccessMessage('');
@@ -354,35 +377,68 @@ export const AddWinsDialog: React.FC<AddWinsDialogProps> = ({
           </Alert>
         )}
 
-        {/* Row Selection */}
-        <FormControl fullWidth sx={{ mb: 3 }}>
-          <InputLabel>Row</InputLabel>
-          <Select
-            value={selectedRow}
-            label="Row"
-            onChange={(e) => setSelectedRow(Number(e.target.value))}
-          >
-            <MenuItem value={1}>Row 1</MenuItem>
-            <MenuItem value={2}>Row 2</MenuItem>
-            <MenuItem value={3}>Row 3</MenuItem>
-            <MenuItem value={4}>Row 4</MenuItem>
-          </Select>
-        </FormControl>
-
-        {/* Position in Row Slider */}
+        {/* Row Selection with Toggle Buttons */}
         <Box sx={{ mb: 3 }}>
-          <Typography gutterBottom>
-            Position in Row {selectedRow} (Ticket #{positionInRow})
+          <Typography gutterBottom sx={{ fontWeight: 'medium' }}>
+            Select Row
           </Typography>
+          <ToggleButtonGroup
+            value={selectedRow}
+            exclusive
+            onChange={handleRowChange}
+            aria-label="row selection"
+            fullWidth
+            sx={{ 
+              '& .MuiToggleButton-root': {
+                py: 1.5,
+                fontSize: '1rem',
+                fontWeight: 'medium',
+              }
+            }}
+          >
+            <ToggleButton value={1} aria-label="row 1">
+              Row 1
+            </ToggleButton>
+            <ToggleButton value={2} aria-label="row 2">
+              Row 2
+            </ToggleButton>
+            <ToggleButton value={3} aria-label="row 3">
+              Row 3
+            </ToggleButton>
+            <ToggleButton value={4} aria-label="row 4">
+              Row 4
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
+
+        {/* Position in Row with Input and Slider */}
+        <Box sx={{ mb: 3 }}>
+          <Typography gutterBottom sx={{ fontWeight: 'medium' }}>
+            Position in Row {selectedRow}
+          </Typography>
+          
+          {/* Input Field */}
+          <TextField
+            label="Ticket Number"
+            type="number"
+            value={positionInRow}
+            onChange={handlePositionInputChange}
+            inputProps={{
+              min: 0,
+              max: 800,
+              step: 1,
+            }}
+            sx={{ mb: 2, width: '150px' }}
+            size="small"
+          />
+          
+          {/* Slider */}
           <Slider
             value={positionInRow}
-            onChange={(_, value: number | number[]) => {
-              const numValue = Array.isArray(value) ? value[0] : value;
-              setPositionInRow(numValue);
-            }}
+            onChange={handlePositionSliderChange}
             min={0}
             max={800}
-            step={50}
+            step={5}
             marks={[
               { value: 0, label: '0' },
               { value: 100, label: '100' },
@@ -396,6 +452,18 @@ export const AddWinsDialog: React.FC<AddWinsDialogProps> = ({
             ]}
             valueLabelDisplay="auto"
             valueLabelFormat={(value) => `#${value}`}
+            sx={{
+              '& .MuiSlider-thumb': {
+                backgroundColor: '#e140a1',
+                border: '2px solid #fff',
+              },
+              '& .MuiSlider-track': {
+                backgroundColor: '#e140a1',
+              },
+              '& .MuiSlider-mark': {
+                backgroundColor: '#e140a1',
+              },
+            }}
           />
         </Box>
 

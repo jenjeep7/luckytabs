@@ -19,7 +19,6 @@ import { AdvancedAnalytics } from './AdvancedAnalytics';
 import { Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import {
-  calculateRemainingPrizes,
   calculateTotalRemainingPrizeValue,
   calculateOneInXChances,
   evPerTicket,
@@ -171,13 +170,16 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
     // Initialize remaining tickets input from database values
     const initializeRemainingTickets = () => {
       if (boxes.length > 0) {
-        const initialValues: { [boxId: string]: string } = {};
-        boxes.forEach(box => {
-          if (box.estimatedRemainingTickets !== undefined && box.estimatedRemainingTickets !== null) {
-            initialValues[box.id] = box.estimatedRemainingTickets.toString();
-          }
+        setRemainingTicketsInput(prev => {
+          const newValues = { ...prev };
+          boxes.forEach(box => {
+            // Only initialize if we don't already have a value for this box
+            if (!prev[box.id] && box.estimatedRemainingTickets !== undefined && box.estimatedRemainingTickets !== null) {
+              newValues[box.id] = box.estimatedRemainingTickets.toString();
+            }
+          });
+          return newValues;
         });
-        setRemainingTicketsInput(initialValues);
       }
     };
 
@@ -220,6 +222,9 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
     setConfirmDialog({ open: false, boxId: '', boxName: '' });
   };
 
+  // Local state for optimistic UI updates
+  const [optimisticUpdates, setOptimisticUpdates] = useState<{ [boxId: string]: { [ticketIndex: number]: number } }>({});
+
   const handlePrizeClick = (boxId: string, ticketIndex: number, prizeIndex: number) => {
     const toggleClaim = async () => {
       try {
@@ -227,35 +232,62 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
         const box = boxes.find(b => b.id === boxId);
         
         if (box && box.winningTickets) {
-          const updatedTickets = [...box.winningTickets];
-          const currentTicket = updatedTickets[ticketIndex];
+          const currentTicket = box.winningTickets[ticketIndex];
+          let newClaimedTotal: number;
           
           // Toggle between claimed and unclaimed
           if (prizeIndex < currentTicket.claimedTotal) {
             // Unclaim: reduce claimedTotal by 1
-            updatedTickets[ticketIndex] = {
-              ...currentTicket,
-              claimedTotal: Math.max(0, currentTicket.claimedTotal - 1)
-            };
+            newClaimedTotal = Math.max(0, currentTicket.claimedTotal - 1);
           } else {
             // Claim: increase claimedTotal by 1
-            updatedTickets[ticketIndex] = {
-              ...currentTicket,
-              claimedTotal: Math.min(currentTicket.totalPrizes, currentTicket.claimedTotal + 1)
-            };
+            newClaimedTotal = Math.min(currentTicket.totalPrizes, currentTicket.claimedTotal + 1);
           }
+
+          // Optimistic update: immediately update local state for instant UI feedback
+          setOptimisticUpdates(prev => {
+            const boxUpdates = prev[boxId] || {};
+            return {
+              ...prev,
+              [boxId]: {
+                ...boxUpdates,
+                [ticketIndex]: newClaimedTotal
+              }
+            };
+          });
+
+          const updatedTickets = [...box.winningTickets];
+          updatedTickets[ticketIndex] = {
+            ...currentTicket,
+            claimedTotal: newClaimedTotal
+          };
 
           await updateDoc(boxRef, {
             winningTickets: updatedTickets
           });
 
-          // Refresh boxes after prize toggle to update UI
+          // Keep the optimistic update - no need to clear it since UI should stay updated
+          // Only refresh boxes in background for data consistency
           if (refreshBoxes) {
             refreshBoxes(boxId);
           }
         }
       } catch (error) {
         console.error('Error toggling prize claim:', error);
+        // Only clear optimistic update on error to revert UI
+        setOptimisticUpdates(prev => {
+          const updated = { ...prev };
+          if (updated[boxId]) {
+            delete updated[boxId][ticketIndex];
+            if (Object.keys(updated[boxId]).length === 0) {
+              delete updated[boxId];
+            }
+          }
+          return updated;
+        });
+        
+        // Show error message to user
+        alert('Failed to update prize. Please try again.');
       }
     };
 
@@ -263,6 +295,14 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
   };
 
   const handleEstimateClick = (box: BoxItem) => {
+    // Sync the input with the database value when opening dialog
+    if (box.estimatedRemainingTickets !== undefined && box.estimatedRemainingTickets !== null) {
+      setRemainingTicketsInput(prev => ({
+        ...prev,
+        [box.id]: String(box.estimatedRemainingTickets)
+      }));
+    }
+    
     setEstimateDialog({
       open: true,
       boxId: box.id,
@@ -380,13 +420,18 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
         await updateDoc(boxRef, {
           estimatedRemainingTickets: ticketsRemaining
         });
+        
+        // Refresh the parent component's boxes state with the updated data
+        if (refreshBoxes) {
+          refreshBoxes(boxId);
+        }
       } catch (error) {
         console.error('Error updating remaining tickets:', error);
       }
     };
     
     void updateFirestore();
-  }, [firebaseUser?.uid]);
+  }, [firebaseUser?.uid, refreshBoxes]);
 
   const renderPrizeButtons = (box: BoxItem) => {
     if (!box.winningTickets) return null;
@@ -396,7 +441,8 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
     box.winningTickets.forEach((ticket, ticketIndex) => {
       const prize = ticket.prize.toString();
       const totalPrizes = ticket.totalPrizes;
-      const claimedTotal = ticket.claimedTotal;
+      // Use optimistic update if available, otherwise use the actual value
+      const claimedTotal = optimisticUpdates[box.id]?.[ticketIndex] ?? ticket.claimedTotal;
 
       for (let i = 0; i < totalPrizes; i++) {
         const isClaimed = i < claimedTotal;
@@ -455,7 +501,6 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
     <>
       <Box sx={{ mt: marginTop }}>
         {boxes.map((box) => {
-          const remainingPrizes = calculateRemainingPrizes(box);
           const pricePerTicket = parseFloat(box.pricePerTicket);
           const estimatedTickets = Number(remainingTicketsInput[box.id]) || box.estimatedRemainingTickets || 0;
           

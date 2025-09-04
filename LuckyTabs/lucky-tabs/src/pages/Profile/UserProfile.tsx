@@ -22,12 +22,14 @@ import {
   Stack
 } from '@mui/material';
 import {
-  Edit
+  Edit,
+  Logout
 } from '@mui/icons-material';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../../firebase';
 import { userService, UserData, GroupMember } from '../../services/userService';
 import EditProfileDialog from './EditProfileDialog';
+import { ProfileFlare } from './ProfileFlare';
 
 export const UserProfile: React.FC = () => {
   const [user] = useAuthState(auth);
@@ -328,48 +330,7 @@ export const UserProfile: React.FC = () => {
             </Box>
 
       {/* Flare Sheet Section */}
-      <Box sx={{ mb: 3, display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 2, justifyContent: 'center', alignItems: 'center', bgcolor: 'background.paper', borderRadius: 2, boxShadow: 2, py: 2 }}>
-        <Typography
-          variant="subtitle1"
-          sx={{
-            fontWeight: 600,
-            color: 'text.secondary',
-            width: '100%',
-            textAlign: 'center',
-            mb: 1,
-          }}
-        >
-          Explore Tabsy Wins
-        </Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          size="small"
-          sx={{ minWidth: 64, fontWeight: 600, fontSize: 13, px: 1, py: 0.5 }}
-          onClick={() => window.location.href = '/play'}
-        >
-          Locations
-        </Button>
-        <Button variant="contained" color="secondary" size="small" sx={{ minWidth: 64, fontWeight: 600, fontSize: 13, px: 1, py: 0.5 }} onClick={() => window.location.href = '/community'}>
-          Community
-        </Button>
-        <Button variant="contained" color="success" size="small" sx={{ minWidth: 64, fontWeight: 600, fontSize: 13, px: 1, py: 0.5 }}>
-          Groups
-        </Button>
-        <Button variant="contained" color="warning" size="small" sx={{ minWidth: 64, fontWeight: 600, fontSize: 13, px: 1, py: 0.5 }}>
-          Support
-        </Button>
-        <Button variant="contained" color="info" size="small" sx={{ minWidth: 64, fontWeight: 600, fontSize: 13, px: 1, py: 0.5 }}>
-          Budget
-        </Button>
-        <Button variant="contained" color="primary" size="small" sx={{ minWidth: 64, fontWeight: 600, fontSize: 13, px: 1, py: 0.5 }}>
-          Learn Metrics
-        </Button>
-        <Button variant="contained" color="success" size="small" sx={{ minWidth: 64, fontWeight: 600, fontSize: 13, px: 1, py: 0.5 }}>
-         Go Pro
-        </Button>
-
-      </Box>
+      <ProfileFlare />
 
       {userData && (
         <Grid container spacing={3}>
@@ -510,6 +471,25 @@ export const UserProfile: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Logout Button */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4, mb: 3 }}>
+        <Button
+          variant="outlined"
+          color="primary"
+          startIcon={<Logout />}
+          onClick={() => void auth.signOut()}
+          sx={{
+            minWidth: 200,
+            borderWidth: 2,
+            '&:hover': {
+              borderWidth: 2,
+            }
+          }}
+        >
+          Sign Out
+        </Button>
+      </Box>
 
       {/* Snackbar for notifications */}
       <Snackbar

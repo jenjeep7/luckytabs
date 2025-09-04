@@ -61,9 +61,9 @@ const Login: React.FC = () => {
 
   return (
     <Container maxWidth="sm">
-      <Paper elevation={3} sx={{ mt: 10, p: 4, textAlign: 'center' }}>
-        <Typography variant="h4" gutterBottom>
-          Login
+      <Paper elevation={3} sx={{ mt: 10, p: 5, textAlign: 'center' }}>
+        <Typography variant="h5" gutterBottom>
+          {`Welcome Back!`}
         </Typography>
         <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           <TextField
@@ -85,9 +85,9 @@ const Login: React.FC = () => {
           <Button variant="contained" color="primary" type="submit">
             Login
           </Button>
-          <Button variant="outlined" onClick={signInWithGoogle}>
+          {/* <Button variant="outlined" onClick={signInWithGoogle}>
             Sign in with Google
-          </Button>
+          </Button> */}
           <Button onClick={() => navigate('/signup')}>
             Sign Up
           </Button>
