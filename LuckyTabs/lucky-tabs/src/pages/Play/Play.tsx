@@ -410,10 +410,6 @@ export const Play: React.FC = () => {
         minHeight: 'calc(100vh - 56px)', // Smaller AppBar on mobile
       }
     }}>
-      <Typography variant="h6" gutterBottom sx={{ textAlign: 'center' }}>
-        Box Dashboard
-      </Typography>
-
       {/* Show location selector if no location is selected OR user wants to change location */}
       {(!selectedLocation || showLocationSelector) && (
         <>
@@ -468,9 +464,9 @@ export const Play: React.FC = () => {
       {selectedLocation && !showLocationSelector && (
         <Box sx={{ 
           display: 'flex', 
+          flexDirection: 'column',
           alignItems: 'center', 
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
+          justifyContent: 'center',
           gap: 2,
           p: 2, 
           bgcolor: 'background.paper', 
@@ -479,12 +475,9 @@ export const Play: React.FC = () => {
           borderColor: 'divider',
           mb: 2
         }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <PlaceIcon color="primary" />
-            <Typography variant="h6">
-              {selectedLocationObj?.name}
-            </Typography>
-          </Box>
+          <Typography variant="h5">
+            {selectedLocationObj?.name}
+          </Typography>
           <Button
             variant="outlined"
             size="small"
@@ -502,6 +495,7 @@ export const Play: React.FC = () => {
             variant="contained"
             sx={{ bgcolor: 'secondary.main' }}
             onClick={() => setOpenCreateBox(true)}
+            size="small"
           >
             Create New Box
           </Button>
@@ -554,6 +548,7 @@ export const Play: React.FC = () => {
             <ToggleButtonGroup
               value={boxView}
               exclusive
+              size="small"
               onChange={(_, newView: 'my' | 'group' | null) => {
                 if (newView !== null) {
                   setBoxView(newView);
@@ -561,10 +556,10 @@ export const Play: React.FC = () => {
               }}
               aria-label="box view toggle"
             >
-              <ToggleButton value="my" aria-label="my boxes">
+              <ToggleButton value="my" aria-label="my boxes" size="small">
                 My Boxes ({myBoxes.length})
               </ToggleButton>
-              <ToggleButton value="group" aria-label="group boxes">
+              <ToggleButton value="group" aria-label="group boxes" size="small">
                 Group Boxes ({groupBoxes.length})
               </ToggleButton>
             </ToggleButtonGroup>
@@ -723,7 +718,7 @@ export const Play: React.FC = () => {
                           }}
                         />
                         {/* EV Calculation under chip */}
-                        {estimatedTickets > 0 && box.winningTickets && (
+                        {/* {estimatedTickets > 0 && box.winningTickets && (
                           <Typography variant="caption" sx={{ color: evColor, fontWeight: 'bold', fontSize: '0.8rem', textAlign: 'right' }}>
                             Payout: {(() => {
                               const prizes = box.winningTickets.map((ticket: WinningTicket) => ({
@@ -736,29 +731,29 @@ export const Play: React.FC = () => {
                               return `${rtpData.toFixed(1)}%`;
                             })()}
                           </Typography>
-                        )}
+                        )} */}
                       </Box>
                     </Box>
-                    {/* Last updated timestamp for estimated tickets */}
-                    {lastUpdated && (
-                      <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.7rem', textAlign: 'right', display: 'block', mt: 1 }}>
-                        updated: {lastUpdated}
-                      </Typography>
-                    )}
-                    
-                    {/* Share button for my boxes */}
-                    {boxView === 'my' && (
-                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
-                        <IconButton
-                          size="small"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleShareBox(box.id, box.boxName);
-                          }}
-                          sx={{ color: 'primary.main' }}
-                        >
-                          <ShareIcon fontSize="small" />
-                        </IconButton>
+                    {/* Last updated timestamp and share button on same line */}
+                    {(lastUpdated || boxView === 'my') && (
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
+                        {lastUpdated && (
+                          <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.7rem' }}>
+                            updated: {lastUpdated}
+                          </Typography>
+                        )}
+                        {boxView === 'my' && (
+                          <IconButton
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleShareBox(box.id, box.boxName);
+                            }}
+                            sx={{ color: 'primary.main' }}
+                          >
+                            <ShareIcon fontSize="small" />
+                          </IconButton>
+                        )}
                       </Box>
                     )}
                   </CardContent>
@@ -779,15 +774,6 @@ export const Play: React.FC = () => {
                   : 'Boxes shared with you by friends will appear here'
                 }
               </Typography>
-              {boxView === 'my' && (
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={() => setOpenCreateBox(true)}
-                >
-                  Create Your First Box
-                </Button>
-              )}
             </Paper>
           )}
         </Box>
