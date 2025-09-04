@@ -21,12 +21,15 @@ import {
   Alert,
   Snackbar,
   LinearProgress,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from '@mui/material';
 import {
   Favorite,
   FavoriteBorder,
   ChatBubbleOutline,
-  MoreVert,
   Send,
   Public,
   Group,
@@ -39,6 +42,7 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../../firebase';
 import { communityService, Post, Comment } from '../../services/communityService';
 import { userService, UserData } from '../../services/userService';
+import { groupService, GroupData } from '../../services/groupService';
 import { GroupsManager } from '../GroupManager/GroupsManager';
 import { uploadPostImage } from '../../services/storageService';
 
@@ -430,6 +434,8 @@ export const Community: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [userProfiles, setUserProfiles] = useState<Map<string, UserData>>(new Map());
   const [currentUserProfile, setCurrentUserProfile] = useState<UserData | null>(null);
+  const [userGroups, setUserGroups] = useState<GroupData[]>([]);
+  const [selectedGroupId, setSelectedGroupId] = useState<string>('');
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false,
     message: '',
@@ -443,7 +449,16 @@ export const Community: React.FC = () => {
       setLoading(true);
       try {
         const feedType = activeTab === 0 ? 'public' : 'group';
-        const fetchedPosts = await communityService.getPosts(feedType);
+        const groupId = activeTab === 1 ? selectedGroupId : undefined;
+        
+        // Don't load group posts if no group is selected
+        if (activeTab === 1 && !selectedGroupId) {
+          setPosts([]);
+          setLoading(false);
+          return;
+        }
+        
+        const fetchedPosts = await communityService.getPosts(feedType, groupId);
         setPosts(fetchedPosts);
 
         // Load author profiles
@@ -477,16 +492,42 @@ export const Community: React.FC = () => {
     };
 
     void loadPosts();
-  }, [activeTab, user, currentUserProfile]);
+  }, [activeTab, user, currentUserProfile, selectedGroupId]);
 
-  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => setActiveTab(newValue);
+  // Load user groups when user logs in
+  useEffect(() => {
+    const loadUserGroups = async () => {
+      if (!user) return;
+      try {
+        const groups = await groupService.getUserGroups(user.uid);
+        // Filter out the "Public" group from group selection
+        const filteredGroups = groups.filter(group => group.name.toLowerCase() !== 'public');
+        setUserGroups(filteredGroups);
+        // Set first available group as default, or empty if no groups
+        if (filteredGroups.length > 0) {
+          setSelectedGroupId(filteredGroups[0].id);
+        }
+      } catch (error) {
+        console.error('Error loading user groups:', error);
+      }
+    };
+
+    void loadUserGroups();
+  }, [user]);
+
+  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
+    // Clear posts immediately when switching tabs to prevent showing wrong posts
+    setPosts([]);
+    setActiveTab(newValue);
+  };
 
   const handleLike = async (postId: string) => {
     if (!user) return;
     try {
       await communityService.likePost(postId, user.uid);
       const feedType = activeTab === 0 ? 'public' : 'group';
-      const updated = await communityService.getPosts(feedType);
+      const groupId = activeTab === 1 ? selectedGroupId : undefined;
+      const updated = await communityService.getPosts(feedType, groupId);
       setPosts(updated);
     } catch {
       setSnackbar({ open: true, message: 'Failed to update like', severity: 'error' });
@@ -520,10 +561,17 @@ export const Community: React.FC = () => {
   const handleCreatePost = async () => {
     if (!user) return;
     if (!newPostContent.trim() && files.length === 0) return;
+    
+    // Validate group selection for group posts
+    if (activeTab === 1 && !selectedGroupId) {
+      setSnackbar({ open: true, message: 'Please select a group to post to', severity: 'error' });
+      return;
+    }
 
     setUploading(true);
     try {
       const feedType = activeTab === 0 ? 'public' : 'group';
+      const groupId = activeTab === 1 ? selectedGroupId : undefined;
 
       // Upload images in parallel and collect media descriptors
       const media =
@@ -541,12 +589,12 @@ export const Community: React.FC = () => {
             )
           : [];
 
-      await communityService.createPost(user.uid, newPostContent, feedType, /* groupId */ undefined, media);
+      await communityService.createPost(user.uid, newPostContent, feedType, groupId, media);
 
       clearComposer();
       setNewPostDialog(false);
 
-      const updated = await communityService.getPosts(feedType);
+      const updated = await communityService.getPosts(feedType, groupId);
       setPosts(updated);
       setSnackbar({ open: true, message: 'Post created successfully!', severity: 'success' });
     } catch (e) {
@@ -657,36 +705,72 @@ export const Community: React.FC = () => {
             <Typography variant="h6" sx={{ color: 'text.primary' }}>
               Group Posts
             </Typography>
-            <Button variant="contained" startIcon={<Add />} onClick={() => setNewPostDialog(true)}>
+            <Button 
+              variant="contained" 
+              startIcon={<Add />} 
+              onClick={() => setNewPostDialog(true)}
+              disabled={userGroups.length === 0 || !selectedGroupId}
+            >
               New Post
             </Button>
           </Box>
+
+          {/* Group Selection */}
+          {userGroups.length > 0 && (
+            <Box sx={{ mb: 3 }}>
+              <FormControl fullWidth variant="outlined">
+                <InputLabel id="group-select-label">Select Group</InputLabel>
+                <Select
+                  labelId="group-select-label"
+                  value={selectedGroupId}
+                  onChange={(e) => setSelectedGroupId(e.target.value)}
+                  label="Select Group"
+                >
+                  {userGroups.map((group) => (
+                    <MenuItem key={group.id} value={group.id}>
+                      {group.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+          )}
 
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
               <CircularProgress sx={{ color: 'primary.main' }} />
             </Box>
+          ) : userGroups.length === 0 ? (
+            <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+              You&apos;re not a member of any groups yet. Join a group to see group posts!
+            </Typography>
+          ) : !selectedGroupId ? (
+            <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+              Select a group above to view and share posts with group members.
+            </Typography>
           ) : posts.length === 0 ? (
             <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
-              No group posts yet. Share something with your group!
+              No posts in {userGroups.find(g => g.id === selectedGroupId)?.name || 'this group'} yet. Be the first to share something!
             </Typography>
           ) : (
-            posts.map((post) => (
-              <PostCard
-                key={post.id}
-                post={post}
-                onLike={(postId) => {
-                  void handleLike(postId);
-                }}
-                onComment={(postId, content) => {
-                  void handleComment(postId, content);
-                }}
-                currentUserId={user?.uid}
-                currentUserName={currentUserProfile?.displayName || user?.displayName || undefined}
-                currentUserAvatar={currentUserProfile?.avatar || user?.photoURL || undefined}
-                authorProfile={userProfiles.get(post.authorId)}
-              />
-            ))
+            <>
+              {posts.map((post) => (
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  onLike={(postId) => {
+                    void handleLike(postId);
+                  }}
+                  onComment={(postId, content) => {
+                    void handleComment(postId, content);
+                  }}
+                  currentUserId={user?.uid}
+                  currentUserName={currentUserProfile?.displayName || user?.displayName || undefined}
+                  currentUserAvatar={currentUserProfile?.avatar || user?.photoURL || undefined}
+                  authorProfile={userProfiles.get(post.authorId)}
+                />
+              ))}
+            </>
           )}
         </TabPanel>
 
@@ -712,7 +796,10 @@ export const Community: React.FC = () => {
         }}
       >
         <DialogTitle sx={{ color: 'text.primary', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          Create New Post
+          {activeTab === 0 
+            ? 'Create New Post' 
+            : `Post to ${userGroups.find(g => g.id === selectedGroupId)?.name || 'Group'}`
+          }
           <IconButton size="small" onClick={() => setNewPostDialog(false)}>
             <CloseIcon />
           </IconButton>
@@ -722,7 +809,11 @@ export const Community: React.FC = () => {
             fullWidth
             multiline
             rows={4}
-            placeholder={`What's on your mind? Share with the ${activeTab === 0 ? 'public' : 'group'} community...`}
+            placeholder={
+              activeTab === 0 
+                ? "What's on your mind? Share with the public community..." 
+                : `Share something with ${userGroups.find(g => g.id === selectedGroupId)?.name || 'your group'}...`
+            }
             value={newPostContent}
             onChange={(e) => setNewPostContent(e.target.value)}
             sx={{
