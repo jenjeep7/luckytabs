@@ -5,12 +5,6 @@ import {
   Toolbar,
   Typography,
   IconButton,
-  Drawer,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemText,
-  Divider,
   Button,
   Paper,
   BottomNavigation,
@@ -18,13 +12,12 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
 import LogoutIcon from '@mui/icons-material/Logout';
 import HomeIcon from '@mui/icons-material/Home';
-import ExploreIcon from '@mui/icons-material/Explore';
+import GroupIcon from '@mui/icons-material/Group';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import PersonIcon from '@mui/icons-material/Person';
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { auth } from './firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -41,15 +34,15 @@ const navItems: NavItem[] = [
   { label: 'Profile', route: '/profile', icon: <PersonIcon /> },
   { label: 'Play', route: '/play', icon: <HomeIcon /> },
   { label: 'Tracking', route: '/tracking', icon: <ListAltIcon /> },
-  { label: 'Community', route: '/community', icon: <ExploreIcon /> },
+  { label: 'Social', route: '/community', icon: <GroupIcon /> },
 ];
 
 interface LayoutProps {
   children?: React.ReactNode;
+  title?: string;
 }
 
-function Layout({ children }: LayoutProps) {
-  const [mobileOpen, setMobileOpen] = useState(false);
+function Layout({ children, title }: LayoutProps) {
   const [user] = useAuthState(auth);
 
   const theme = useTheme();
@@ -58,8 +51,26 @@ function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Determine page title based on current route
+  const getPageTitle = () => {
+    if (title) return title; // Use provided title if available
+    
+    const path = location.pathname;
+    switch (true) {
+      case path.startsWith('/play'):
+        return 'Box Dashboard';
+      case path.startsWith('/tracking'):
+        return 'Budget Tracking';
+      case path.startsWith('/community'):
+        return 'Social';
+      // case path.startsWith('/profile'):
+      //   return 'User Profile';
+      default:
+        return `User Profile`;
+    }
+  };
+
   const handleLogout = async () => await auth.signOut();
-  const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
 
   const handleNavItemClick = (item: typeof navItems[number]) => {
     if (item.route) {
@@ -79,50 +90,20 @@ function Layout({ children }: LayoutProps) {
     return idx >= 0 ? idx : 0;
   }, [location.pathname]);
 
-  const drawer = (
-    <Box onClick={handleDrawerToggle} sx={{ textAlign: 'center' }}>
-      <Typography variant="h6" sx={{ my: 2 }}>Pull Tab Community</Typography>
-      <List>
-        {!!user && (
-          <>
-            <Divider />
-            <ListItem disablePadding>
-              <ListItemButton onClick={() => void handleLogout()}>
-                <ListItemText primary="Logout" />
-              </ListItemButton>
-            </ListItem>
-         
-          </>
-        )}
-      </List>
-    </Box>
-  );
-
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%' }}>
       {/* Top AppBar (only when logged-in) */}
       {user && (
         <AppBar component="nav" position="fixed">
           <Toolbar>
-            {/* Hamburger only on mobile (md-), paired with the Drawer */}
-            <IconButton
-              color="inherit"
-              aria-label="open drawer"
-              edge="start"
-              onClick={handleDrawerToggle}
-              sx={{ mr: 2, display: { md: 'none' } }}
-            >
-              <MenuIcon />
-            </IconButton>
-
             <Typography
               variant="h6"
-              sx={{ flexGrow: 1, display: { xs: 'none', md: 'block' } }}
+              sx={{ flexGrow: 1, textAlign: 'center' }}
             >
-              {`Tabsy's Community`}
+              {getPageTitle()}
             </Typography>
 
-            {/* Desktop links */}
+            {/* Desktop links - only show on larger screens */}
             <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 2 }}>
               {navItems.map((item) => (
                 <Button key={item.label} onClick={() => handleNavItemClick(item)} color="inherit">
@@ -135,24 +116,6 @@ function Layout({ children }: LayoutProps) {
             </Box>
           </Toolbar>
         </AppBar>
-      )}
-
-      {/* Drawer (mobile) */}
-      {user && (
-        <Box component="nav">
-          <Drawer
-            variant="temporary"
-            open={mobileOpen}
-            onClose={handleDrawerToggle}
-            ModalProps={{ keepMounted: true }}
-            sx={{
-              display: { xs: 'block', md: 'none' },
-              '& .MuiDrawer-paper': { boxSizing: 'border-box', width: 260 },
-            }}
-          >
-            {drawer}
-          </Drawer>
-        </Box>
       )}
 
       {/* Main content area */}

@@ -626,10 +626,6 @@ export const Community: React.FC = () => {
 
   return (
     <Container maxWidth="md" sx={{ py: 2, bgcolor: 'background.default', minHeight: '100vh' }}>
-      <Typography variant="h4" sx={{ mb: 2.5, fontWeight: 600, color: 'text.primary' }}>
-        Community
-      </Typography>
-
       <Paper
         sx={{
           mb: 2,

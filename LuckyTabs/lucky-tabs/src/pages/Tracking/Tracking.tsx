@@ -123,9 +123,6 @@ export const Tracking: React.FC = () => {
         gap: { xs: 2, sm: 0 },
         mb: 3 
       }}>
-        <Typography variant="h4" component="h1" gutterBottom sx={{ mb: { xs: 0, sm: 1 } }}>
-          Gambling Tracker
-        </Typography>
         <Box sx={{ 
           display: 'flex', 
           flexDirection: { xs: 'column', sm: 'row' },
