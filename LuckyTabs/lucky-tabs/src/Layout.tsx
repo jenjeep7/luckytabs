@@ -22,6 +22,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { auth } from './firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { Footer } from './components/Footer';
+import { useLocation as useLocationContext } from './hooks/useLocation';
 
 type NavItem = {
   label: string;
@@ -44,6 +45,7 @@ interface LayoutProps {
 
 function Layout({ children, title }: LayoutProps) {
   const [user] = useAuthState(auth);
+  const { selectedLocationObj } = useLocationContext();
 
   const theme = useTheme();
   const isMdUp = useMediaQuery(theme.breakpoints.up('md'));
@@ -58,7 +60,8 @@ function Layout({ children, title }: LayoutProps) {
     const path = location.pathname;
     switch (true) {
       case path.startsWith('/play'):
-        return 'Box Dashboard';
+        // Show location name if available, otherwise default title
+        return selectedLocationObj?.name || 'Box Dashboard';
       case path.startsWith('/tracking'):
         return 'Budget Tracking';
       case path.startsWith('/community'):
@@ -98,7 +101,10 @@ function Layout({ children, title }: LayoutProps) {
           <Toolbar>
             <Typography
               variant="h6"
-              sx={{ flexGrow: 1, textAlign: 'center' }}
+              sx={{ 
+                flexGrow: 1, 
+                textAlign: { xs: 'center', md: 'left' }
+              }}
             >
               {getPageTitle()}
             </Typography>
