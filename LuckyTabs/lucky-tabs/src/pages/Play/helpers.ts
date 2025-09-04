@@ -54,6 +54,18 @@ export interface AdvancedMetrics {
     isEstimateSensitive: boolean;
   };
   goodnessScore: number;
+  // NEW METRICS FROM FEEDBACK
+  evPerDollar: number;
+  probabilityOfProfit: {
+    budget20: number;
+    budget50: number;
+    budget100: number;
+  };
+  valueRiskRatio: number;
+  bigHitOdds: {
+    over50: { budget20: number; budget50: number; budget100: number };
+    top2Prizes: { budget20: number; budget50: number; budget100: number };
+  };
 }
 
 // EV Calculation Functions
@@ -397,6 +409,151 @@ export const calculateGoodnessScore = (box: BoxItem, remainingTickets: number): 
          (w5 * stabilityScore);
 };
 
+// NEW METRICS FROM FEEDBACK
+
+// 10. EV per Dollar (multiple)
+export const calculateEVPerDollar = (box: BoxItem, remainingTickets: number): number => {
+  const pricePerTicket = Number(box.pricePerTicket) || 0;
+  const totalRemainingPrizeValue = calculateTotalRemainingPrizeValue(box);
+  
+  if (remainingTickets <= 0 || pricePerTicket <= 0) return 0;
+  
+  return totalRemainingPrizeValue / (remainingTickets * pricePerTicket);
+};
+
+// 11. Error function approximation for normal distribution
+const erf = (x: number): number => {
+  // Abramowitz and Stegun approximation
+  const a1 =  0.254829592;
+  const a2 = -0.284496736;
+  const a3 =  1.421413741;
+  const a4 = -1.453152027;
+  const a5 =  1.061405429;
+  const p  =  0.3275911;
+
+  const sign = x >= 0 ? 1 : -1;
+  x = Math.abs(x);
+
+  const t = 1.0 / (1.0 + p * x);
+  const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+
+  return sign * y;
+};
+
+// 12. Probability of Profit using normal approximation
+export const calculateProbabilityOfProfit = (box: BoxItem, remainingTickets: number): { budget20: number; budget50: number; budget100: number } => {
+  const pricePerTicket = Number(box.pricePerTicket) || 0;
+  const evPerTicket = calculateEVPerTicket(box, remainingTickets);
+  const riskPerTicket = calculateRiskPerTicket(box, remainingTickets);
+  
+  if (pricePerTicket <= 0 || remainingTickets <= 0) {
+    return { budget20: 0, budget50: 0, budget100: 0 };
+  }
+
+  const calculateProbForBudget = (budget: number): number => {
+    const k = Math.floor(budget / pricePerTicket);
+    if (k <= 0) return 0;
+    
+    const mu = k * evPerTicket;
+    
+    // Finite population correction for variance
+    const varPerTicket = riskPerTicket * riskPerTicket;
+    const fpc = Math.max(0, 1 - (k - 1) / Math.max(1, remainingTickets - 1));
+    const sd = Math.sqrt(k * varPerTicket * fpc);
+    
+    if (sd === 0) return mu > 0 ? 1 : 0;
+    
+    const z = mu / sd;
+    return 0.5 * (1 + erf(z / Math.sqrt(2)));
+  };
+
+  return {
+    budget20: calculateProbForBudget(20),
+    budget50: calculateProbForBudget(50),
+    budget100: calculateProbForBudget(100)
+  };
+};
+
+// 13. Value/Risk Ratio (Sharpe-like ratio)
+export const calculateValueRiskRatio = (box: BoxItem, remainingTickets: number): number => {
+  const evPerTicket = calculateEVPerTicket(box, remainingTickets);
+  const risk = calculateRiskPerTicket(box, remainingTickets);
+  
+  if (risk === 0) return evPerTicket > 0 ? 100 : 0; // Arbitrarily high for zero risk positive EV
+  
+  return evPerTicket / risk;
+};
+
+// 14. Big Hit Odds (probability of hitting prizes >= threshold)
+export const calculateBigHitOdds = (box: BoxItem, remainingTickets: number): { 
+  over50: { budget20: number; budget50: number; budget100: number }; 
+  top2Prizes: { budget20: number; budget50: number; budget100: number }; 
+} => {
+  if (!box.winningTickets || remainingTickets <= 0) {
+    return {
+      over50: { budget20: 0, budget50: 0, budget100: 0 },
+      top2Prizes: { budget20: 0, budget50: 0, budget100: 0 }
+    };
+  }
+
+  const pricePerTicket = Number(box.pricePerTicket) || 0;
+  
+  const calculateBigHitForThreshold = (threshold: number) => {
+    const bigTickets = (box.winningTickets || [])
+      .filter(ticket => Number(ticket.prize) >= threshold)
+      .reduce((sum, ticket) => sum + (Number(ticket.totalPrizes) - Number(ticket.claimedTotal)), 0);
+
+    const calculateForBudget = (budget: number): number => {
+      const k = Math.floor(budget / pricePerTicket);
+      return hypergeometricProbability(remainingTickets, bigTickets, k);
+    };
+
+    return {
+      budget20: calculateForBudget(20),
+      budget50: calculateForBudget(50),
+      budget100: calculateForBudget(100)
+    };
+  };
+
+  const calculateTop2PrizeOdds = () => {
+    // Get all unique prize values and sort them in descending order
+    const prizeValues = (box.winningTickets || [])
+      .map(ticket => Number(ticket.prize))
+      .filter(prize => prize > 0);
+    
+    const uniquePrizeValues = Array.from(new Set(prizeValues))
+      .sort((a, b) => b - a);
+    
+    // Get the top 2 prize values (or fewer if less than 2 exist)
+    const top2Values = uniquePrizeValues.slice(0, 2);
+    
+    if (top2Values.length === 0) {
+      return { budget20: 0, budget50: 0, budget100: 0 };
+    }
+    
+    // Count tickets for top 2 prize values
+    const top2Tickets = (box.winningTickets || [])
+      .filter(ticket => top2Values.includes(Number(ticket.prize)))
+      .reduce((sum, ticket) => sum + (Number(ticket.totalPrizes) - Number(ticket.claimedTotal)), 0);
+
+    const calculateForBudget = (budget: number): number => {
+      const k = Math.floor(budget / pricePerTicket);
+      return hypergeometricProbability(remainingTickets, top2Tickets, k);
+    };
+
+    return {
+      budget20: calculateForBudget(20),
+      budget50: calculateForBudget(50),
+      budget100: calculateForBudget(100)
+    };
+  };
+
+  return {
+    over50: calculateBigHitForThreshold(50),
+    top2Prizes: calculateTop2PrizeOdds()
+  };
+};
+
 // Main function to calculate all advanced metrics
 export const calculateAdvancedMetrics = (box: BoxItem, remainingTickets: number): AdvancedMetrics => {
   const evPerTicket = calculateEVPerTicket(box, remainingTickets);
@@ -408,6 +565,12 @@ export const calculateAdvancedMetrics = (box: BoxItem, remainingTickets: number)
   const riskPerTicket = calculateRiskPerTicket(box, remainingTickets);
   const sensitivity = calculateSensitivity(box, remainingTickets);
   const goodnessScore = calculateGoodnessScore(box, remainingTickets);
+  
+  // NEW METRICS
+  const evPerDollar = calculateEVPerDollar(box, remainingTickets);
+  const probabilityOfProfit = calculateProbabilityOfProfit(box, remainingTickets);
+  const valueRiskRatio = calculateValueRiskRatio(box, remainingTickets);
+  const bigHitOdds = calculateBigHitOdds(box, remainingTickets);
 
   return {
     evPerTicket,
@@ -419,6 +582,10 @@ export const calculateAdvancedMetrics = (box: BoxItem, remainingTickets: number)
     payoutConcentration,
     riskPerTicket,
     sensitivity,
-    goodnessScore
+    goodnessScore,
+    evPerDollar,
+    probabilityOfProfit,
+    valueRiskRatio,
+    bigHitOdds
   };
 };
