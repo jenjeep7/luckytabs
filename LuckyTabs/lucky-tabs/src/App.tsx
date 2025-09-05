@@ -6,6 +6,7 @@ import { getDesignTokens } from './theme';
 import AppRoutes from './AppRoutes';
 import { UserProfileProvider } from './context/UserProfileContext';
 import { LocationProvider } from './context/LocationContext';
+import { VersionChecker } from './components/VersionChecker';
 
 function App() {
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
@@ -22,6 +23,7 @@ function App() {
         <LocationProvider>
           <BrowserRouter>
             <AppRoutes />
+            <VersionChecker />
           </BrowserRouter>
         </LocationProvider>
       </UserProfileProvider>

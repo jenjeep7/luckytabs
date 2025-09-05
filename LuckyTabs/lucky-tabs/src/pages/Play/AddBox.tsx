@@ -60,12 +60,6 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
         setUploadError('Please select an image file');
         return;
       }
-      
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setUploadError('Image size must be less than 5MB');
-        return;
-      }
 
       setFlareSheetImage(file);
       setUploadError(null);
@@ -99,6 +93,13 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
     try {
       setUploading(true);
       setUploadError(null);
+
+      // Validate required fields
+      if (!flareSheetImage) {
+        setUploadError('Please add a flare sheet image');
+        setUploading(false);
+        return;
+      }
 
       interface Box {
         boxName: string;
@@ -206,12 +207,12 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
       </Box>
 
       {/* Flare Sheet Image Upload Section */}
-      <Box sx={{ mt: 3, mb: 3, textAlign: 'center' }}>
-        <Typography variant="subtitle1" sx={{ mb: 2 }}>
-          Flare Sheet (Optional)
+      <Box sx={{ textAlign: 'center' }}>
+        <Typography variant="h6" sx={{ mb: 1 }}>
+          Flare Sheet *
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Upload an image of the flare sheet for this box
+          Upload an image of the flare sheet for this box (Required)
         </Typography>
 
         {uploadError && (
@@ -225,12 +226,11 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
             <input
               type="file"
               accept="image/*"
-              capture="environment"
               onChange={handleFileSelect}
               ref={fileInputRef}
               style={{ display: 'none' }}
             />
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', pb: 2 }}>
               <Button
                 variant="outlined"
                 startIcon={<PhotoCamera />}
