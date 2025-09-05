@@ -46,6 +46,7 @@ export interface BoxItem {
   createdAt?: Date | { toDate?: () => Date };
   lastUpdated?: Date | { toDate?: () => Date };
   shares?: BoxShare[]; // New field for sharing functionality
+  flareSheetUrl?: string; // URL to the flare sheet image
 }
 
 class BoxService {

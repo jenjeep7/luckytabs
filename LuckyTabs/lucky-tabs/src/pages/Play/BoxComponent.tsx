@@ -16,6 +16,7 @@ import { db, auth } from '../../firebase';
 import { ConfirmRemoveDialog, EstimateRemainingDialog, ClaimedPrize } from './BoxDialogs';
 import { formatCurrency } from '../../utils/formatters';
 import { AdvancedAnalytics } from './AdvancedAnalytics';
+import FlareSheetDisplay from '../../components/FlareSheetDisplay';
 import { Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import {
@@ -25,12 +26,6 @@ import {
   rtpRemaining,
   Prize
 } from './helpers';
-import { userService } from '../../services/userService';
-
-type UserProfile = {
-  plan?: string;
-  // ...other fields as needed
-};
 
 interface WinningTicket {
   totalPrizes: number;
@@ -115,7 +110,7 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
   // Green: RTP >= 100% (Excellent)
   // Orange: RTP >= 75% and < 100% (Decent)
   // Red: RTP < 75% (Poor)
-  const getEvColor = (_evValue: number, rtpValue: number, isPercentage = true) => {
+  const getEvColor = (_evValue: number, rtpValue: number, isPercentage = true): string => {
     const rtpGreen = isPercentage ? 100 : 1.0;
     const rtpOrange = isPercentage ? 75 : 0.75;
     if (rtpValue >= rtpGreen) {
@@ -128,7 +123,7 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
   };
 
   // Helper function to get EV status text
-  const getEvStatus = (evValue: number, rtpValue: number, isPercentage = true) => {
+  const getEvStatus = (evValue: number, rtpValue: number, isPercentage = true): string => {
     const rtpThreshold = isPercentage ? 80 : 0.8;
     
     if (evValue >= 0) {
@@ -138,6 +133,32 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
     } else {
       return 'Poor';
     }
+  };
+
+  // Separate component for EV Badge to help with TypeScript inference
+  // eslint-disable-next-line react/prop-types
+  const EvBadge = ({ evData, rtpData }: { evData: number; rtpData: number }): React.ReactElement => {
+    return (
+      <Box sx={{ mb: 2 }}>
+        <Chip
+          label={`Payout ${rtpData.toFixed(1)}%`}
+          sx={{
+            fontSize: '1.1rem',
+            fontWeight: 'bold',
+            px: 2,
+            py: 1,
+            backgroundColor: getEvColor(evData, rtpData, true),
+            color: 'white',
+            '& .MuiChip-label': {
+              fontWeight: 'bold'
+            }
+          }}
+        />
+        <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
+          Status: {getEvStatus(evData, rtpData, true)}
+        </Typography>
+      </Box>
+    );
   };
 
   useEffect(() => {
@@ -505,8 +526,8 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
           const estimatedTickets = Number(remainingTicketsInput[box.id]) || box.estimatedRemainingTickets || 0;
           
           // Calculate EV data
-          let evData = null;
-          let rtpData = null;
+          let evData: number | null = null;
+          let rtpData: number | null = null;
           // let evBandData = null;
           if (estimatedTickets > 0 && box.winningTickets) {
             const prizes: Prize[] = box.winningTickets.map(ticket => ({
@@ -526,37 +547,23 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
           return (
             <Box key={box.id} sx={{ p: .5, mb: 3, position: 'relative'}}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                <Box sx={{ textAlign: 'center', flex: 1 }}>                  
-                  {/* EV Badge */}
-                  {evData !== null && rtpData !== null && (
-                    <Box sx={{ mb: 2 }}>
-                      <Chip
-                        label={`Payout ${rtpData.toFixed(1)}%`}
-                        sx={{
-                          fontSize: '1.1rem',
-                          fontWeight: 'bold',
-                          px: 2,
-                          py: 1,
-                          backgroundColor: getEvColor(evData, rtpData, true), // rtpData is percentage format
-                          color: 'white',
-                          '& .MuiChip-label': {
-                            fontWeight: 'bold'
-                          }
-                        }}
+                <Box sx={{ textAlign: 'center', flex: 1 }}>
+                  {/* EV badge */}
+                  {typeof evData === 'number' && typeof rtpData === 'number' && (
+                    <EvBadge evData={evData} rtpData={rtpData} />
+                  )}
+
+                  {/* Flare Sheet Display */}
+                  {typeof box?.flareSheetUrl === "string" && box.flareSheetUrl.trim() !== "" && (
+                    <Box sx={{ mb: 2, display: "flex", justifyContent: "center" }}>
+                      <FlareSheetDisplay
+                        imageUrl={box.flareSheetUrl}
+                        boxName={box?.boxName || "Unknown Box"}
+                        size="medium"
                       />
-                      {rtpData !== null && (
-                        <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
-                          Status: {getEvStatus(evData, rtpData, true)}
-                        </Typography>
-                      )}
-                      {/* {evBandData && (
-                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                          EV range: ${evBandData.low.toFixed(2)} to ${evBandData.high.toFixed(2)}
-                        </Typography>
-                      )} */}
                     </Box>
                   )}
-                  
+
                   <Typography>
                     <strong>{box.type === 'wall' ? 'Wall Box' : 'Bar Box'} #</strong> {box.boxNumber}
                   </Typography>
@@ -567,75 +574,76 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
                   {showOwner && (
                     <Typography><strong>Created By:</strong> {userDisplayNames[box.ownerId] || 'Loading...'}</Typography>
                   )}
-                  
-                  {/* Remaining Tickets Input and Chance Calculation */}
-                  <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                    {box.type === 'wall' ? (
-                      <>
-                        <Button
-                          variant="contained"
-                          color="secondary"
-                          onClick={() => handleEstimateClick(box)}
-                          sx={{ maxWidth: 200 }}
-                        >
-                          Enter Tickets by Row
-                        </Button>
-                        {remainingTicketsInput[box.id] && (
-                          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                            Remaining Tickets: {remainingTicketsInput[box.id]}
-                          </Typography>
-                        )}
-                      </>
-                    ) : (
-                      <TextField
-                        label="Estimated Remaining Tickets"
-                        type="number"
-                        size="small"
-                        value={remainingTicketsInput[box.id] || ''}
-                        onChange={(e) => handleRemainingTicketsChange(box.id, Number(e.target.value))}
-                        sx={{ maxWidth: 200 }}
-                      />
-                    )}
-                    {remainingTicketsInput[box.id] && (
-                      <>
-                        {/* <Typography sx={{ fontWeight: 'bold', color: 'text.primary' }}>
-                          <strong>Winning Chance Per Ticket:</strong> {calculateChancePercentage(remainingTicketsInput, box.id, box)}
-                        </Typography> */}
-                        <Typography sx={{ fontWeight: 'bold', color: 'secondary.main' }}>
-                          <strong>Odds:</strong> {calculateOneInXChances(remainingTicketsInput, box.id, box)}
-                        </Typography>
-                        <Typography sx={{ fontWeight: 'bold', color: 'success.main' }}>
-                          <strong>Total Remaining Prize Value:</strong> {formatCurrency(calculateTotalRemainingPrizeValue(box))}
-                        </Typography>
-                        {showOwner && (
-                          <Typography>
-                            <strong>Created By:</strong> {userDisplayNames[box.ownerId] || 'Loading...'}
-                          </Typography>
-                        )}
-                        {/* <Typography sx={{ fontWeight: 'bold', color: getPayoutColor(remainingTicketsInput, box.id, box) }}>
-                          <strong>Percent to buyout:</strong> {calculatePayoutPercentage(remainingTicketsInput, box.id, box)}
-                        </Typography> */}
-                      </>
-                    )}
-                  {/* Advanced Metrics Section in Accordion (Pro users only) */}
-                  {remainingTicketsInput[box.id] && firebaseUser && userProfile?.plan === 'pro' && (
-                    <Accordion sx={{ mt: 2, maxWidth: 800, mx: 'auto' }} defaultExpanded={false}>
-                      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography variant="h6">Advanced Analytics</Typography>
-                        </Box>
-                      </AccordionSummary>
-                      <AccordionDetails>
-                        <AdvancedAnalytics 
-                          box={box}
-                          remainingTickets={Number(remainingTicketsInput[box.id])}
-                          getEvColor={getEvColor}
-                        />
-                      </AccordionDetails>
-                    </Accordion>
-                  )}
                 </Box>
               </Box>
+                  
+              {/* Remaining Tickets Input and Chance Calculation */}
+              <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                {box.type === 'wall' ? (
+                  <>
+                    <Button
+                      variant="contained"
+                      color="secondary"
+                      onClick={() => handleEstimateClick(box)}
+                      sx={{ maxWidth: 200 }}
+                    >
+                      Enter Tickets by Row
+                    </Button>
+                    {remainingTicketsInput[box.id] && (
+                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                        Remaining Tickets: {remainingTicketsInput[box.id]}
+                      </Typography>
+                    )}
+                  </>
+                ) : (
+                  <TextField
+                    label="Estimated Remaining Tickets"
+                    type="number"
+                    size="small"
+                    value={remainingTicketsInput[box.id] || ''}
+                    onChange={(e) => handleRemainingTicketsChange(box.id, Number(e.target.value))}
+                    sx={{ maxWidth: 200 }}
+                  />
+                )}
+                {remainingTicketsInput[box.id] && (
+                  <>
+                    {/* <Typography sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+                      <strong>Winning Chance Per Ticket:</strong> {calculateChancePercentage(remainingTicketsInput, box.id, box)}
+                    </Typography> */}
+                    <Typography sx={{ fontWeight: 'bold', color: 'secondary.main' }}>
+                      <strong>Odds:</strong> {calculateOneInXChances(remainingTicketsInput, box.id, box)}
+                    </Typography>
+                    <Typography sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                      <strong>Total Remaining Prize Value:</strong> {formatCurrency(calculateTotalRemainingPrizeValue(box))}
+                    </Typography>
+                    {showOwner && (
+                      <Typography>
+                        <strong>Created By:</strong> {userDisplayNames[box.ownerId] || 'Loading...'}
+                      </Typography>
+                    )}
+                    {/* <Typography sx={{ fontWeight: 'bold', color: getPayoutColor(remainingTicketsInput, box.id, box) }}>
+                      <strong>Percent to buyout:</strong> {calculatePayoutPercentage(remainingTicketsInput, box.id, box)}
+                    </Typography> */}
+                  </>
+                )}
+                
+                {/* Advanced Metrics Section in Accordion (Pro users only) */}
+                {remainingTicketsInput[box.id] && firebaseUser && userProfile?.plan === 'pro' && (
+                  <Accordion sx={{ mt: 2, maxWidth: 800, mx: 'auto' }} defaultExpanded={false}>
+                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="h6">Advanced Analytics</Typography>
+                      </Box>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                      <AdvancedAnalytics 
+                        box={box}
+                        remainingTickets={Number(remainingTicketsInput[box.id])}
+                        getEvColor={getEvColor}
+                      />
+                    </AccordionDetails>
+                  </Accordion>
+                )}
               </Box>
 
               {/* Moved action buttons to bottom */}
