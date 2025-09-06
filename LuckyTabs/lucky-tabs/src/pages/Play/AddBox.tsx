@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react/prop-types */
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Box,
   TextField,
@@ -16,10 +16,11 @@ import {
   Alert,
 } from "@mui/material";
 import { PhotoCamera, Delete, Upload } from "@mui/icons-material";
-import { collection, addDoc, serverTimestamp, doc, updateDoc } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, doc, updateDoc, onSnapshot } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { auth, db, storage } from "../../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
+import { userService, UserData } from "../../services/userService";
 
 interface Props {
   location: { id: string; name: string };
@@ -40,6 +41,7 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
   const [pricePerTicket, setPricePerTicket] = useState("");
   const [startingTickets, setStartingTickets] = useState("");
   const [user] = useAuthState(auth);
+  const [userProfile, setUserProfile] = useState<UserData | null>(null);
   const [winningTickets, setWinningTickets] = useState<Prize[]>([
     { prize: "", totalPrizes: 0, claimedTotal: 0 },
   ]);
@@ -49,20 +51,84 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
   const [flareSheetPreview, setFlareSheetPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [parsing, setParsing] = useState(false);
+  const [parseError, setParseError] = useState<string | null>(null);
+  const [tempBoxId, setTempBoxId] = useState<string | null>(null);
+  
+  // Entry mode toggle - manual is default
+  const [entryMode, setEntryMode] = useState<"auto" | "manual">("manual");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch user profile to check plan
+  useEffect(() => {
+    if (user?.uid) {
+      userService.getUserProfile(user.uid).then(setUserProfile).catch(console.error);
+    }
+  }, [user?.uid]);
+
+  // Check if user has pro plan
+  const isProUser = userProfile?.plan === "pro";
+
+  // Reset to manual mode if user is not pro and somehow in auto mode
+  useEffect(() => {
+    if (userProfile && entryMode === "auto" && !isProUser) {
+      setEntryMode("manual");
+      setParseError("Auto Fill is only available for Pro users. Switched to manual entry.");
+    }
+  }, [userProfile, entryMode, isProUser]);
+
+  // Listen for OCR results when parsing
+  useEffect(() => {
+    if (!tempBoxId || !parsing) return;
+
+    console.log("Setting up listener for temp box:", tempBoxId);
+    
+    const unsubscribe = onSnapshot(doc(db, "temp-ocr-results", tempBoxId), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        console.log("OCR result received:", data);
+        
+        if (data.ocrProcessed) {
+          setBoxName(String(data.boxName || ""));
+          setPricePerTicket(String(data.pricePerTicket || "1"));
+          setStartingTickets(String(data.startingTickets || 0));
+          setWinningTickets(Array.isArray(data.winningTickets) ? data.winningTickets : []);
+                    setParsing(false);
+          setParseError(null);
+          setTempBoxId(null);
+        } else if (data.error) {
+          setParsing(false);
+          setParseError(String(data.error));
+          setTempBoxId(null);
+        }
+      }
+    });
+
+    // Set a timeout to stop waiting after 30 seconds
+    const timeout = setTimeout(() => {
+      console.log("OCR parsing timeout");
+      setParsing(false);
+      setParseError("Parsing timeout. Please try manual entry.");
+      setTempBoxId(null);
+    }, 30000);
+
+    return () => {
+      unsubscribe();
+      clearTimeout(timeout);
+    };
+  }, [tempBoxId, parsing]);
 
   // Handle file selection
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Validate file type
       if (!file.type.startsWith('image/')) {
         setUploadError('Please select an image file');
         return;
       }
-
       setFlareSheetImage(file);
       setUploadError(null);
+      setParseError(null);
       
       // Create preview
       const reader = new FileReader();
@@ -70,6 +136,41 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
         setFlareSheetPreview(e.target?.result as string);
       };
       reader.readAsDataURL(file);
+
+      // If auto mode and user has pro plan, upload and parse immediately
+      if (entryMode === "auto" && isProUser) {
+        void parseImageImmediately(file);
+      } else if (entryMode === "auto" && !isProUser) {
+        setParseError("Auto Fill is a Pro feature. Please upgrade your plan or use manual entry.");
+      }
+    }
+  };
+
+  // Parse image immediately for auto mode - NEW APPROACH
+  const parseImageImmediately = async (file: File) => {
+    try {
+      setParsing(true);
+      setParseError(null);
+      setUploadError(null);
+
+      console.log("Starting image parsing with storage trigger...");
+
+      const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      setTempBoxId(tempId);
+
+      // Upload image to the flare-sheets path to trigger the existing OCR function
+      const imageRef = ref(storage, `flare-sheets/${tempId}.jpg`);
+      await uploadBytes(imageRef, file);
+      const imageUrl = await getDownloadURL(imageRef);
+
+      console.log("Image uploaded to trigger OCR:", imageUrl);
+      console.log("Waiting for OCR results...");
+
+    } catch (error) {
+      console.error("Error uploading for parsing:", error);
+      setParsing(false);
+      setParseError(`Failed to parse image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setUploadError(null);
     }
   };
 
@@ -85,7 +186,7 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
 
   // Upload image to Firebase Storage
   const uploadFlareSheetImage = async (file: File, boxId: string): Promise<string> => {
-    const imageRef = ref(storage, `flare-sheets/${boxId}/${file.name}`);
+    const imageRef = ref(storage, `flare-sheets/${boxId}.jpg`);
     await uploadBytes(imageRef, file);
     return await getDownloadURL(imageRef);
   };
@@ -97,6 +198,23 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
       // Validate required fields
       if (!flareSheetImage) {
         setUploadError('Please add a flare sheet image');
+        setUploading(false);
+        return;
+      }
+
+      // Validation for both modes now
+      if (!boxNumber.trim()) {
+        setUploadError('Box number is required');
+        setUploading(false);
+        return;
+      }
+      if (!pricePerTicket.trim()) {
+        setUploadError('Price per ticket is required');
+        setUploading(false);
+        return;
+      }
+      if (!boxName.trim()) {
+        setUploadError('Box name is required');
         setUploading(false);
         return;
       }
@@ -116,22 +234,22 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
         winningTickets: Prize[];
         rows?: { rowNumber: number; estimatedTicketsRemaining: number }[];
         estimatedTicketsUpdated?: Date;
-        flareSheetUrl?: string; // Add flare sheet image URL
+        flareSheetUrl?: string;
       }
 
       const newBox: Box = {
         boxName: boxName || `Box ${boxNumber}`,
-        boxNumber,
-        pricePerTicket,
+        boxNumber: boxNumber,
+        pricePerTicket: pricePerTicket,
         startingTickets: Number(startingTickets) || 0,
         type,
         createdAt: serverTimestamp(),
         lastUpdated: serverTimestamp(),
         locationId: location.id,
-        ownerId: user?.uid || "", // ✅ use authenticated user's UID
+        ownerId: user?.uid || "",
         isActive: true,
         tags: ["pull tab"],
-        winningTickets,
+        winningTickets: winningTickets,
         ...(type === "wall"
           ? {
               rows: [
@@ -142,15 +260,12 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
               ],
             }
           : {}),
-        // Add estimatedTicketsUpdated field
         estimatedTicketsUpdated: new Date(),
       };
 
       // Create the box first to get the document ID
       const docRef = await addDoc(collection(db, "boxes"), newBox);
-      
-      // If there's a flare sheet image, upload it and update the box
-      if (flareSheetImage) {
+            if (flareSheetImage) {
         try {
           const flareSheetUrl = await uploadFlareSheetImage(flareSheetImage, docRef.id);
           // Update the box with the image URL
@@ -159,7 +274,6 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
         } catch (imageError) {
           console.error("Error uploading flare sheet:", imageError);
           setUploadError("Failed to upload flare sheet image");
-          // Don't return here - the box was created successfully
         }
       }
 
@@ -175,10 +289,21 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
 
   const handlePrizeChange = (index: number, field: keyof Prize, value: string | number) => {
     const updated: Prize[] = [...winningTickets];
-    updated[index] = {
-      ...updated[index],
-      [field]: field === "prize" ? String(value) : (value === "" ? 0 : Number(value)),
-    };
+    
+    if (field === "prize") {
+      // Strip special characters and keep only numbers and decimal point
+      const cleanedValue = String(value).replace(/[^0-9.]/g, '');
+      updated[index] = {
+        ...updated[index],
+        [field]: cleanedValue,
+      };
+    } else {
+      updated[index] = {
+        ...updated[index],
+        [field]: value === "" ? 0 : Number(value),
+      };
+    }
+    
     setWinningTickets(updated);
   };
 
@@ -214,6 +339,49 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           Upload an image of the flare sheet for this box (Required)
         </Typography>
+
+        {/* Entry Mode Toggle */}
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+          <ToggleButtonGroup
+            color="primary"
+            value={entryMode}
+            exclusive
+            onChange={(_, val: "auto" | "manual" | null) => {
+              if (val) setEntryMode(val);
+            }}
+            size="small"
+          >
+            <ToggleButton value="manual">
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <Typography variant="caption">Manual Entry</Typography>
+              </Box>
+            </ToggleButton>
+            <ToggleButton 
+              value="auto" 
+              disabled={!isProUser}
+              sx={{
+                opacity: !isProUser ? 0.5 : 1,
+                '&.Mui-disabled': {
+                  color: 'text.disabled',
+                  borderColor: 'action.disabled'
+                }
+              }}
+            >
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <Typography variant="caption">Auto Fill {!isProUser && '(Pro)'}</Typography>
+                <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
+                  {`(pro feature)`}
+                </Typography>
+              </Box>
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
+
+        {!isProUser && entryMode === "auto" && (
+          <Alert severity="info" sx={{ mb: 2, maxWidth: 400, mx: 'auto' }}>
+            Auto Fill is a Pro feature. Upgrade your plan to use OCR auto-parsing.
+          </Alert>
+        )}
 
         {uploadError && (
           <Alert severity="error" sx={{ mb: 2, maxWidth: 400, mx: 'auto' }}>
@@ -282,9 +450,48 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
             <LinearProgress />
           </Box>
         )}
+
+        {parsing && (
+          <Box sx={{ mt: 2, maxWidth: 300, mx: 'auto' }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              Parsing image with OCR...
+            </Typography>
+            <LinearProgress />
+          </Box>
+        )}
+
+        {parseError && (
+          <Alert severity="warning" sx={{ mt: 2, maxWidth: 400, mx: 'auto' }}>
+            {parseError}
+          </Alert>
+        )}
+
+        {/* Success message when auto parsing completes */}
+        {entryMode === "auto" && isProUser && !parsing && !parseError && boxName && boxName !== "" && (
+          <Alert severity="success" sx={{ mt: 2, maxWidth: 400, mx: 'auto' }}>
+            ✅ Image parsed successfully! Review and edit the data below before creating the box.
+          </Alert>
+        )}
       </Box>
 
-      <Grid container spacing={2}>
+      {/* Form Fields - Always shown now */}
+      {entryMode === "auto" && isProUser && !flareSheetImage && (
+        <Box sx={{ textAlign: 'center', mb: 3 }}>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Upload a flare sheet image and we&apos;ll automatically extract the box details using OCR!
+          </Alert>
+        </Box>
+      )}
+
+      {entryMode === "auto" && isProUser && flareSheetImage && !parsing && winningTickets.length > 0 && (
+        <Box sx={{ textAlign: 'center', mb: 3 }}>
+          <Alert severity="success" sx={{ mb: 2 }}>
+            ✅ Image parsed successfully! Review and edit the data below before creating the box.
+          </Alert>
+        </Box>
+      )}
+
+      <Grid container spacing={2} sx={{ mt: 2 }}>
         <Grid size={{ xs: 12, sm: 3 }}>
           <TextField
             size="small"
@@ -292,6 +499,8 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
             fullWidth
             value={boxName}
             onChange={(e) => setBoxName(e.target.value)}
+            required
+            disabled={parsing}
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 3 }}>
@@ -302,6 +511,7 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
             value={boxNumber}
             onChange={(e) => setBoxNumber(e.target.value)}
             required
+            disabled={parsing}
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 3 }}>
@@ -310,8 +520,13 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
             label="Price Per Ticket"
             fullWidth
             value={pricePerTicket}
-            onChange={(e) => setPricePerTicket(e.target.value)}
+            onChange={(e) => {
+              // Strip special characters and keep only numbers and decimal point
+              const cleanedValue = e.target.value.replace(/[^0-9.]/g, '');
+              setPricePerTicket(cleanedValue);
+            }}
             required
+            disabled={parsing}
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 3 }}>
@@ -323,6 +538,7 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
             value={startingTickets}
             onChange={(e) => setStartingTickets(e.target.value)}
             required
+            disabled={parsing}
           />
         </Grid>
       </Grid>
@@ -339,6 +555,7 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
                 fullWidth
                 size="small"
                 required
+                disabled={parsing}
               />
             </Grid>
             <Grid size={{ xs: 6, sm: 6 }}>
@@ -349,11 +566,19 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
                 onChange={(e) => handlePrizeChange(idx, "totalPrizes", e.target.value)}
                 fullWidth
                 size="small"
+                disabled={parsing}
               />
             </Grid>
           </Grid>
         ))}
-        <Button size="small" variant="contained" color="info" onClick={addPrize} sx={{ mt: 2 }}>
+        <Button 
+          size="small" 
+          variant="contained" 
+          color="info" 
+          onClick={addPrize} 
+          sx={{ mt: 2 }}
+          disabled={parsing}
+        >
           Add Another
         </Button>
       </Box>
@@ -363,9 +588,14 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
         variant="contained" 
         onClick={() => { void handleSubmit(); }} 
         sx={{ mt: 4 }}
-        disabled={uploading}
+        disabled={uploading || parsing}
       >
-        {uploading ? 'Creating Box...' : 'Submit Box'}
+        {uploading 
+          ? 'Creating Box...' 
+          : parsing
+            ? 'Parsing Image...'
+            : 'Create Box'
+        }
       </Button>
     </Box>
   );
