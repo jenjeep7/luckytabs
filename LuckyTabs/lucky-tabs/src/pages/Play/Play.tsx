@@ -493,7 +493,15 @@ export const Play: React.FC = () => {
         <Box sx={{ mt: 3, display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
           <Button
             variant="contained"
-            sx={{ bgcolor: 'secondary.main' }}
+            sx={{ 
+              bgcolor: 'secondary.main',
+              color: '#0C0E10', // Dark text for better contrast on the neon background
+              fontWeight: 700,
+              textShadow: '0 1px 0 rgba(255,255,255,.5)', // White text shadow for readability
+              '&:hover': {
+                bgcolor: 'secondary.dark'
+              }
+            }}
             onClick={() => setOpenCreateBox(true)}
             size="small"
           >
