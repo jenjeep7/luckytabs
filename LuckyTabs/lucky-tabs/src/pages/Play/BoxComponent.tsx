@@ -246,15 +246,19 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
         
         if (box && box.winningTickets) {
           const currentTicket = box.winningTickets[ticketIndex];
+          // Use optimistic update if available, otherwise use the actual value
+          const currentClaimedTotal = optimisticUpdates[boxId]?.[ticketIndex] ?? currentTicket.claimedTotal;
           let newClaimedTotal: number;
           
-          // Toggle between claimed and unclaimed
-          if (prizeIndex < currentTicket.claimedTotal) {
+          // Check if this specific prize is currently claimed
+          const isPrizeClaimed = prizeIndex < currentClaimedTotal;
+          
+          if (isPrizeClaimed) {
             // Unclaim: reduce claimedTotal by 1
-            newClaimedTotal = Math.max(0, currentTicket.claimedTotal - 1);
+            newClaimedTotal = Math.max(0, currentClaimedTotal - 1);
           } else {
             // Claim: increase claimedTotal by 1
-            newClaimedTotal = Math.min(currentTicket.totalPrizes, currentTicket.claimedTotal + 1);
+            newClaimedTotal = Math.min(currentTicket.totalPrizes, currentClaimedTotal + 1);
           }
 
           // Optimistic update: immediately update local state for instant UI feedback
