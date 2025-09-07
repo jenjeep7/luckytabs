@@ -26,6 +26,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import PlaceIcon from '@mui/icons-material/Place';
 import ShareIcon from '@mui/icons-material/Share';
+import Edit from '@mui/icons-material/Edit';
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../firebase";
 import { CreateBoxForm } from "./AddBox";
@@ -140,11 +141,24 @@ export const Play: React.FC = () => {
         }
 
         // Get both my boxes and shared boxes
-        const { myBoxes: userBoxes, sharedBoxes } = await boxService.getAllBoxesForLocation(
-          user.uid, 
-          userGroups.map(group => group.id), 
+        const { myBoxes: rawMyBoxes, sharedBoxes: rawSharedBoxes } = await boxService.getAllBoxesForLocation(
+          user.uid,
+          userGroups.map(g => g.id),
           selectedLocation
         );
+
+        // Filter shared boxes by selected group if applicable
+        const userBoxes = rawMyBoxes;
+        let sharedBoxes = rawSharedBoxes;
+        
+        if (selectedGroupId) {
+          sharedBoxes = rawSharedBoxes.filter(box => 
+            box.shares?.some(share => 
+              share.shareType === 'group' && 
+              share.sharedWith.includes(selectedGroupId)
+            ) || false
+          );
+        }
 
         // Enrich boxes with owner information
         const enrichedMyBoxes = await boxService.enrichBoxesWithOwnerInfo(userBoxes);
@@ -256,6 +270,7 @@ export const Play: React.FC = () => {
   const [openCreateBox, setOpenCreateBox] = useState(false);
   const [openLocationManager, setOpenLocationManager] = useState(false);
   const [editBox, setEditBox] = useState<BoxItem | null>(null);
+  const [editFormBox, setEditFormBox] = useState<BoxItem | null>(null);
   const [showLocationSelector, setShowLocationSelector] = useState(false);
 
   // Get user location on mount
@@ -530,18 +545,18 @@ export const Play: React.FC = () => {
       </Dialog>
 
       {/* Edit Box Modal */}
-  <Dialog open={!!editBox} onClose={() => setEditBox(null)} fullScreen>
+      <Dialog open={!!editFormBox} onClose={() => setEditFormBox(null)} fullScreen>
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           Edit Box
-          <IconButton onClick={() => setEditBox(null)}>
+          <IconButton onClick={() => setEditFormBox(null)}>
             <CloseIcon />
           </IconButton>
         </DialogTitle>
         <DialogContent>
-          {editBox && (
+          {editFormBox && (
             <EditBoxForm
-              box={editBox}
-              onClose={() => setEditBox(null)}
+              box={editFormBox}
+              onClose={() => setEditFormBox(null)}
               onBoxUpdated={() => { void refreshBoxes(); }}
             />
           )}
@@ -686,7 +701,7 @@ export const Play: React.FC = () => {
                 if (evData >= 0) {
                   evColor = statusColors.excellent; // Neon green for positive EV
                   evStatus = 'Excellent';
-                } else if (rtpData >= 75) {
+                } else if (rtpData >= 80) {
                   evColor = statusColors.decent; // Neon amber for decent RTP
                   evStatus = 'Decent';
                 } else {
@@ -789,16 +804,28 @@ export const Play: React.FC = () => {
                               </Typography>
                             )}
                             {boxView === 'my' && (
-                              <IconButton
-                                size="small"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleShareBox(box.id, box.boxName);
-                                }}
-                                sx={{ color: 'primary.main' }}
-                              >
-                                <ShareIcon fontSize="small" />
-                              </IconButton>
+                              <Box sx={{ display: 'flex', gap: 0.5 }}>
+                                <IconButton
+                                  size="small"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditFormBox(box);
+                                  }}
+                                  sx={{ color: 'secondary.main' }}
+                                >
+                                  <Edit fontSize="small" />
+                                </IconButton>
+                                <IconButton
+                                  size="small"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleShareBox(box.id, box.boxName);
+                                  }}
+                                  sx={{ color: 'primary.main' }}
+                                >
+                                  <ShareIcon fontSize="small" />
+                                </IconButton>
+                              </Box>
                             )}
                           </Box>
                         )}
@@ -886,7 +913,7 @@ export const Play: React.FC = () => {
                     if (evData >= 0) {
                       evColor = statusColors.excellent; // Neon green for positive EV
                       evStatus = 'Excellent';
-                    } else if (rtpData >= 75) {
+                    } else if (rtpData >= 80) {
                       evColor = statusColors.decent; // Neon amber for decent RTP
                       evStatus = 'Decent';
                     } else {
@@ -989,20 +1016,34 @@ export const Play: React.FC = () => {
                                   </Typography>
                                 )}
                                 {boxView === 'my' && (
-                                  <IconButton
-                                    size="small"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleShareBox(box.id, box.boxName);
-                                    }}
-                                    sx={{ 
-                                      ml: 'auto',
-                                      color: evColor,
-                                      '&:hover': { backgroundColor: `${evColor}20` }
-                                    }}
-                                  >
-                                    <ShareIcon sx={{ fontSize: 16 }} />
-                                  </IconButton>
+                                  <Box sx={{ display: 'flex', gap: 0.5 }}>
+                                    <IconButton
+                                      size="small"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEditFormBox(box);
+                                      }}
+                                      sx={{ 
+                                        color: evColor,
+                                        '&:hover': { backgroundColor: `${evColor}20` }
+                                      }}
+                                    >
+                                      <Edit sx={{ fontSize: 16 }} />
+                                    </IconButton>
+                                    <IconButton
+                                      size="small"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleShareBox(box.id, box.boxName);
+                                      }}
+                                      sx={{ 
+                                        color: evColor,
+                                        '&:hover': { backgroundColor: `${evColor}20` }
+                                      }}
+                                    >
+                                      <ShareIcon sx={{ fontSize: 16 }} />
+                                    </IconButton>
+                                  </Box>
                                 )}
                               </Box>
                             )}

@@ -109,17 +109,17 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
 
   // Helper function to determine EV color based on three-tier system
   // Green: RTP >= 100% (Excellent)
-  // Orange: RTP >= 75% and < 100% (Decent)
-  // Red: RTP < 75% (Poor)
+  // Orange: RTP >= 80% and < 100% (Decent)
+  // Red: RTP < 80% (Poor)
   const getEvColor = (_evValue: number, rtpValue: number, isPercentage = true): string => {
     const rtpGreen = isPercentage ? 100 : 1.0;
-    const rtpOrange = isPercentage ? 75 : 0.75;
+    const rtpOrange = isPercentage ? 80 : 0.80;
     if (rtpValue >= rtpGreen) {
       return '#4caf50'; // Green for RTP >= 100%
     } else if (rtpValue >= rtpOrange) {
-      return '#ff9800'; // Orange for RTP >= 75%
+      return '#ff9800'; // Orange for RTP >= 80%
     } else {
-      return '#f44336'; // Red for RTP < 75%
+      return '#f44336'; // Red for RTP < 80%
     }
   };
 
@@ -273,9 +273,11 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
             };
           });
 
-          const updatedTickets = [...box.winningTickets];
+          // Get the most current state for Firebase update by applying all optimistic updates
+          const effectiveTickets = getEffectiveWinningTickets(box);
+          const updatedTickets = [...effectiveTickets];
           updatedTickets[ticketIndex] = {
-            ...currentTicket,
+            ...updatedTickets[ticketIndex],
             claimedTotal: newClaimedTotal
           };
 
@@ -450,24 +452,58 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
     void updateFirestore();
   }, [firebaseUser?.uid, refreshBoxes]);
 
+  // Helper function to get effective winning tickets (considering optimistic updates)
+  const getEffectiveWinningTickets = useCallback((box: BoxItem): WinningTicket[] => {
+    if (!box.winningTickets) return [];
+    
+    const optimisticUpdatesForBox = optimisticUpdates[box.id];
+    if (!optimisticUpdatesForBox) return box.winningTickets;
+    
+    return box.winningTickets.map((ticket, index) => {
+      const optimisticClaimedTotal = optimisticUpdatesForBox[index];
+      if (optimisticClaimedTotal !== undefined) {
+        return {
+          ...ticket,
+          claimedTotal: optimisticClaimedTotal
+        };
+      }
+      return ticket;
+    });
+  }, [optimisticUpdates]);
+
   const renderPrizeButtons = (box: BoxItem) => {
     if (!box.winningTickets) return null;
 
     const allPrizeButtons: React.ReactElement[] = [];
 
-    box.winningTickets.forEach((ticket, ticketIndex) => {
+    // Create tickets with their original indices for proper mapping
+    const ticketsWithIndices = box.winningTickets.map((ticket, index) => ({
+      ...ticket,
+      originalIndex: index
+    }));
+
+    // Sort tickets by prize value from highest to lowest
+    const sortedTickets = [...ticketsWithIndices].sort((a, b) => {
+      const prizeA = Number(a.prize);
+      const prizeB = Number(b.prize);
+      return prizeB - prizeA; // Descending order (highest to lowest)
+    });
+
+    sortedTickets.forEach((ticket) => {
       const prize = ticket.prize.toString();
       const totalPrizes = ticket.totalPrizes;
+      const originalTicketIndex = ticket.originalIndex;
+      
       // Use optimistic update if available, otherwise use the actual value
-      const claimedTotal = optimisticUpdates[box.id]?.[ticketIndex] ?? ticket.claimedTotal;
+      const claimedTotal = optimisticUpdates[box.id]?.[originalTicketIndex] ?? ticket.claimedTotal;
 
       for (let i = 0; i < totalPrizes; i++) {
         const isClaimed = i < claimedTotal;
         allPrizeButtons.push(
           <Button
-            key={`${ticketIndex}-${i}`}
+            key={`${originalTicketIndex}-${i}`}
             variant={isClaimed ? "outlined" : "contained"}
-            onClick={() => handlePrizeClick(box.id, ticketIndex, i)}
+            onClick={() => handlePrizeClick(box.id, originalTicketIndex, i)}
             sx={{
               minWidth: 60,
               minHeight: 40,
@@ -521,23 +557,26 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
           const pricePerTicket = parseFloat(box.pricePerTicket);
           const estimatedTickets = Number(remainingTicketsInput[box.id]) || box.estimatedRemainingTickets || 0;
           
-          // Calculate EV data
+          // Calculate EV data using effective winning tickets (with optimistic updates)
           let evData: number | null = null;
           let rtpData: number | null = null;
           // let evBandData = null;
-          if (estimatedTickets > 0 && box.winningTickets) {
-            const prizes: Prize[] = box.winningTickets.map(ticket => ({
-              value: Number(ticket.prize),
-              remaining: Number(ticket.totalPrizes) - Number(ticket.claimedTotal)
-            }));
-            
-            const ev = evPerTicket(pricePerTicket, estimatedTickets, prizes);
-            const rtp = rtpRemaining(pricePerTicket, estimatedTickets, prizes);
-            // const band = evBand(pricePerTicket, estimatedTickets, prizes);
-            
-            evData = ev;
-            rtpData = rtp;
-            // evBandData = band;
+          if (estimatedTickets > 0) {
+            const effectiveWinningTickets = getEffectiveWinningTickets(box);
+            if (effectiveWinningTickets.length > 0) {
+              const prizes: Prize[] = effectiveWinningTickets.map(ticket => ({
+                value: Number(ticket.prize),
+                remaining: Number(ticket.totalPrizes) - Number(ticket.claimedTotal)
+              }));
+              
+              const ev = evPerTicket(pricePerTicket, estimatedTickets, prizes);
+              const rtp = rtpRemaining(pricePerTicket, estimatedTickets, prizes);
+              // const band = evBand(pricePerTicket, estimatedTickets, prizes);
+              
+              evData = ev;
+              rtpData = rtp;
+              // evBandData = band;
+            }
           }
           
           return (
@@ -604,21 +643,21 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
                 {remainingTicketsInput[box.id] && (
                   <>
                     {/* <Typography sx={{ fontWeight: 'bold', color: 'text.primary' }}>
-                      <strong>Winning Chance Per Ticket:</strong> {calculateChancePercentage(remainingTicketsInput, box.id, box)}
+                      <strong>Winning Chance Per Ticket:</strong> {calculateChancePercentage(remainingTicketsInput, box.id, boxWithEffectiveTickets)}
                     </Typography> */}
                     <Typography sx={{ fontWeight: 'bold', color: 'secondary.main' }}>
-                      <strong>Odds:</strong> {calculateOneInXChances(remainingTicketsInput, box.id, box)}
+                      <strong>Odds:</strong> {calculateOneInXChances(remainingTicketsInput, box.id, { ...box, winningTickets: getEffectiveWinningTickets(box) })}
                     </Typography>
                     <Typography sx={{ fontWeight: 'bold', color: 'success.main' }}>
-                      <strong>Total Remaining Prize Value:</strong> {formatCurrency(calculateTotalRemainingPrizeValue(box))}
+                      <strong>Total Remaining Prize Value:</strong> {formatCurrency(calculateTotalRemainingPrizeValue({ ...box, winningTickets: getEffectiveWinningTickets(box) }))}
                     </Typography>
                     {showOwner && (
                       <Typography>
                         <strong>Created By:</strong> {userDisplayNames[box.ownerId] || 'Loading...'}
                       </Typography>
                     )}
-                    {/* <Typography sx={{ fontWeight: 'bold', color: getPayoutColor(remainingTicketsInput, box.id, box) }}>
-                      <strong>Percent to buyout:</strong> {calculatePayoutPercentage(remainingTicketsInput, box.id, box)}
+                    {/* <Typography sx={{ fontWeight: 'bold', color: getPayoutColor(remainingTicketsInput, box.id, boxWithEffectiveTickets) }}>
+                      <strong>Percent to buyout:</strong> {calculatePayoutPercentage(remainingTicketsInput, box.id, boxWithEffectiveTickets)}
                     </Typography> */}
                   </>
                 )}
@@ -633,7 +672,7 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
                     </AccordionSummary>
                     <AccordionDetails>
                       <AdvancedAnalytics 
-                        box={box}
+                        box={{ ...box, winningTickets: getEffectiveWinningTickets(box) }}
                         remainingTickets={Number(remainingTicketsInput[box.id])}
                         getEvColor={getEvColor}
                       />

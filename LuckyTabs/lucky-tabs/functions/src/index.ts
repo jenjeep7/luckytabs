@@ -89,16 +89,17 @@ export const parseFlareSheet = functions.storage
       }));
 
       const parsedData = {
-        boxName: gameName,
-        pricePerTicket: pricePerTicket ? String(pricePerTicket) : "1", // Remove dollar sign - store as number string
         winningTickets: winningTickets,
-        startingTickets: cleaned.length,
-        boxNumber: "", // Don't auto-populate box number - leave empty for manual entry
         lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
         ocrProcessed: true,
         ocrProcessedAt: admin.firestore.FieldValue.serverTimestamp(),
         remainingPrizes: cleaned.sort((a, b) => b - a),
         prizeCounts: counts,
+        // Don't auto-populate these - let user enter manually
+        // boxName: gameName,
+        // pricePerTicket: pricePerTicket ? String(pricePerTicket) : "1",
+        // startingTickets: cleaned.length,
+        // boxNumber: "",
       };
 
       if (isTemp) {
@@ -106,8 +107,20 @@ export const parseFlareSheet = functions.storage
         await db.collection("temp-ocr-results").doc(boxId).set(parsedData);
         console.log(`Saved temp OCR result for ${boxId}`);
       } else {
-        // Update existing box
+        // Update existing box - but check if it was manually edited first
         const boxRef = db.collection("boxes").doc(boxId);
+        const boxDoc = await boxRef.get();
+        
+        if (boxDoc.exists) {
+          const boxData = boxDoc.data();
+          
+          // Don't overwrite manually edited boxes
+          if (boxData?.manuallyEdited) {
+            console.log(`Skipping OCR update for manually edited box ${boxId}`);
+            return;
+          }
+        }
+        
         await boxRef.update(parsedData);
         console.log(`Updated box ${boxId} with OCR data`);
       }
@@ -183,11 +196,12 @@ export const parseFlareSheetImmediate = functions.https.onCall(async (data, cont
     return {
       success: true,
       parsedData: {
-        boxName: gameName,
-        pricePerTicket: pricePerTicket ? String(pricePerTicket) : "1", // Remove dollar sign - store as number string
         winningTickets: winningTickets,
-        startingTickets: cleaned.length,
-        boxNumber: "", // Don't auto-populate box number - leave empty for manual entry
+        // Don't auto-populate these - let user enter manually  
+        // boxName: gameName,
+        // pricePerTicket: pricePerTicket ? String(pricePerTicket) : "1",
+        // startingTickets: cleaned.length,
+        // boxNumber: "",
       }
     };
 

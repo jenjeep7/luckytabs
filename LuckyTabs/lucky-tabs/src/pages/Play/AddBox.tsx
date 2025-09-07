@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react/prop-types */
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Box,
   TextField,
@@ -39,12 +39,14 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
   const [boxName, setBoxName] = useState("");
   const [boxNumber, setBoxNumber] = useState("");
   const [pricePerTicket, setPricePerTicket] = useState("");
-  const [startingTickets, setStartingTickets] = useState("");
+  const [startingTickets, setStartingTickets] = useState("300");
   const [user] = useAuthState(auth);
   const [userProfile, setUserProfile] = useState<UserData | null>(null);
   const [winningTickets, setWinningTickets] = useState<Prize[]>([
     { prize: "", totalPrizes: 0, claimedTotal: 0 },
   ]);
+  const [ocrProcessed, setOcrProcessed] = useState(false); // Track if OCR has been processed
+  const ocrProcessedRef = useRef(false); // Use ref to avoid dependency array issues
   
   // Image upload state
   const [flareSheetImage, setFlareSheetImage] = useState<File | null>(null);
@@ -81,21 +83,20 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
   useEffect(() => {
     if (!tempBoxId || !parsing) return;
 
-    console.log("Setting up listener for temp box:", tempBoxId);
-    
     const unsubscribe = onSnapshot(doc(db, "temp-ocr-results", tempBoxId), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        console.log("OCR result received:", data);
         
-        if (data.ocrProcessed) {
-          setBoxName(String(data.boxName || ""));
-          setPricePerTicket(String(data.pricePerTicket || "1"));
-          setStartingTickets(String(data.startingTickets || 0));
+        if (data.ocrProcessed && !ocrProcessedRef.current) {
+          // Only set winningTickets from OCR, let user manually enter everything else
           setWinningTickets(Array.isArray(data.winningTickets) ? data.winningTickets : []);
-                    setParsing(false);
+          setOcrProcessed(true); // Mark OCR as processed
+          ocrProcessedRef.current = true; // Also set the ref
+          setParsing(false);
           setParseError(null);
           setTempBoxId(null);
+        } else if (data.ocrProcessed && ocrProcessedRef.current) {
+          // OCR already processed, ignoring duplicate data
         } else if (data.error) {
           setParsing(false);
           setParseError(String(data.error));
@@ -116,6 +117,7 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
       unsubscribe();
       clearTimeout(timeout);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tempBoxId, parsing]);
 
   // Handle file selection
@@ -152,21 +154,15 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
       setParsing(true);
       setParseError(null);
       setUploadError(null);
-
-      console.log("Starting image parsing with storage trigger...");
+      setOcrProcessed(false); // Reset OCR processed flag for new image
+      ocrProcessedRef.current = false; // Also reset the ref
 
       const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       setTempBoxId(tempId);
 
       // Upload image to the flare-sheets path to trigger the existing OCR function
       const imageRef = ref(storage, `flare-sheets/${tempId}.jpg`);
-      await uploadBytes(imageRef, file);
-      const imageUrl = await getDownloadURL(imageRef);
-
-      console.log("Image uploaded to trigger OCR:", imageUrl);
-      console.log("Waiting for OCR results...");
-
-    } catch (error) {
+      await uploadBytes(imageRef, file);    } catch (error) {
       console.error("Error uploading for parsing:", error);
       setParsing(false);
       setParseError(`Failed to parse image: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -235,6 +231,7 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
         rows?: { rowNumber: number; estimatedTicketsRemaining: number }[];
         estimatedTicketsUpdated?: Date;
         flareSheetUrl?: string;
+        manuallyEdited?: boolean;
       }
 
       const newBox: Box = {
@@ -250,6 +247,7 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
         isActive: true,
         tags: ["pull tab"],
         winningTickets: winningTickets,
+        manuallyEdited: true, // Flag to prevent OCR from overwriting
         ...(type === "wall"
           ? {
               rows: [
@@ -498,7 +496,9 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
             label="Box Name"
             fullWidth
             value={boxName}
-            onChange={(e) => setBoxName(e.target.value)}
+            onChange={(e) => {
+              setBoxName(e.target.value);
+            }}
             required
             disabled={parsing}
           />
@@ -509,7 +509,9 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
             label="Box Number"
             fullWidth
             value={boxNumber}
-            onChange={(e) => setBoxNumber(e.target.value)}
+            onChange={(e) => {
+              setBoxNumber(e.target.value);
+            }}
             required
             disabled={parsing}
           />
@@ -586,7 +588,9 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
       <Button 
         size="small" 
         variant="contained" 
-        onClick={() => { void handleSubmit(); }} 
+        onClick={() => { 
+          void handleSubmit(); 
+        }} 
         sx={{ mt: 4 }}
         disabled={uploading || parsing}
       >
