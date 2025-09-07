@@ -29,6 +29,9 @@ import ShareIcon from '@mui/icons-material/Share';
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../firebase";
 import { CreateBoxForm } from "./AddBox";
+import NeonHeader from "../../components/NeonHeader";
+import NeonToggle from "../../components/NeonToggle";
+import NeonStatusPill from "../../components/NeonStatusPill";
 import { EditBoxForm } from "./EditBox";
 import { BoxComponent } from "./BoxComponent";
 import { LocationManager } from "./LocationManager";
@@ -40,6 +43,7 @@ import { groupService, GroupData } from "../../services/groupService";
 import ShareBoxDialog from "./ShareBoxDialog";
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../../firebase';
+import { StatusType, statusColors } from '../../utils/neonUtils';
 
 interface Location {
   id: string;
@@ -401,17 +405,24 @@ export const Play: React.FC = () => {
 
   return (
     <Box sx={{ 
-      p: 3, 
       width: '100%', 
       minHeight: 'calc(100vh - 64px)', // Account for AppBar height
       overflow: 'visible',
       '@media (max-width: 600px)': {
-        p: 2, // Reduce padding on mobile
         minHeight: 'calc(100vh - 56px)', // Smaller AppBar on mobile
       }
     }}>
-      {/* Show location selector if no location is selected OR user wants to change location */}
-      {(!selectedLocation || showLocationSelector) && (
+      {/* Neon Gaming Header */}
+      {/* <NeonHeader /> */}
+      
+      <Box sx={{ 
+        p: 3,
+        '@media (max-width: 600px)': {
+          p: 2, // Reduce padding on mobile
+        }
+      }}>
+        {/* Show location selector if no location is selected OR user wants to change location */}
+        {(!selectedLocation || showLocationSelector) && (
         <>
           {/* Locations Map */}
           {locations.length > 0 && (
@@ -534,24 +545,14 @@ export const Play: React.FC = () => {
         <Box sx={{ mt: 2 }}>
           {/* Box View Toggle */}
           <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
-            <ToggleButtonGroup
+            <NeonToggle
               value={boxView}
-              exclusive
-              size="small"
-              onChange={(_, newView: 'my' | 'group' | null) => {
-                if (newView !== null) {
-                  setBoxView(newView);
-                }
-              }}
-              aria-label="box view toggle"
-            >
-              <ToggleButton value="my" aria-label="my boxes" size="small">
-                My Boxes ({myBoxes.length})
-              </ToggleButton>
-              <ToggleButton value="group" aria-label="group boxes" size="small">
-                Group Boxes ({groupBoxes.length})
-              </ToggleButton>
-            </ToggleButtonGroup>
+              onChange={(newView) => setBoxView(newView as 'my' | 'group')}
+              options={[
+                { value: 'my', label: `MY BOXES (${myBoxes.length})` },
+                { value: 'group', label: `GROUP BOXES (${groupBoxes.length})` }
+              ]}
+            />
           </Box>
 
           {/* Group Selector - only show when in group view */}
@@ -606,21 +607,35 @@ export const Play: React.FC = () => {
           {/* Wall Boxes Section */}
           {wallBoxes.length > 0 && (
             <Box sx={{ mb: 4 }}>
-              {/* Group Header with Divider */}
+              {/* Group Header with Neon Divider */}
               <Box sx={{ 
                 display: 'flex', 
                 alignItems: 'center', 
-                mb: 3,
+                mb: 4,
                 '&::before, &::after': {
                   content: '""',
                   flex: 1,
-                  height: '1px',
-                  backgroundColor: 'divider'
+                  height: '2px',
+                  background: 'linear-gradient(90deg, transparent, #7DF9FF66, transparent)',
+                  boxShadow: '0 0 8px rgba(125, 249, 255, 0.4)'
                 },
-                '&::before': { mr: 2 },
-                '&::after': { ml: 2 }
+                '&::before': { mr: 3 },
+                '&::after': { ml: 3 }
               }}>
-                <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                <Typography 
+                  variant="h4" 
+                  sx={{ 
+                    fontWeight: 900,
+                    fontFamily: '"Orbitron", "Inter", sans-serif',
+                    background: 'linear-gradient(45deg, #7DF9FF 0%, #00E676 100%)',
+                    backgroundClip: 'text',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    textShadow: '0 0 20px rgba(125, 249, 255, 0.5)',
+                    letterSpacing: '0.1em',
+                    px: 2
+                  }}
+                >
                   Wall Boxes
                 </Typography>
               </Box>
@@ -642,7 +657,7 @@ export const Play: React.FC = () => {
               const estimatedTickets = box.estimatedRemainingTickets || 0;
               
               // Calculate EV and metrics
-              let evColor = '#757575'; // Default gray
+              let evColor = statusColors.poor; // Default to poor
               let evStatus = 'No Data';
               
               if (estimatedTickets > 0 && box.winningTickets) {
@@ -659,15 +674,15 @@ export const Play: React.FC = () => {
                 const evData = (totalRemainingValue - costToCloseOut) / estimatedTickets;
                 const rtpData = (totalRemainingValue / costToCloseOut) * 100;
                 
-                // Color coding based on EV and RTP
+                // Color coding based on EV and RTP using neon colors
                 if (evData >= 0) {
-                  evColor = '#4caf50'; // Green for positive EV
+                  evColor = statusColors.excellent; // Neon green for positive EV
                   evStatus = 'Excellent';
                 } else if (rtpData >= 75) {
-                  evColor = '#ff9800'; // Orange for decent RTP
+                  evColor = statusColors.decent; // Neon amber for decent RTP
                   evStatus = 'Decent';
                 } else {
-                  evColor = '#f44336'; // Red for poor
+                  evColor = statusColors.poor; // Neon red for poor
                   evStatus = 'Poor';
                 }
               }
@@ -748,18 +763,11 @@ export const Play: React.FC = () => {
                             </Typography>
                           </Box>
                           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 70 }}>
-                            <Chip
+                            <NeonStatusPill
+                              status={evStatus === 'Excellent' ? 'excellent' : evStatus === 'Decent' ? 'decent' : 'poor'}
                               label={evStatus}
                               size="small"
-                              sx={{
-                                backgroundColor: evColor,
-                                color: 'white',
-                                fontWeight: 'bold',
-                                fontSize: '0.7rem',
-                                height: 24,
-                                px: 1,
-                                mb: 0.5
-                              }}
+                              sx={{ mb: 0.5 }}
                             />
                           </Box>
                         </Box>
@@ -799,21 +807,35 @@ export const Play: React.FC = () => {
           {/* Bar Boxes Section */}
           {barBoxes.length > 0 && (
             <Box sx={{ mb: 4 }}>
-              {/* Group Header with Divider */}
+              {/* Group Header with Neon Divider */}
               <Box sx={{ 
                 display: 'flex', 
                 alignItems: 'center', 
-                mb: 3,
+                mb: 4,
                 '&::before, &::after': {
                   content: '""',
                   flex: 1,
-                  height: '1px',
-                  backgroundColor: 'divider'
+                  height: '2px',
+                  background: 'linear-gradient(90deg, transparent, #7DF9FF66, transparent)',
+                  boxShadow: '0 0 8px rgba(125, 249, 255, 0.4)'
                 },
-                '&::before': { mr: 2 },
-                '&::after': { ml: 2 }
+                '&::before': { mr: 3 },
+                '&::after': { ml: 3 }
               }}>
-                <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+                <Typography 
+                  variant="h4" 
+                  sx={{ 
+                    fontWeight: 900,
+                    fontFamily: '"Orbitron", "Inter", sans-serif',
+                    background: 'linear-gradient(45deg, #7DF9FF 0%, #00E676 100%)',
+                    backgroundClip: 'text',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    textShadow: '0 0 20px rgba(125, 249, 255, 0.5)',
+                    letterSpacing: '0.1em',
+                    px: 2
+                  }}
+                >
                   Bar Boxes
                 </Typography>
               </Box>
@@ -835,7 +857,7 @@ export const Play: React.FC = () => {
                   const estimatedTickets = box.estimatedRemainingTickets || 0;
                   
                   // Calculate EV and metrics
-                  let evColor = '#757575'; // Default gray
+                  let evColor = statusColors.poor; // Default to poor
                   let evStatus = 'No Data';
                   
                   if (estimatedTickets > 0 && box.winningTickets) {
@@ -852,15 +874,15 @@ export const Play: React.FC = () => {
                     const evData = (totalRemainingValue - costToCloseOut) / estimatedTickets;
                     const rtpData = (totalRemainingValue / costToCloseOut) * 100;
                     
-                    // Color coding based on EV and RTP
+                    // Color coding based on EV and RTP using neon colors
                     if (evData >= 0) {
-                      evColor = '#4caf50'; // Green for positive EV
+                      evColor = statusColors.excellent; // Neon green for positive EV
                       evStatus = 'Excellent';
                     } else if (rtpData >= 75) {
-                      evColor = '#ff9800'; // Orange for decent RTP
+                      evColor = statusColors.decent; // Neon amber for decent RTP
                       evStatus = 'Decent';
                     } else {
-                      evColor = '#f44336'; // Red for poor
+                      evColor = statusColors.poor; // Neon red for poor
                       evStatus = 'Poor';
                     }
                   }
@@ -941,18 +963,11 @@ export const Play: React.FC = () => {
                                 </Typography>
                               </Box>
                               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 70 }}>
-                                <Chip
+                                <NeonStatusPill
+                                  status={evStatus === 'Excellent' ? 'excellent' : evStatus === 'Decent' ? 'decent' : 'poor'}
                                   label={evStatus}
                                   size="small"
-                                  sx={{
-                                    backgroundColor: evColor,
-                                    color: 'white',
-                                    fontWeight: 'bold',
-                                    fontSize: '0.7rem',
-                                    height: 24,
-                                    px: 1,
-                                    mb: 0.5
-                                  }}
+                                  sx={{ mb: 0.5 }}
                                 />
                               </Box>
                             </Box>
@@ -1089,6 +1104,7 @@ export const Play: React.FC = () => {
           currentUserId={user.uid}
         />
       )}
+      </Box>
     </Box>
   );
 };

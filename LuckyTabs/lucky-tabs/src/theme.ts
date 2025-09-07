@@ -1,127 +1,149 @@
-import { ThemeOptions } from '@mui/material/styles';
+import { createTheme, ThemeOptions } from '@mui/material/styles';
 
-export const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => ({
+// Neon Gaming Bar Theme
+const neonGamingTheme = createTheme({
   palette: {
-    mode,
-    ...(mode === 'light'
-      ? {
-          primary: {
-            main: '#000000ff',
-            light: '#f9f9f9',
-            contrastText: '#ffffff', // White text on black buttons
-          },
-          secondary: {
-            main: '#e140a1ff',
-            contrastText: '#ffffff', // White text on pink buttons
-          },
-          background: {
-            default: '#f9f9fb',
-            paper: '#ffffff',
-          },
-          text: {
-            primary: '#1a1a1a',
-            secondary: '#555555',
-          },
-          success: {
-            main: '#4CAF50',
-          },
-        }
-      : {
-          primary: {
-            main: '#ffffff', // White primary for dark mode
-            light: '#f5f5f5',
-            contrastText: '#000000', // Black text on white buttons in dark mode
-          },
-          secondary: {
-            main: '#e140a1ff',
-            contrastText: '#ffffff', // White text on pink buttons
-          },
-          background: {
-            default: '#121212',
-            paper: '#1e1e1e',
-          },
-          text: {
-            primary: '#ffffff',
-            secondary: '#aaaaaa',
-          },
-          success: {
-            main: '#81C784',
-          },
-        }),
+    mode: 'dark',
+    primary: { main: '#7DF9FF' },       // electric cyan
+    secondary: { main: '#FF3CAC' },     // hot pink
+    success: { main: '#00E676' },       // neon green
+    warning: { main: '#FFC107' },       // amber
+    error:   { main: '#FF4D4D' },       // neon red
+    background: {
+      default: '#0C0E10',
+      paper:   '#121418'
+    },
+    text: {
+      primary: '#EAF6FF',
+      secondary: '#A6B3C2',
+    }
   },
+  shape: { borderRadius: 16 },
   typography: {
-    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-    h1: {
-      fontSize: '2.4rem',
-      fontWeight: 700,
-    },
-    h2: {
-      fontSize: '2rem',
-      fontWeight: 600,
-    },
-    h3: {
-      fontSize: '1.75rem',
-      fontWeight: 600,
-    },
-    body1: {
-      fontSize: '1rem',
-      fontWeight: 400,
-    },
-    button: {
-      fontWeight: 500,
-    },
+    fontFamily: `'Inter', system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"`,
+    h5: { fontWeight: 800, letterSpacing: .2 },
+    button: { fontWeight: 700, letterSpacing: .3, textTransform: 'none' },
   },
-  shape: {
-    borderRadius: 10,
-  },
+  shadows: [
+    'none',
+    ...Array(24).fill('0 0 0 rgba(0,0,0,0.0)') as string[]
+  ],
   components: {
-     MuiCardContent: {
-    styleOverrides: {
-      root: {
-        '&:last-child': {
-          paddingBottom: '16px',
-        },
-      },
-    },
-  },
-    MuiButton: {
+    MuiCardContent: {
       styleOverrides: {
         root: {
-          textTransform: 'none',
-          borderRadius: 8,
+          '&:last-child': {
+            paddingBottom: '16px',
+          },
         },
-        contained: ({ theme, ownerState }) => ({
-          ...(theme.palette.mode === 'dark' && ownerState.color === 'primary' && {
-            backgroundColor: '#1e1e1e',
-            color: '#ffffff',
-            border: '1px solid #ffffff',
-            '&:hover': {
-              backgroundColor: '#2a2a2a',
-              borderColor: '#ffffff',
-            },
-            '&:active': {
-              backgroundColor: '#333333',
-            }
-          })
-        }),
-        outlined: ({ theme, ownerState }) => ({
-          ...(theme.palette.mode === 'dark' && ownerState.color === 'primary' && {
-            borderColor: '#ffffff',
-            color: '#ffffff',
-            '&:hover': {
-              borderColor: '#ffffff',
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            }
-          })
-        }),
       },
     },
     MuiPaper: {
       styleOverrides: {
         root: {
-          backgroundImage: 'none', // remove elevation background
-        },
-      },
+          background: 'linear-gradient(180deg, rgba(18,20,24,.85), rgba(12,14,16,.85))',
+          border: '1px solid rgba(255,255,255,.08)',
+          boxShadow: '0 0 0 1px rgba(124, 249, 255, 0.06), 0 12px 30px rgba(0,0,0,.45)',
+          backdropFilter: 'blur(8px)',
+        }
+      }
     },
-  },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          position: 'relative',
+          overflow: 'hidden',
+          borderRadius: 18,
+        }
+      }
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          fontWeight: 800,
+          letterSpacing: 0.3,
+          paddingInline: 6,
+          boxShadow: '0 0 22px rgba(255, 60, 172, .28)',
+        }
+      }
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+          borderRadius: 14,
+          boxShadow: '0 8px 24px rgba(125,249,255,.15)',
+        },
+        contained: {
+          background: 'linear-gradient(135deg, #6A5ACD 0%, #00D2FF 50%, #FF3CAC 100%)',
+        },
+        outlined: {
+          borderColor: 'rgba(125,249,255,.5)',
+          '&:hover': { 
+            borderColor: '#7DF9FF', 
+            boxShadow: '0 0 18px rgba(125,249,255,.35)' 
+          }
+        }
+      }
+    },
+    MuiToggleButtonGroup: {
+      styleOverrides: { 
+        root: { 
+          background: 'rgba(255,255,255,.06)', 
+          borderRadius: 12, 
+          padding: 4 
+        } 
+      }
+    },
+    MuiToggleButton: {
+      styleOverrides: {
+        root: {
+          color: '#A6B3C2',
+          borderRadius: 10,
+          '&.Mui-selected': {
+            color: '#0C0E10',
+            background: 'linear-gradient(90deg, #7DF9FF, #FF3CAC)',
+            boxShadow: '0 6px 18px rgba(255,60,172,.35)',
+          }
+        }
+      }
+    },
+    MuiAppBar: {
+      styleOverrides: {
+        root: {
+          background: 'linear-gradient(180deg, rgba(10,10,12,.85), rgba(10,10,12,.65))',
+          borderBottom: '1px solid rgba(255,255,255,.08)',
+          backdropFilter: 'blur(10px)'
+        }
+      }
+    },
+    MuiBottomNavigation: {
+      styleOverrides: {
+        root: {
+          background: 'linear-gradient(180deg, rgba(10,10,12,.1), rgba(10,10,12,.7))',
+          borderTop: '1px solid rgba(255,255,255,.08)',
+          backdropFilter: 'blur(10px)',
+          '& .Mui-selected': {
+            color: '#7DF9FF',
+            textShadow: '0 0 12px rgba(125,249,255,.7)'
+          },
+          '& .MuiBottomNavigationAction-root': {
+            transition: 'color .15s ease, transform .15s ease',
+            '&:active': { 
+              transform: 'translateY(1px) scale(.98)' 
+            }
+          }
+        }
+      }
+    }
+  }
 });
+
+// Legacy theme function for backward compatibility
+export const getDesignTokens = (_mode: 'light' | 'dark'): ThemeOptions => {
+  // Always return neon theme for now
+  return neonGamingTheme;
+};
+
+// Export the neon theme as default
+export default neonGamingTheme;

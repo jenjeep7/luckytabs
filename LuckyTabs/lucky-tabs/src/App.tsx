@@ -7,6 +7,7 @@ import AppRoutes from './AppRoutes';
 import { UserProfileProvider } from './context/UserProfileContext';
 import { LocationProvider } from './context/LocationContext';
 import { VersionChecker } from './components/VersionChecker';
+import AppBackground from './components/AppBackground';
 
 function App() {
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
@@ -19,6 +20,7 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
+      <AppBackground />
       <UserProfileProvider>
         <LocationProvider>
           <BrowserRouter>

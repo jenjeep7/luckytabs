@@ -6,7 +6,6 @@ import {
   Button,
   IconButton,
   TextField,
-  Chip,
   useTheme
 } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
@@ -19,6 +18,8 @@ import { AdvancedAnalytics } from './AdvancedAnalytics';
 import FlareSheetDisplay from '../../components/FlareSheetDisplay';
 import { Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { EvChip } from '../../components/EvChip';
+import { StatusType, getCardGlowStyles } from '../../utils/neonUtils';
 import {
   calculateTotalRemainingPrizeValue,
   calculateOneInXChances,
@@ -123,39 +124,30 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
   };
 
   // Helper function to get EV status text
-  const getEvStatus = (evValue: number, rtpValue: number, isPercentage = true): string => {
-    const rtpThreshold = isPercentage ? 80 : 0.8;
-    
+  const getEvStatus = (evValue: number, rtpValue: number): StatusType => {
     if (evValue >= 0) {
-      return 'Excellent';
-    } else if (rtpValue >= rtpThreshold) {
-      return 'Decent';
+      return 'excellent';
+    } else if (rtpValue >= 80) {
+      return 'decent';
     } else {
-      return 'Poor';
+      return 'poor';
     }
   };
 
   // Separate component for EV Badge to help with TypeScript inference
   // eslint-disable-next-line react/prop-types
   const EvBadge = ({ evData, rtpData }: { evData: number; rtpData: number }): React.ReactElement => {
+    const status = getEvStatus(evData, rtpData);
+    const statusText = status.charAt(0).toUpperCase() + status.slice(1);
+    
     return (
       <Box sx={{ mb: 2 }}>
-        <Chip
-          label={`Payout ${rtpData.toFixed(1)}%`}
-          sx={{
-            fontSize: '1.1rem',
-            fontWeight: 'bold',
-            px: 2,
-            py: 1,
-            backgroundColor: getEvColor(evData, rtpData, true),
-            color: 'white',
-            '& .MuiChip-label': {
-              fontWeight: 'bold'
-            }
-          }}
+        <EvChip
+          label={`${statusText} - ${rtpData.toFixed(1)}%`}
+          tone={status}
         />
         <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
-          Status: {getEvStatus(evData, rtpData, true)}
+          Expected Value: {evData >= 0 ? '+' : ''}{formatCurrency(Math.abs(evData))}
         </Typography>
       </Box>
     );
