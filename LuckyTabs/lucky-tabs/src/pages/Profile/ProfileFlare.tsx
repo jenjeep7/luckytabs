@@ -77,6 +77,28 @@ export const ProfileFlare: React.FC = () => {
       >
         Go Pro
       </Button>
+            <Button 
+        variant="contained" 
+        color="primary" 
+        size="small" 
+        sx={{ minWidth: 64, fontWeight: 600, fontSize: 13, px: 1, py: 0.5 }}
+      >
+        #5
+      </Button>      <Button 
+        variant="contained" 
+        color="secondary" 
+        size="small" 
+        sx={{ minWidth: 64, fontWeight: 600, fontSize: 13, px: 1, py: 0.5 }}
+      >
+        #4
+      </Button>      <Button 
+        variant="contained" 
+        color="warning" 
+        size="small" 
+        sx={{ minWidth: 64, fontWeight: 600, fontSize: 13, px: 1, py: 0.5 }}
+      >
+        #3
+      </Button>
     </Box>
   );
 };

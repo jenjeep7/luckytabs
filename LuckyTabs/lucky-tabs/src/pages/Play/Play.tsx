@@ -704,70 +704,90 @@ export const Play: React.FC = () => {
                   onClick={() => setEditBox(box)}
                 >
                   <CardContent sx={{ pt: 1, pb: 1 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 0 }}>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.primary', fontSize: '1rem' }}>
-                          {`#${box.boxNumber} - ${box.boxName}`}
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.9rem', mt: 0.5 }}>
-                          {boxView === 'group' && box.ownerName && (
-                            <>by {box.ownerName}</>
-                          )}
-                        </Typography>
-                      </Box>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 70 }}>
-                        <Chip
-                          label={evStatus}
-                          size="small"
-                          sx={{
-                            backgroundColor: evColor,
-                            color: 'white',
-                            fontWeight: 'bold',
-                            fontSize: '0.7rem',
-                            height: 24,
-                            px: 1,
-                            mb: 0.5
-                          }}
-                        />
-                        {/* EV Calculation under chip */}
-                        {/* {estimatedTickets > 0 && box.winningTickets && (
-                          <Typography variant="caption" sx={{ color: evColor, fontWeight: 'bold', fontSize: '0.8rem', textAlign: 'right' }}>
-                            Payout: {(() => {
-                              const prizes = box.winningTickets.map((ticket: WinningTicket) => ({
-                                value: Number(ticket.prize),
-                                remaining: Number(ticket.totalPrizes) - Number(ticket.claimedTotal)
-                              }));
-                              const totalRemainingValue = prizes.reduce((sum: number, prize) => sum + (prize.value * prize.remaining), 0);
-                              const costToCloseOut = pricePerTicket * estimatedTickets;
-                              const rtpData = (totalRemainingValue / costToCloseOut) * 100;
-                              return `${rtpData.toFixed(1)}%`;
-                            })()}
-                          </Typography>
-                        )} */}
+                    <Box sx={{ display: 'flex', gap: 1, height: '100%' }}>
+                      {/* Flare sheet image - left side */}
+                      {box.flareSheetUrl && (
+                        <Box sx={{ 
+                          width: '80px', 
+                          height: '80px',
+                          flexShrink: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}>
+                          <img
+                            src={box.flareSheetUrl}
+                            alt={`Flare sheet for ${box.boxName}`}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'contain',
+                              borderRadius: '4px'
+                            }}
+                          />
+                        </Box>
+                      )}
+                      
+                      {/* Content - right side */}
+                      <Box sx={{ 
+                        flex: 1, 
+                        display: 'flex', 
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        minHeight: box.flareSheetUrl ? '80px' : 'auto'
+                      }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <Box sx={{ flex: 1 }}>
+                            <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.primary', fontSize: '1rem' }}>
+                              {`#${box.boxNumber} - ${box.boxName}`}
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.9rem', mt: 0.5 }}>
+                              {boxView === 'group' && box.ownerName && (
+                                <>by {box.ownerName}</>
+                              )}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 70 }}>
+                            <Chip
+                              label={evStatus}
+                              size="small"
+                              sx={{
+                                backgroundColor: evColor,
+                                color: 'white',
+                                fontWeight: 'bold',
+                                fontSize: '0.7rem',
+                                height: 24,
+                                px: 1,
+                                mb: 0.5
+                              }}
+                            />
+                          </Box>
+                        </Box>
+                        
+                        {/* Bottom section with timestamp and share button */}
+                        {(lastUpdated || boxView === 'my') && (
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
+                            {lastUpdated && (
+                              <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.7rem' }}>
+                                updated: {lastUpdated}
+                              </Typography>
+                            )}
+                            {boxView === 'my' && (
+                              <IconButton
+                                size="small"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleShareBox(box.id, box.boxName);
+                                }}
+                                sx={{ color: 'primary.main' }}
+                              >
+                                <ShareIcon fontSize="small" />
+                              </IconButton>
+                            )}
+                          </Box>
+                        )}
                       </Box>
                     </Box>
-                    {/* Last updated timestamp and share button on same line */}
-                    {(lastUpdated || boxView === 'my') && (
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
-                        {lastUpdated && (
-                          <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.7rem' }}>
-                            updated: {lastUpdated}
-                          </Typography>
-                        )}
-                        {boxView === 'my' && (
-                          <IconButton
-                            size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleShareBox(box.id, box.boxName);
-                            }}
-                            sx={{ color: 'primary.main' }}
-                          >
-                            <ShareIcon fontSize="small" />
-                          </IconButton>
-                        )}
-                      </Box>
-                    )}
                   </CardContent>
                 </Card>
               );
@@ -877,59 +897,94 @@ export const Play: React.FC = () => {
                       onClick={() => setEditBox(box)}
                     >
                       <CardContent sx={{ pt: 1, pb: 1 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 0 }}>
-                          <Box sx={{ flex: 1 }}>
-                            <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.primary', fontSize: '1rem' }}>
-                              Box #{box.boxNumber} - {box.boxName}
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.9rem', mt: 0.5 }}>
-                              {boxView === 'group' && box.ownerName && (
-                                <>by {box.ownerName}</>
-                              )}
-                            </Typography>
-                          </Box>
-                          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 70 }}>
-                            <Chip
-                              label={evStatus}
-                              size="small"
-                              sx={{
-                                backgroundColor: evColor,
-                                color: 'white',
-                                fontWeight: 'bold',
-                                fontSize: '0.7rem',
-                                height: 24,
-                                px: 1,
-                                mb: 0.5
-                              }}
-                            />
+                        <Box sx={{ display: 'flex', gap: 1, height: '100%' }}>
+                          {/* Flare sheet image - left side */}
+                          {box.flareSheetUrl && (
+                            <Box sx={{ 
+                              width: '80px', 
+                              height: '80px',
+                              flexShrink: 0,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}>
+                              <img
+                                src={box.flareSheetUrl}
+                                alt={`Flare sheet for ${box.boxName}`}
+                                style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'contain',
+                                  borderRadius: '4px'
+                                }}
+                              />
+                            </Box>
+                          )}
+                          
+                          {/* Content - right side */}
+                          <Box sx={{ 
+                            flex: 1, 
+                            display: 'flex', 
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
+                            minHeight: box.flareSheetUrl ? '80px' : 'auto'
+                          }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                              <Box sx={{ flex: 1 }}>
+                                <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.primary', fontSize: '1rem' }}>
+                                  Box #{box.boxNumber} - {box.boxName}
+                                </Typography>
+                                <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.9rem', mt: 0.5 }}>
+                                  {boxView === 'group' && box.ownerName && (
+                                    <>by {box.ownerName}</>
+                                  )}
+                                </Typography>
+                              </Box>
+                              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 70 }}>
+                                <Chip
+                                  label={evStatus}
+                                  size="small"
+                                  sx={{
+                                    backgroundColor: evColor,
+                                    color: 'white',
+                                    fontWeight: 'bold',
+                                    fontSize: '0.7rem',
+                                    height: 24,
+                                    px: 1,
+                                    mb: 0.5
+                                  }}
+                                />
+                              </Box>
+                            </Box>
+                            
+                            {/* Bottom section with timestamp and share button */}
+                            {(lastUpdated || boxView === 'my') && (
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
+                                {lastUpdated && (
+                                  <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.7rem' }}>
+                                    Updated: {lastUpdated}
+                                  </Typography>
+                                )}
+                                {boxView === 'my' && (
+                                  <IconButton
+                                    size="small"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleShareBox(box.id, box.boxName);
+                                    }}
+                                    sx={{ 
+                                      ml: 'auto',
+                                      color: evColor,
+                                      '&:hover': { backgroundColor: `${evColor}20` }
+                                    }}
+                                  >
+                                    <ShareIcon sx={{ fontSize: 16 }} />
+                                  </IconButton>
+                                )}
+                              </Box>
+                            )}
                           </Box>
                         </Box>
-                        {/* Last updated timestamp and share button on same line */}
-                        {(lastUpdated || boxView === 'my') && (
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
-                            {lastUpdated && (
-                              <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.7rem' }}>
-                                Updated: {lastUpdated}
-                              </Typography>
-                            )}
-                            {boxView === 'my' && (
-                              <IconButton
-                                size="small"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleShareBox(box.id, box.boxName);
-                                }}
-                                sx={{ 
-                                  ml: 'auto',
-                                  color: evColor,
-                                  '&:hover': { backgroundColor: `${evColor}20` }
-                                }}
-                              >
-                                <ShareIcon sx={{ fontSize: 16 }} />
-                              </IconButton>
-                            )}
-                          </Box>
-                        )}
                       </CardContent>
                     </Card>
                   );

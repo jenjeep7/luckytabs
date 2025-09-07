@@ -192,7 +192,7 @@ export const Tracking: React.FC = () => {
           </CardContent>
         </Card>
         
-        <Card>
+        {/* <Card>
           <CardContent sx={{ textAlign: 'center' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
               <TrendingUpIcon sx={{ mr: 1, color: 'success.main' }} />
@@ -207,7 +207,7 @@ export const Tracking: React.FC = () => {
               {currentWeekStats.transactionCount} transactions
             </Typography>
           </CardContent>
-        </Card>
+        </Card> */}
         
         {/* <Card>
           <CardContent>

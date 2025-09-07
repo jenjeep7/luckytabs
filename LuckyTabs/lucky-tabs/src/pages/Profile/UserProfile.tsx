@@ -29,6 +29,7 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../../firebase';
 import { userService, UserData, GroupMember } from '../../services/userService';
 import EditProfileDialog from './EditProfileDialog';
+import { getVersionInfo } from '../../utils/version';
 import { ProfileFlare } from './ProfileFlare';
 
 export const UserProfile: React.FC = () => {
@@ -489,6 +490,13 @@ export const UserProfile: React.FC = () => {
         >
           Sign Out
         </Button>
+      </Box>
+
+      {/* App Version */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, mb: 2 }}>
+        <Typography variant="caption" color="text.secondary">
+          V {getVersionInfo().version}
+        </Typography>
       </Box>
 
       {/* Snackbar for notifications */}

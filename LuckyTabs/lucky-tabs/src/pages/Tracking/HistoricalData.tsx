@@ -78,22 +78,6 @@ export const HistoricalData: React.FC<HistoricalDataProps> = ({
             <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
               <Box>
                 <Typography variant="body2" color="text.secondary">
-                  Total Spent
-                </Typography>
-                <Typography variant="h6" color="error.main">
-                  {formatCurrency(totalAllTimeSpent)}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="body2" color="text.secondary">
-                  Total Won
-                </Typography>
-                <Typography variant="h6" color="success.main">
-                  {formatCurrency(totalAllTimeWon)}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="body2" color="text.secondary">
                   Net Result
                 </Typography>
                 <Typography 
@@ -148,11 +132,9 @@ export const HistoricalData: React.FC<HistoricalDataProps> = ({
                 <TableHead>
                   <TableRow>
                     <TableCell>Week</TableCell>
-                    <TableCell align="right">Spent</TableCell>
-                    <TableCell align="right">Won</TableCell>
                     <TableCell align="right">Net Result</TableCell>
-                    <TableCell align="center">Transactions</TableCell>
                     <TableCell align="center">Status</TableCell>
+                    <TableCell align="center">Transactions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -190,16 +172,6 @@ export const HistoricalData: React.FC<HistoricalDataProps> = ({
                           </Box>
                         </TableCell>
                         <TableCell align="right">
-                          <Typography color="error.main">
-                            {formatCurrency(week.totalSpent)}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="right">
-                          <Typography color="success.main">
-                            {formatCurrency(week.totalWon)}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="right">
                           <Typography 
                             color={isPositive ? 'success.main' : 'error.main'}
                             sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}
@@ -213,15 +185,15 @@ export const HistoricalData: React.FC<HistoricalDataProps> = ({
                           </Typography>
                         </TableCell>
                         <TableCell align="center">
-                          {week.transactionCount}
-                        </TableCell>
-                        <TableCell align="center">
                           <Chip
                             label={isPositive ? 'Profit' : 'Loss'}
                             color={isPositive ? 'success' : 'error'}
                             size="small"
                             variant="outlined"
                           />
+                        </TableCell>
+                        <TableCell align="center">
+                          {week.transactionCount}
                         </TableCell>
                       </TableRow>
                     );
@@ -289,16 +261,16 @@ export const HistoricalData: React.FC<HistoricalDataProps> = ({
                           </Box>
                         }
                         secondary={
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
-                            <Typography variant="body2" color="text.secondary">
+                          <span style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                            <Typography variant="body2" color="text.secondary" component="span">
                               {formatTransactionDate(transaction.createdAt)}
                             </Typography>
                             {transaction.location && (
-                              <Typography variant="body2" color="text.secondary">
+                              <Typography variant="body2" color="text.secondary" component="span">
                                 📍 {transaction.location}
                               </Typography>
                             )}
-                          </Box>
+                          </span>
                         }
                       />
                     </ListItem>
