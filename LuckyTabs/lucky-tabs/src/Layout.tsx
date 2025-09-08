@@ -103,7 +103,16 @@ function Layout({ children, title }: LayoutProps) {
               variant="h6"
               sx={{ 
                 flexGrow: 1, 
-                textAlign: { xs: 'center', md: 'left' }
+                textAlign: { xs: 'center', md: 'left' },
+                fontWeight: 800,
+                fontFamily: '"Orbitron", "Inter", sans-serif',
+                background: 'linear-gradient(45deg, #7DF9FF 0%, #00E676 100%)',
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                textShadow: '0 0 15px rgba(125, 249, 255, 0.4)',
+                letterSpacing: '0.08em',
+                fontSize: { xs: '1.1rem', md: '1.25rem' }
               }}
             >
               {getPageTitle()}

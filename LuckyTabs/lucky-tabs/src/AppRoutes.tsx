@@ -118,7 +118,11 @@ function AppRoutes() {
         {/* Redirect / to /play if logged in, else /home */}
         <Route path="/" element={<Navigate to={user ? "/profile" : "/home"} />} />
         {/* /home is only for logged out users, logged in users go to /play */}
-        <Route path="/home" element={user ? <Navigate to="/profile" /> : <LandingPage />} />
+        <Route path="/home" element={user ? <Navigate to="/profile" /> : (
+          <Layout>
+            <LandingPage />
+          </Layout>
+        )} />
         {/* Protected routes only accessible if logged in */}
         <Route element={user ? <Layout /> : <Navigate to="/home" />}> 
           <Route path="/play" element={<Play />} />
@@ -128,11 +132,27 @@ function AppRoutes() {
           <Route path="/tabsy" element={<LandingPage />} />
         </Route>
         {/* Login/Signup redirect to /play if logged in */}
-        <Route path="/login" element={user ? <Navigate to="/profile" /> : <Login />} />
-        <Route path="/signup" element={user ? <Navigate to="/profile" /> : <Signup />} />
-        <Route path="/features" element={<Features />} />
+        <Route path="/login" element={user ? <Navigate to="/profile" /> : (
+          <Layout>
+            <Login />
+          </Layout>
+        )} />
+        <Route path="/signup" element={user ? <Navigate to="/profile" /> : (
+          <Layout>
+            <Signup />
+          </Layout>
+        )} />
+        <Route path="/features" element={
+          <Layout>
+            <Features />
+          </Layout>
+        } />
         <Route path="*" element={<Navigate to={user ? "/profile" : "/home"} />} />
-        <Route path="/support-circle" element={<SupportCircle />} />
+        <Route path="/support-circle" element={
+          <Layout>
+            <SupportCircle />
+          </Layout>
+        } />
       </Routes>
     </EmailVerificationGuard>
   );

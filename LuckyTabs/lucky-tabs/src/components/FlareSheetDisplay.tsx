@@ -1,7 +1,6 @@
 import React from 'react';
 import {
-  Box,
-  Typography,
+  Box
 } from '@mui/material';
 
 interface FlareSheetDisplayProps {
@@ -47,14 +46,6 @@ const FlareSheetDisplay: React.FC<FlareSheetDisplayProps> = ({
           }}
         />
       </Box>
-      
-      <Typography 
-        variant="caption" 
-        color="text.secondary" 
-        sx={{ mt: 1, display: 'block', textAlign: 'center' }}
-      >
-        Flare Sheet
-      </Typography>
     </Box>
   );
 };

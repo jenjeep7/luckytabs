@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react/prop-types */
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
+import heic2any from "heic2any";
 import {
   Box,
   TextField,
@@ -39,12 +40,14 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
   const [boxName, setBoxName] = useState("");
   const [boxNumber, setBoxNumber] = useState("");
   const [pricePerTicket, setPricePerTicket] = useState("");
-  const [startingTickets, setStartingTickets] = useState("");
+  const [startingTickets, setStartingTickets] = useState("300");
   const [user] = useAuthState(auth);
   const [userProfile, setUserProfile] = useState<UserData | null>(null);
   const [winningTickets, setWinningTickets] = useState<Prize[]>([
     { prize: "", totalPrizes: 0, claimedTotal: 0 },
   ]);
+  const [ocrProcessed, setOcrProcessed] = useState(false); // Track if OCR has been processed
+  const ocrProcessedRef = useRef(false); // Use ref to avoid dependency array issues
   
   // Image upload state
   const [flareSheetImage, setFlareSheetImage] = useState<File | null>(null);
@@ -69,6 +72,36 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
   // Check if user has pro plan
   const isProUser = userProfile?.plan === "pro";
 
+  // Convert HEIC files to JPEG
+  const convertHeicToJpeg = async (file: File): Promise<File> => {
+    if (file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic')) {
+      try {
+        console.log("Converting HEIC file to JPEG:", file.name);
+        
+        const convertedBlob = await heic2any({
+          blob: file,
+          toType: "image/jpeg",
+          quality: 0.8
+        }) as Blob;
+        
+        // Create a new File object with JPEG type
+        const convertedFile = new File(
+          [convertedBlob], 
+          file.name.replace(/\.heic$/i, '.jpg'), 
+          { type: 'image/jpeg' }
+        );
+        
+        console.log("HEIC conversion successful:", convertedFile.name, convertedFile.type);
+        return convertedFile;
+      } catch (error) {
+        console.error("Error converting HEIC file:", error);
+        throw new Error("Failed to convert HEIC image. Please try a different image format.");
+      }
+    }
+    
+    return file; // Return original file if not HEIC
+  };
+
   // Reset to manual mode if user is not pro and somehow in auto mode
   useEffect(() => {
     if (userProfile && entryMode === "auto" && !isProUser) {
@@ -81,21 +114,20 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
   useEffect(() => {
     if (!tempBoxId || !parsing) return;
 
-    console.log("Setting up listener for temp box:", tempBoxId);
-    
     const unsubscribe = onSnapshot(doc(db, "temp-ocr-results", tempBoxId), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        console.log("OCR result received:", data);
         
-        if (data.ocrProcessed) {
-          setBoxName(String(data.boxName || ""));
-          setPricePerTicket(String(data.pricePerTicket || "1"));
-          setStartingTickets(String(data.startingTickets || 0));
+        if (data.ocrProcessed && !ocrProcessedRef.current) {
+          // Only set winningTickets from OCR, let user manually enter everything else
           setWinningTickets(Array.isArray(data.winningTickets) ? data.winningTickets : []);
-                    setParsing(false);
+          setOcrProcessed(true); // Mark OCR as processed
+          ocrProcessedRef.current = true; // Also set the ref
+          setParsing(false);
           setParseError(null);
           setTempBoxId(null);
+        } else if (data.ocrProcessed && ocrProcessedRef.current) {
+          // OCR already processed, ignoring duplicate data
         } else if (data.error) {
           setParsing(false);
           setParseError(String(data.error));
@@ -116,33 +148,49 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
       unsubscribe();
       clearTimeout(timeout);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tempBoxId, parsing]);
 
   // Handle file selection
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (!file.type.startsWith('image/')) {
-        setUploadError('Please select an image file');
+      // Check if it's a valid image type (including HEIC)
+      const isValidImage = file.type.startsWith('image/') || 
+                           file.type === 'image/heic' || 
+                           file.name.toLowerCase().endsWith('.heic');
+      
+      if (!isValidImage) {
+        setUploadError('Please select a valid image file (JPG, PNG, HEIC, etc.)');
         return;
       }
-      setFlareSheetImage(file);
-      setUploadError(null);
-      setParseError(null);
-      
-      // Create preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setFlareSheetPreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
 
-      // If auto mode and user has pro plan, upload and parse immediately
-      if (entryMode === "auto" && isProUser) {
-        void parseImageImmediately(file);
-      } else if (entryMode === "auto" && !isProUser) {
-        setParseError("Auto Fill is a Pro feature. Please upgrade your plan or use manual entry.");
-      }
+      // Convert HEIC if needed, then process
+      void (async () => {
+        try {
+          const processedFile = await convertHeicToJpeg(file);
+          setFlareSheetImage(processedFile);
+          setUploadError(null);
+          setParseError(null);
+          
+          // Create preview
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            setFlareSheetPreview(e.target?.result as string);
+          };
+          reader.readAsDataURL(processedFile);
+
+          // If auto mode and user has pro plan, upload and parse immediately
+          if (entryMode === "auto" && isProUser) {
+            void parseImageImmediately(processedFile);
+          }
+        } catch (error) {
+          console.error("Error processing file:", error);
+          setUploadError(error instanceof Error ? error.message : "Failed to process file");
+        }
+      })();
+    } else if (entryMode === "auto" && !isProUser) {
+      setParseError("Auto Fill is a Pro feature. Please upgrade your plan or use manual entry.");
     }
   };
 
@@ -152,21 +200,15 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
       setParsing(true);
       setParseError(null);
       setUploadError(null);
-
-      console.log("Starting image parsing with storage trigger...");
+      setOcrProcessed(false); // Reset OCR processed flag for new image
+      ocrProcessedRef.current = false; // Also reset the ref
 
       const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       setTempBoxId(tempId);
 
       // Upload image to the flare-sheets path to trigger the existing OCR function
       const imageRef = ref(storage, `flare-sheets/${tempId}.jpg`);
-      await uploadBytes(imageRef, file);
-      const imageUrl = await getDownloadURL(imageRef);
-
-      console.log("Image uploaded to trigger OCR:", imageUrl);
-      console.log("Waiting for OCR results...");
-
-    } catch (error) {
+      await uploadBytes(imageRef, file);    } catch (error) {
       console.error("Error uploading for parsing:", error);
       setParsing(false);
       setParseError(`Failed to parse image: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -233,15 +275,39 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
         tags: string[];
         winningTickets: Prize[];
         rows?: { rowNumber: number; estimatedTicketsRemaining: number }[];
+        estimatedTicketsRemaining?: number; // For bar boxes
         estimatedTicketsUpdated?: Date;
         flareSheetUrl?: string;
+        manuallyEdited?: boolean;
+      }
+
+      // Calculate remaining tickets based on box type
+      const totalStartingTickets = Number(startingTickets) || 0;
+      let boxSpecificData = {};
+      
+      if (type === "wall") {
+        // Wall boxes: divide total tickets by 4 rows
+        const ticketsPerRow = Math.floor(totalStartingTickets / 4);
+        boxSpecificData = {
+          rows: [
+            { rowNumber: 1, estimatedTicketsRemaining: ticketsPerRow },
+            { rowNumber: 2, estimatedTicketsRemaining: ticketsPerRow },
+            { rowNumber: 3, estimatedTicketsRemaining: ticketsPerRow },
+            { rowNumber: 4, estimatedTicketsRemaining: ticketsPerRow },
+          ],
+        };
+      } else {
+        // Bar boxes: single value for all remaining tickets
+        boxSpecificData = {
+          estimatedTicketsRemaining: totalStartingTickets,
+        };
       }
 
       const newBox: Box = {
         boxName: boxName || `Box ${boxNumber}`,
         boxNumber: boxNumber,
         pricePerTicket: pricePerTicket,
-        startingTickets: Number(startingTickets) || 0,
+        startingTickets: totalStartingTickets,
         type,
         createdAt: serverTimestamp(),
         lastUpdated: serverTimestamp(),
@@ -250,16 +316,8 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
         isActive: true,
         tags: ["pull tab"],
         winningTickets: winningTickets,
-        ...(type === "wall"
-          ? {
-              rows: [
-                { rowNumber: 1, estimatedTicketsRemaining: 0 },
-                { rowNumber: 2, estimatedTicketsRemaining: 0 },
-                { rowNumber: 3, estimatedTicketsRemaining: 0 },
-                { rowNumber: 4, estimatedTicketsRemaining: 0 },
-              ],
-            }
-          : {}),
+        manuallyEdited: true, // Flag to prevent OCR from overwriting
+        ...boxSpecificData,
         estimatedTicketsUpdated: new Date(),
       };
 
@@ -393,7 +451,7 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
             <input
               type="file"
-              accept="image/*"
+              accept="image/*,.heic"
               onChange={handleFileSelect}
               ref={fileInputRef}
               style={{ display: 'none' }}
@@ -498,7 +556,9 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
             label="Box Name"
             fullWidth
             value={boxName}
-            onChange={(e) => setBoxName(e.target.value)}
+            onChange={(e) => {
+              setBoxName(e.target.value);
+            }}
             required
             disabled={parsing}
           />
@@ -509,7 +569,9 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
             label="Box Number"
             fullWidth
             value={boxNumber}
-            onChange={(e) => setBoxNumber(e.target.value)}
+            onChange={(e) => {
+              setBoxNumber(e.target.value);
+            }}
             required
             disabled={parsing}
           />
@@ -540,6 +602,15 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
             required
             disabled={parsing}
           />
+          {/* Show ticket distribution info */}
+          {startingTickets && Number(startingTickets) > 0 && (
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+              {type === "wall" 
+                ? `${Math.floor(Number(startingTickets) / 4)} tickets per row (4 rows)`
+                : `${startingTickets} tickets total`
+              }
+            </Typography>
+          )}
         </Grid>
       </Grid>
 
@@ -586,7 +657,9 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
       <Button 
         size="small" 
         variant="contained" 
-        onClick={() => { void handleSubmit(); }} 
+        onClick={() => { 
+          void handleSubmit(); 
+        }} 
         sx={{ mt: 4 }}
         disabled={uploading || parsing}
       >

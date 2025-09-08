@@ -493,8 +493,19 @@ export const UserProfile: React.FC = () => {
       </Box>
 
       {/* App Version */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, mb: 2 }}>
-        <Typography variant="caption" color="text.secondary">
+      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, mb: 4, px: 2 }}>
+        <Typography 
+          variant="caption" 
+          sx={{ 
+            color: 'text.secondary',
+            fontSize: { xs: '0.875rem', sm: '0.75rem' },
+            fontWeight: 500,
+            textAlign: 'center',
+            minHeight: '20px',
+            lineHeight: 1.4,
+            zIndex: 10
+          }}
+        >
           V {getVersionInfo().version}
         </Typography>
       </Box>
