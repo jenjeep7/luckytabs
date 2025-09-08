@@ -31,6 +31,7 @@ import { userService, UserData, GroupMember } from '../../services/userService';
 import EditProfileDialog from './EditProfileDialog';
 import { getVersionInfo } from '../../utils/version';
 import { ProfileFlare } from './ProfileFlare';
+import { AchievementBanner } from './AchievementBanner';
 
 export const UserProfile: React.FC = () => {
   const [user] = useAuthState(auth);
@@ -313,22 +314,9 @@ export const UserProfile: React.FC = () => {
 
   return (
     <Container maxWidth="md" sx={{ p: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-              <Typography
-                variant="h4"
-                sx={{
-                  fontWeight: 700,
-                  color: 'primary.main',
-                  fontFamily: 'Bitcount',
-                  letterSpacing: 2,
-                  px: 1,
-                  pb: 1,
-                  mt: 0,
-                }}
-              >
-                {`${userData ? userData.displayName : ''}`}
-              </Typography>
-            </Box>
+      {/* Achievement Banner - Placeholder for future badges */}
+      <AchievementBanner />
+    
 
       {/* Flare Sheet Section */}
       <ProfileFlare />

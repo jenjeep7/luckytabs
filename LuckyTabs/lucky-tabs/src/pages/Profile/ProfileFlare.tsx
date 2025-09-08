@@ -6,7 +6,7 @@ export const ProfileFlare: React.FC = () => {
   const navigate = useNavigate();
   return (
     <Box sx={{ 
-      mb: 3, 
+      mb: 1, 
       display: 'flex', 
       flexDirection: 'row', 
       flexWrap: 'wrap', 

@@ -8,55 +8,95 @@ import {
   Button,
   Container,
   Typography,
-  useTheme,
   Stack,
 } from '@mui/material';
 
 export const LandingPage: React.FC = () => {
   const [user] = useAuthState(auth);
-  const theme = useTheme();
-  const isDarkMode = theme.palette.mode === 'dark';
 
   return (
     <Box sx={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
-      minHeight: { xs: '100vh', sm: '100vh' },
       width: '100%',
       position: 'relative',
-      overflow: { xs: 'auto', sm: 'visible' }
+      backgroundColor: 'black'
     }}>
       {/* Hero Section */}
       <Box sx={{ 
-        bgcolor: isDarkMode ? 'background.paper' : 'primary.main', 
-        color: isDarkMode ? 'text.primary' : 'white', 
-        py: { xs: 3, sm: 4 }, 
+        pt: { xs: 6 }, 
         px: { xs: 1, sm: 2 },
-        textAlign: 'center',
-        flexGrow: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        minHeight: { xs: 'calc(100vh - 200px)', sm: 'auto' }
+        textAlign: 'center'
       }}>
         <Container 
           maxWidth="md" 
           sx={{ 
-            px: { xs: 2, sm: 3 },
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center'
+            px: { xs: 2, sm: 3 }
           }}
         >
-          {/* Move buttons above the logo */}
+          {/* Logo at the top */}
           <Box sx={{ 
-            my: { xs: 2, sm: 4 }, 
             display: 'flex', 
             justifyContent: 'center', 
-            gap: { xs: 1, sm: 2 }, 
-            flexWrap: 'wrap',
-            order: { xs: 1, sm: 1 }
+            alignItems: 'center',
+            mb: { xs: 4 }
+          }}>
+            <img
+              src="/Tabsy New Logo.png"
+              alt={`Tabsy Wins Logo`}
+              style={{ 
+                height: 'auto',
+                width: '100%',
+                maxHeight: '200px',
+                maxWidth: '300px',
+                objectFit: 'contain'
+              }}
+            />
+          </Box>
+
+          <Box>
+            <Typography 
+              variant="h4" 
+              fontWeight="bold" 
+              gutterBottom
+              sx={{
+                fontSize: { xs: '1.5rem', sm: '2rem' },
+                lineHeight: { xs: 1.3, sm: 1.4 },
+                px: { xs: 1 },
+                maxWidth: '800px',
+                mx: 'auto',
+                mb: { xs: 2, sm: 3 }
+              }}
+            >
+              {`Welcome to Tabsy's Community of Pull Tab Enthusiasts!`}
+            </Typography>
+            
+            <Typography 
+              variant="body1" 
+              fontWeight="bold" 
+              gutterBottom
+              sx={{
+                fontSize: { xs: '1em' },
+                lineHeight: { xs: 1.6},
+                px: { xs: 1, sm: 2 },
+                pt: { xs: 1},
+                maxWidth: '800px',
+                mx: 'auto',
+                mb: { xs: 3, sm: 2 },
+                whiteSpace: 'pre-line'
+              }}
+            >
+              {`📊 Track your sessions, wins, losses and pull tab box analytics to spot patterns and improve your odds.
+
+🧑‍🤝‍🧑 Share tips, swap stories, and pull responsibly with Tabsy cheering you on the whole way.
+
+📈 From budget alerts to flair scans, custom profiles to achievement badges, Tabsy helps you play with purpose, connect with others, and celebrate every streak.`}
+            </Typography>
+          </Box>
+          <Box sx={{ 
+            my: { xs: 4}, 
+            display: 'flex', 
+            justifyContent: 'center', 
+            gap: { xs: 2 }, 
+            flexWrap: 'wrap'
           }}>
             <Stack
               direction={{ xs: 'row', sm: 'row' }}
@@ -82,7 +122,7 @@ export const LandingPage: React.FC = () => {
                     height: { xs: '40px', sm: '48px' }
                   }}
                 >
-                  {`Join`}
+                  {`Join Tabsy's Crew`}
                 </Button>
               )}
 
@@ -102,48 +142,11 @@ export const LandingPage: React.FC = () => {
                   height: { xs: '40px', sm: '48px' }
                 }}
               >
-                {`Features`}
+                {`Tabsy's Crystal Ball`}
               </Button>
             </Stack>
           </Box>
 
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
-            alignItems: 'center',
-            mb: { xs: 2, sm: 3 },
-            order: { xs: 2, sm: 2 }
-          }}>
-            <img
-              src="/Tabsy New Logo.png"
-              alt={`Tabsy Wins Logo`}
-              style={{ 
-                height: 'auto',
-                width: '100%',
-                maxHeight: '200px',
-                maxWidth: '300px',
-                objectFit: 'contain'
-              }}
-            />
-          </Box>
-
-          <Box sx={{ order: { xs: 3, sm: 3 } }}>
-            <Typography 
-              variant="body1" 
-              fontWeight="bold" 
-              gutterBottom
-              sx={{
-                fontSize: { xs: '0.85rem', sm: '1rem', md: '1.1rem' },
-                lineHeight: { xs: 1.3, sm: 1.5 },
-                px: { xs: 1, sm: 2 },
-                maxWidth: '800px',
-                mx: 'auto',
-                mb: { xs: 3, sm: 2 }
-              }}
-            >
-              {`Welcome to Tabsy's community of pull tab enthusiasts, where you can track your individual play to improve your odds of winning, share ups and downs, swap tips and tricks, track patterns, and pull responsibly—with Tabsy cheering you on the whole way!`}
-            </Typography>
-          </Box>
         </Container>
       </Box>
     </Box>

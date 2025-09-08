@@ -41,7 +41,7 @@ export const getNeonHeaderStyle = (fallbackColor = '#7DF9FF') => ({
 
 export const getCardGlowStyles = (status: StatusType) => ({
   border: `3px solid ${statusColors[status]}`,
-  borderRadius: 20,
+  borderRadius: 10,
   background: 'linear-gradient(180deg, rgba(18,20,24,.92), rgba(12,14,16,.92))',
   boxShadow: `
     0 0 32px ${statusColors[status]}66,
