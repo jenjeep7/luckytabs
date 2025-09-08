@@ -640,7 +640,8 @@ export const Play: React.FC = () => {
                   flex: 1,
                   height: '2px',
                   background: 'linear-gradient(90deg, transparent, #7DF9FF66, transparent)',
-                  boxShadow: '0 0 8px rgba(125, 249, 255, 0.4)'
+                  boxShadow: '0 0 8px rgba(125, 249, 255, 0.4)',
+                  zIndex: 10
                 },
                 '&::before': { mr: 3 },
                 '&::after': { ml: 3 }
@@ -845,7 +846,8 @@ export const Play: React.FC = () => {
                   flex: 1,
                   height: '2px',
                   background: 'linear-gradient(90deg, transparent, #7DF9FF66, transparent)',
-                  boxShadow: '0 0 8px rgba(125, 249, 255, 0.4)'
+                  boxShadow: '0 0 8px rgba(125, 249, 255, 0.4)',
+                  zIndex: 10
                 },
                 '&::before': { mr: 3 },
                 '&::after': { ml: 3 }

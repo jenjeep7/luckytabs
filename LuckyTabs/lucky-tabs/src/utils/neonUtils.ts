@@ -1,3 +1,5 @@
+import z from "zod";
+
 export type StatusType = 'poor' | 'decent' | 'excellent';
 
 export const statusColors = {
@@ -33,7 +35,8 @@ export const getNeonHeaderStyle = (fallbackColor = '#7DF9FF') => ({
   fontFamily: '"Orbitron", "Inter", sans-serif',
   ...getSafeGradientText(fallbackColor),
   textShadow: '0 0 20px rgba(125, 249, 255, 0.5)',
-  letterSpacing: '0.1em'
+  letterSpacing: '0.1em',
+  zIndex: 10
 });
 
 export const getCardGlowStyles = (status: StatusType) => ({

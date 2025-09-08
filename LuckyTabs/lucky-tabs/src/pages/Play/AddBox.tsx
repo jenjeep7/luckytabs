@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react/prop-types */
 import React, { useState, useRef, useEffect } from "react";
+import heic2any from "heic2any";
 import {
   Box,
   TextField,
@@ -71,6 +72,36 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
   // Check if user has pro plan
   const isProUser = userProfile?.plan === "pro";
 
+  // Convert HEIC files to JPEG
+  const convertHeicToJpeg = async (file: File): Promise<File> => {
+    if (file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic')) {
+      try {
+        console.log("Converting HEIC file to JPEG:", file.name);
+        
+        const convertedBlob = await heic2any({
+          blob: file,
+          toType: "image/jpeg",
+          quality: 0.8
+        }) as Blob;
+        
+        // Create a new File object with JPEG type
+        const convertedFile = new File(
+          [convertedBlob], 
+          file.name.replace(/\.heic$/i, '.jpg'), 
+          { type: 'image/jpeg' }
+        );
+        
+        console.log("HEIC conversion successful:", convertedFile.name, convertedFile.type);
+        return convertedFile;
+      } catch (error) {
+        console.error("Error converting HEIC file:", error);
+        throw new Error("Failed to convert HEIC image. Please try a different image format.");
+      }
+    }
+    
+    return file; // Return original file if not HEIC
+  };
+
   // Reset to manual mode if user is not pro and somehow in auto mode
   useEffect(() => {
     if (userProfile && entryMode === "auto" && !isProUser) {
@@ -124,27 +155,42 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (!file.type.startsWith('image/')) {
-        setUploadError('Please select an image file');
+      // Check if it's a valid image type (including HEIC)
+      const isValidImage = file.type.startsWith('image/') || 
+                           file.type === 'image/heic' || 
+                           file.name.toLowerCase().endsWith('.heic');
+      
+      if (!isValidImage) {
+        setUploadError('Please select a valid image file (JPG, PNG, HEIC, etc.)');
         return;
       }
-      setFlareSheetImage(file);
-      setUploadError(null);
-      setParseError(null);
-      
-      // Create preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setFlareSheetPreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
 
-      // If auto mode and user has pro plan, upload and parse immediately
-      if (entryMode === "auto" && isProUser) {
-        void parseImageImmediately(file);
-      } else if (entryMode === "auto" && !isProUser) {
-        setParseError("Auto Fill is a Pro feature. Please upgrade your plan or use manual entry.");
-      }
+      // Convert HEIC if needed, then process
+      void (async () => {
+        try {
+          const processedFile = await convertHeicToJpeg(file);
+          setFlareSheetImage(processedFile);
+          setUploadError(null);
+          setParseError(null);
+          
+          // Create preview
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            setFlareSheetPreview(e.target?.result as string);
+          };
+          reader.readAsDataURL(processedFile);
+
+          // If auto mode and user has pro plan, upload and parse immediately
+          if (entryMode === "auto" && isProUser) {
+            void parseImageImmediately(processedFile);
+          }
+        } catch (error) {
+          console.error("Error processing file:", error);
+          setUploadError(error instanceof Error ? error.message : "Failed to process file");
+        }
+      })();
+    } else if (entryMode === "auto" && !isProUser) {
+      setParseError("Auto Fill is a Pro feature. Please upgrade your plan or use manual entry.");
     }
   };
 
@@ -229,16 +275,39 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
         tags: string[];
         winningTickets: Prize[];
         rows?: { rowNumber: number; estimatedTicketsRemaining: number }[];
+        estimatedTicketsRemaining?: number; // For bar boxes
         estimatedTicketsUpdated?: Date;
         flareSheetUrl?: string;
         manuallyEdited?: boolean;
+      }
+
+      // Calculate remaining tickets based on box type
+      const totalStartingTickets = Number(startingTickets) || 0;
+      let boxSpecificData = {};
+      
+      if (type === "wall") {
+        // Wall boxes: divide total tickets by 4 rows
+        const ticketsPerRow = Math.floor(totalStartingTickets / 4);
+        boxSpecificData = {
+          rows: [
+            { rowNumber: 1, estimatedTicketsRemaining: ticketsPerRow },
+            { rowNumber: 2, estimatedTicketsRemaining: ticketsPerRow },
+            { rowNumber: 3, estimatedTicketsRemaining: ticketsPerRow },
+            { rowNumber: 4, estimatedTicketsRemaining: ticketsPerRow },
+          ],
+        };
+      } else {
+        // Bar boxes: single value for all remaining tickets
+        boxSpecificData = {
+          estimatedTicketsRemaining: totalStartingTickets,
+        };
       }
 
       const newBox: Box = {
         boxName: boxName || `Box ${boxNumber}`,
         boxNumber: boxNumber,
         pricePerTicket: pricePerTicket,
-        startingTickets: Number(startingTickets) || 0,
+        startingTickets: totalStartingTickets,
         type,
         createdAt: serverTimestamp(),
         lastUpdated: serverTimestamp(),
@@ -248,16 +317,7 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
         tags: ["pull tab"],
         winningTickets: winningTickets,
         manuallyEdited: true, // Flag to prevent OCR from overwriting
-        ...(type === "wall"
-          ? {
-              rows: [
-                { rowNumber: 1, estimatedTicketsRemaining: 0 },
-                { rowNumber: 2, estimatedTicketsRemaining: 0 },
-                { rowNumber: 3, estimatedTicketsRemaining: 0 },
-                { rowNumber: 4, estimatedTicketsRemaining: 0 },
-              ],
-            }
-          : {}),
+        ...boxSpecificData,
         estimatedTicketsUpdated: new Date(),
       };
 
@@ -391,7 +451,7 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
             <input
               type="file"
-              accept="image/*"
+              accept="image/*,.heic"
               onChange={handleFileSelect}
               ref={fileInputRef}
               style={{ display: 'none' }}
@@ -542,6 +602,15 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
             required
             disabled={parsing}
           />
+          {/* Show ticket distribution info */}
+          {startingTickets && Number(startingTickets) > 0 && (
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+              {type === "wall" 
+                ? `${Math.floor(Number(startingTickets) / 4)} tickets per row (4 rows)`
+                : `${startingTickets} tickets total`
+              }
+            </Typography>
+          )}
         </Grid>
       </Grid>
 

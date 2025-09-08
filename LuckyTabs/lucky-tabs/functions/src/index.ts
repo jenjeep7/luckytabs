@@ -42,25 +42,36 @@ export const parseFlareSheet = functions.storage
     const isTemp = boxId.startsWith("temp_");
 
     try {
-      const [result] = await visionClient.documentTextDetection(
+      // Try document text detection first (best for structured text)
+      let result = await visionClient.documentTextDetection(
         `gs://${object.bucket}/${filePath}`,
       );
 
-      const full = result.fullTextAnnotation?.text || "";
+      let full = result[0].fullTextAnnotation?.text || "";
+      
+      // If no text found, try regular text detection
       if (!full.trim()) {
-        console.log("No text detected in image");
+        console.log("No text with document detection, trying text detection...");
+        result = await visionClient.textDetection(
+          `gs://${object.bucket}/${filePath}`,
+        );
+        full = result[0].fullTextAnnotation?.text || "";
+      }
+
+      if (!full.trim()) {
+        console.log("No text detected in image with either method");
         
         if (isTemp) {
-          // Save error to temp collection
+          // Save error to temp collection with helpful message
           await db.collection("temp-ocr-results").doc(boxId).set({
-            error: "No text detected in image",
+            error: "No text detected in image. Please ensure the image is clear, well-lit, and contains readable text.",
             processedAt: admin.firestore.FieldValue.serverTimestamp(),
           });
         }
         return;
       }
 
-      console.log("OCR Text detected:", full.substring(0, 200) + "...");
+      console.log("OCR Text detected:", full.substring(0, 300) + "...");
 
       const lines = full.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
       const gameName = extractName(lines) ?? "Unknown Game";
@@ -68,12 +79,23 @@ export const parseFlareSheet = functions.storage
       const prices = [...full.matchAll(PRICE_RE)].map((m) => moneyToNumber(m[0]));
       const pricePerTicket = prices.length ? Math.min(...prices) : null;
 
-      // Simplified version without image processing for now
-      // Just extract all dollar amounts from text
+      // Extract all dollar amounts from text
       const allAmounts = [...full.matchAll(MONEY_RE)].map((m) => moneyToNumber(m[0]));
       
       // Remove the ticket price from the amounts (assuming it's the smallest)
       const cleaned = allAmounts.filter((v) => !pricePerTicket || v !== pricePerTicket);
+
+      if (cleaned.length === 0) {
+        console.log("No prize amounts detected in text");
+        
+        if (isTemp) {
+          await db.collection("temp-ocr-results").doc(boxId).set({
+            error: "No prize amounts detected. Please ensure the flare sheet shows clear dollar amounts.",
+            processedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+        }
+        return;
+      }
 
       const counts = cleaned.reduce<Record<number, number>>((acc, v) => {
         acc[v] = (acc[v] || 0) + 1;
@@ -128,10 +150,23 @@ export const parseFlareSheet = functions.storage
     } catch (error) {
       console.error("Error processing flare sheet:", error);
       
+      let errorMessage = `Failed to process image: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      
+      // Provide more specific error messages
+      if (error instanceof Error) {
+        if (error.message.includes('Vision API has not been used')) {
+          errorMessage = "Google Cloud Vision API is not enabled. Please contact support.";
+        } else if (error.message.includes('PERMISSION_DENIED')) {
+          errorMessage = "Permission denied for image processing. Please contact support.";
+        } else if (error.message.includes('Invalid image')) {
+          errorMessage = "Invalid image format. Please use JPG, PNG, or other common image formats.";
+        }
+      }
+      
       if (isTemp) {
         // Save error to temp collection
         await db.collection("temp-ocr-results").doc(boxId).set({
-          error: `Failed to process image: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          error: errorMessage,
           processedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
       }

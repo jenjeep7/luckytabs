@@ -29,7 +29,7 @@ const NeonToggle: React.FC<NeonToggleProps> = ({ value, onChange, options }) => 
           borderRadius: 4,
           color: '#A6B3C2',
           fontWeight: 700,
-          letterSpacing: '0.05em',
+          letterSpacing: '0.025em',
           px: 3,
           py: 1.5,
           mx: 0.5,

@@ -583,11 +583,6 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
             <Box key={box.id} sx={{ p: .5, mb: 3, position: 'relative'}}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                 <Box sx={{ textAlign: 'center', flex: 1 }}>
-                  {/* EV badge */}
-                  {typeof evData === 'number' && typeof rtpData === 'number' && (
-                    <EvBadge evData={evData} rtpData={rtpData} />
-                  )}
-
                   {/* Flare Sheet Display */}
                   {typeof box?.flareSheetUrl === "string" && box.flareSheetUrl.trim() !== "" && (
                     <Box sx={{ mb: 2, display: "flex", justifyContent: "center" }}>
@@ -598,7 +593,12 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
                       />
                     </Box>
                   )}
+                  {/* EV badge */}
+                  {typeof evData === 'number' && typeof rtpData === 'number' && (
+                    <EvBadge evData={evData} rtpData={rtpData} />
+                  )}
 
+               
                   <Typography>
                     <strong>{box.type === 'wall' ? 'Wall Box' : 'Bar Box'} #</strong> {box.boxNumber}
                   </Typography>

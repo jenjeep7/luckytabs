@@ -502,7 +502,8 @@ export const UserProfile: React.FC = () => {
             fontWeight: 500,
             textAlign: 'center',
             minHeight: '20px',
-            lineHeight: 1.4
+            lineHeight: 1.4,
+            zIndex: 10
           }}
         >
           V {getVersionInfo().version}
