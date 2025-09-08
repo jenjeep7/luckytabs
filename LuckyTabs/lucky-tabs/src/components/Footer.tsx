@@ -4,6 +4,7 @@ import FacebookIcon from '@mui/icons-material/Facebook';
 import InstagramIcon from '@mui/icons-material/Instagram';
 import TwitterIcon from '@mui/icons-material/Twitter';
 import YouTubeIcon from '@mui/icons-material/YouTube';
+import { getVersionInfo } from '../utils/version';
 
 export const Footer = () => {
   const theme = useTheme();
@@ -82,7 +83,7 @@ export const Footer = () => {
           </IconButton>
         </Box>
 
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2, flexWrap: 'wrap', mb: 2 }}>
           <Typography 
             variant="caption"
             sx={{
@@ -110,6 +111,23 @@ export const Footer = () => {
           >
             Privacy Policy
           </Button>
+        </Box>
+
+        {/* App Version */}
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              color: theme.neon.colors.text.secondary,
+              fontSize: { xs: '0.875rem', sm: '0.75rem' },
+              fontWeight: 500,
+              textAlign: 'center',
+              minHeight: '20px',
+              lineHeight: 1.4
+            }}
+          >
+            V {getVersionInfo().version}
+          </Typography>
         </Box>
       </Box></>
 }

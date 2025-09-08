@@ -44,7 +44,7 @@ import { groupService, GroupData } from "../../services/groupService";
 import ShareBoxDialog from "./ShareBoxDialog";
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../../firebase';
-import { StatusType, statusColors } from '../../utils/neonUtils';
+import { StatusType, statusColors, getNeonHeaderStyle } from '../../utils/neonUtils';
 
 interface Location {
   id: string;
@@ -648,14 +648,7 @@ export const Play: React.FC = () => {
                 <Typography 
                   variant="h4" 
                   sx={{ 
-                    fontWeight: 900,
-                    fontFamily: '"Orbitron", "Inter", sans-serif',
-                    background: 'linear-gradient(45deg, #7DF9FF 0%, #00E676 100%)',
-                    backgroundClip: 'text',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    textShadow: '0 0 20px rgba(125, 249, 255, 0.5)',
-                    letterSpacing: '0.1em',
+                    ...getNeonHeaderStyle(),
                     px: 2
                   }}
                 >
@@ -860,14 +853,7 @@ export const Play: React.FC = () => {
                 <Typography 
                   variant="h4" 
                   sx={{ 
-                    fontWeight: 900,
-                    fontFamily: '"Orbitron", "Inter", sans-serif',
-                    background: 'linear-gradient(45deg, #7DF9FF 0%, #00E676 100%)',
-                    backgroundClip: 'text',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    textShadow: '0 0 20px rgba(125, 249, 255, 0.5)',
-                    letterSpacing: '0.1em',
+                    ...getNeonHeaderStyle(),
                     px: 2
                   }}
                 >
