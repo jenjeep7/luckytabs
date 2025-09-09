@@ -107,30 +107,30 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
     return box?.claimedPrizes || [];
   }, [localClaimedPrizes, boxes]);
 
-  // Helper function to determine EV color based on three-tier system
-  // Green: RTP >= 100% (Excellent)
-  // Orange: RTP >= 80% and < 100% (Decent)
-  // Red: RTP < 80% (Poor)
+  // Helper function to determine EV color based on neon theme system
+  // Cyan: RTP >= 100% (Excellent)
+  // Amber: RTP >= 80% and < 100% (Decent)
+  // Pink: RTP < 80% (Poor)
   const getEvColor = (_evValue: number, rtpValue: number, isPercentage = true): string => {
-    const rtpGreen = isPercentage ? 100 : 1.0;
-    const rtpOrange = isPercentage ? 80 : 0.80;
-    if (rtpValue >= rtpGreen) {
-      return '#4caf50'; // Green for RTP >= 100%
-    } else if (rtpValue >= rtpOrange) {
-      return '#ff9800'; // Orange for RTP >= 80%
+    const rtpExcellent = isPercentage ? 100 : 1.0;
+    const rtpDecent = isPercentage ? 80 : 0.80;
+    if (rtpValue >= rtpExcellent) {
+      return theme.neon.colors.cyan; // Cyan for RTP >= 100%
+    } else if (rtpValue >= rtpDecent) {
+      return theme.neon.colors.amber; // Amber for RTP >= 80%
     } else {
-      return '#f44336'; // Red for RTP < 80%
+      return theme.neon.colors.pink; // Pink for RTP < 80%
     }
   };
 
-  // Helper function to get EV status text
+  // Helper function to get EV status text based on neon theme
   const getEvStatus = (evValue: number, rtpValue: number): StatusType => {
     if (evValue >= 0) {
-      return 'excellent';
+      return 'excellent'; // Positive EV = excellent (cyan)
     } else if (rtpValue >= 80) {
-      return 'decent';
+      return 'decent'; // Negative EV but decent RTP = decent (amber)
     } else {
-      return 'poor';
+      return 'poor'; // Low RTP = poor (pink)
     }
   };
 
