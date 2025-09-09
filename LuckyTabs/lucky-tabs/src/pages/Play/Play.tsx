@@ -40,7 +40,7 @@ import { groupService, GroupData } from "../../services/groupService";
 import ShareBoxDialog from "./ShareBoxDialog";
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../../firebase';
-import { StatusType, statusColors, getNeonHeaderStyle } from '../../utils/neonUtils';
+import { statusColors, getNeonHeaderStyle } from '../../utils/neonUtils';
 import { useTheme } from '@mui/material/styles';
 
 interface Location {

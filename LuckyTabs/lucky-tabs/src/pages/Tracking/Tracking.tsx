@@ -12,7 +12,6 @@ import {
 } from '@mui/material';
 import {
   AttachMoney as MoneyIcon,
-  TrendingUp as TrendingUpIcon,
   Add as AddIcon,
   Edit as EditIcon,
 } from '@mui/icons-material';

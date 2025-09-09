@@ -19,7 +19,7 @@ import FlareSheetDisplay from '../../components/FlareSheetDisplay';
 import { Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { EvChip } from '../../components/EvChip';
-import { StatusType, getCardGlowStyles } from '../../utils/neonUtils';
+import { StatusType } from '../../utils/neonUtils';
 import {
   calculateTotalRemainingPrizeValue,
   calculateOneInXChances,

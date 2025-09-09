@@ -9,13 +9,12 @@ import {
   ToggleButtonGroup,
   Card,
   CardMedia,
-  IconButton,
   LinearProgress,
   Alert,
   FormControlLabel,
   Switch,
 } from "@mui/material";
-import { PhotoCamera, Delete } from "@mui/icons-material";
+import { PhotoCamera } from "@mui/icons-material";
 import { doc, setDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "../../firebase";
