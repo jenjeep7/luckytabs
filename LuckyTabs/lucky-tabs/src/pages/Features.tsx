@@ -8,15 +8,6 @@ import {
   Paper,
   useTheme,
 } from '@mui/material';
-export {};
-const featuresList = [
-  { title: '🎯 Outsmart the Odds! ', desc: `Enter in box information, and Tabsy's clever system ranks your pull tab chances with the juiciest odds - so you play smart, not random.` },
-  { title: `🕹️ Tabsy's Player Pad `, desc: 'Track your pulls, flex your wins, and choose who gets the backstage pass - just you, your crew, or the whole tab-loving world.' },
-  { title: `📍 Tabsy's Hotspot Hub `, desc: `Bars and non-profits get their own profiles to flaunt fresh pull tab boxes, spotlight crowd favorites, and show off where the action is. It's like a VIP pass for players hunting the best spots to play.` },
-  { title: `🔥 The Pull Pulse `, desc: 'Tabsy taps into the hive mind of pull-tab pros! Share your data anonymously and watch the magic unfold as the community dashboard lights up with "hot" and "cold" boxes near you - real-time vibes, no guesswork' },
-  { title: `🎮 Tabsy's League of Legends`, desc: 'Why pull solo when you can compete with the pros? Tabsy turns the playroom into a battleground - join virtual leagues, climb the win board, rack up shiny badges, and chase profit glory. Every milestone is a flex, every game a social spark.' },
-  { title: `🎯 Behind the Pulls: Tabsy's Playlog  `, desc: `Tabsy's got the goods on every game you play. Like your own luck analyst, it maps your moves, logs your box hits, and highlights your high-roller moments - so you can play smarter and flex harder.` },
-];
 
 const Features: React.FC = () => {
   const theme = useTheme();
@@ -24,117 +15,127 @@ const Features: React.FC = () => {
 
   return (
     <>
-      <Box id="features" sx={{ py: 8, bgcolor: isDarkMode ? 'background.default' : 'grey.100' }}>
+      {/* Hero Section */}
+      <Box sx={{ py: 4, bgcolor: isDarkMode ? 'background.default' : 'grey.100' }}>
         <Container>
           <Typography variant="h4" align="center" fontWeight="bold" gutterBottom color="text.primary">
-            Features & How the Luck Lines Up
+            ✨ Why Tabsy Wins?
           </Typography>
+          <Typography variant="h6" align="center" maxWidth={800} mx="auto" mb={3} color="text.secondary">
+            {`Play smarter. Pull together. Win with purpose. Tabsy isn't just another app—it's your magical companion for tracking, predicting, and celebrating pull tab play. Whether you're a casual ripper or a streak-chasing strategist, Tabsy helps you play with confidence and connect with a vibrant community.`}
+          </Typography>
+        </Container>
+      </Box>
 
-          <Grid container spacing={4} mt={4}>
-            {featuresList.map(({ title, desc }) => (
-                <Grid key={title} size={{ xs: 12, md: 4 }}>
-                <Paper elevation={3} sx={{ p: 4, textAlign: 'center', height: '100%' }}>
-                  <Typography variant="h6" fontWeight="bold" gutterBottom>
-                    {title}
-                  </Typography>
-                  <Typography>{desc}</Typography>
-                </Paper>
-              </Grid>
-            ))}
+      {/* Main Features */}
+      <Box sx={{ py: 4, bgcolor: isDarkMode ? 'background.paper' : 'white' }}>
+        <Container>
+          <Grid container spacing={3}>
+            {/* Smarter Predictions */}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Paper elevation={3} sx={{ p: 3, height: '100%' }}>
+                <Typography variant="h5" fontWeight="bold" gutterBottom color="text.primary">
+                  🔍 Smarter Predictions
+                </Typography>
+                <Typography variant="body1" color="text.secondary">
+                  {`Tabsy doesn't guess—he calculates. Using real player data, timing patterns, and community wisdom, Tabsy conjures up predictions that help you decide when to jump in, hold off, or walk away. His crystal ball isn't just for show—it's powered by insights that evolve with every box scanned and every streak logged.`}
+                </Typography>
+              </Paper>
+            </Grid>
+
+            {/* Personalized Experience */}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Paper elevation={3} sx={{ p: 3, height: '100%' }}>
+                <Typography variant="h5" fontWeight="bold" gutterBottom color="text.primary">
+                  🎨 Personalized Experience
+                </Typography>
+                <Typography variant="body1" color="text.secondary">
+                  {`Your play, your vibe, your Tabsy. Customize your journey with animated mascot reactions, flair card thumbnails, and profile badges that reflect your style. Whether you're tracking wins or sharing box scans, Tabsy makes it feel personal, playful, and uniquely yours.`}
+                </Typography>
+              </Paper>
+            </Grid>
+
+            {/* Community Magic */}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Paper elevation={3} sx={{ p: 3, height: '100%' }}>
+                <Typography variant="h5" fontWeight="bold" gutterBottom color="text.primary">
+                  🌟 Community Magic
+                </Typography>
+                <Typography variant="body1" color="text.secondary">
+                  {`Pull tabs are better together. Join a crew of symbol seekers, box whisperers, and win-chasers. Share your finds, swap strategies, and celebrate your streaks in real time. From group stats to flair reactions, Tabsy's community tools make every rip a shared adventure.`}
+                </Typography>
+              </Paper>
+            </Grid>
+
+            {/* Choose Your Tier */}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Paper elevation={3} sx={{ p: 3, height: '100%' }}>
+                <Typography variant="h5" fontWeight="bold" gutterBottom color="text.primary">
+                  💎 Choose Your Tier
+                </Typography>
+                <Typography variant="body1" color="text.secondary" mb={2}>
+                  {`Pick your power level. Whether you're just starting out or going full wizard mode, Tabsy's got a tier for you:`}
+                </Typography>
+                <Box sx={{ pl: 1 }}>
+                  <Typography variant="body2" mb={0.5}>{`🟢 `}<strong>Tabsy Free Play</strong>{` – Track your play, join the community, and explore the basics.`}</Typography>
+                  <Typography variant="body2" mb={0.5}>{`🟡 `}<strong>Tabsy Pro Pull</strong>{` – Unlock smarter predictions, flair scans, and budget tools.`}</Typography>
+                  <Typography variant="body2">{`🔮 `}<strong>Tabsy Crystal Club</strong>{` – Get exclusive perks, early feature drops, and Tabsy's undivided magical attention.`}</Typography>
+                </Box>
+              </Paper>
+            </Grid>
           </Grid>
         </Container>
       </Box>
 
-      {/* Testimonials Section */}
-      <Box
-        id="testimonials"
-        sx={{
-          py: 10,
-          bgcolor: isDarkMode ? 'background.paper' : 'primary.main',
-          color: isDarkMode ? 'text.primary' : 'white',
-          textAlign: 'center',
-        }}
-      >
+      {/* Core Features */}
+      <Box sx={{ py: 4, bgcolor: isDarkMode ? 'background.default' : 'grey.50' }}>
         <Container>
-          <Typography variant="h4" align="center" fontWeight="bold" gutterBottom>
-            📣 Pulled & Proud
-          </Typography>
-          <Typography variant="h6" align="center" maxWidth={600} mx="auto" mb={4}>
-            From first-timers to high-rollers, Tabsy fans spill the beans on their big moments, fave features, and what keeps them coming back.
-          </Typography>
+          <Grid container spacing={3}>
+            {/* Core App Experience */}
+            <Grid size={{ xs: 12, lg: 4 }}>
+              <Paper elevation={3} sx={{ p: 3, height: '100%' }}>
+                <Typography variant="h5" fontWeight="bold" gutterBottom color="text.primary">
+                  🔮 Core App Experience
+                </Typography>
+                <Typography variant="body1" color="text.secondary">
+                  Tabsy Predicts. You decide. Enter box details and let Tabsy guide your next move with advice tailored to your streak, budget, and timing. Choose your prediction level from Basic general guidance to Advanced recovery strategies and timing insights. Built for transparency—so you can judge every box with confidence.
+                </Typography>
+              </Paper>
+            </Grid>
 
-          <Grid container spacing={4} mt={4}>
-            {[
-              {
-                quote: `Tabsy Wins has transformed my playing. It's awesome to see what others are playing and connect with friends!`,
-                name: 'Kylie M., Pull Tab Fan',
-              },
-              {
-                quote:
-                  'I love being able to track my games and see community trends. It adds a whole new layer of fun to pull tabs!',
-                name: 'Cody J., Community Member',
-              },
-            ].map(({ quote, name }) => (
-                <Grid key={name} size={{ xs: 12, md: 6 }}>
-                <Paper
-                  elevation={2}
-                  sx={{
-                    p: 4,
-                    bgcolor: isDarkMode ? 'background.default' : 'white',
-                    color: 'text.primary',
-                  }}
-                >
-                  <Typography variant="body1" fontStyle="italic" gutterBottom>
-                    &quot;{quote}&quot;
-                  </Typography>
-                  <Typography variant="subtitle1" color="text.primary" fontWeight="bold">
-                    - {name}
-                  </Typography>
-                </Paper>
-              </Grid>
-            ))}
+            {/* Smart Box Insights */}
+            <Grid size={{ xs: 12, lg: 4 }}>
+              <Paper elevation={3} sx={{ p: 3, height: '100%' }}>
+                <Typography variant="h5" fontWeight="bold" gutterBottom color="text.primary">
+                  📊 Smart Box Insights
+                </Typography>
+                <Typography variant="body1" color="text.secondary">
+                  Turn data into decisions. Tabsy analyzes box stats to highlight what makes a pull tab worth playing. Use camera tools to scan flair, upload ticket images, and log locations. Track wins, losses, budget, and box quality over time. All insights, no spoilers—Tabsy never reveals exact odds, just smart signals.
+                </Typography>
+              </Paper>
+            </Grid>
+
+            {/* Community & Social Features */}
+            <Grid size={{ xs: 12, lg: 4 }}>
+              <Paper elevation={3} sx={{ p: 3, height: '100%' }}>
+                <Typography variant="h5" fontWeight="bold" gutterBottom color="text.primary">
+                  👥 Community & Social Features
+                </Typography>
+                <Typography variant="body1" color="text.secondary">
+                  {`Play loud. Share proud. Join Tabsy's community for tips, meetups, and shared strategies. Tag #tabsywins to spotlight your favorite venues and boxes. Record your rips like TikTok-style clips and share your streaks. Learn from social tutorials on how to play smarter and spot winning patterns.`}
+                </Typography>
+              </Paper>
+            </Grid>
           </Grid>
-        </Container>
-      </Box>
-
-      {/* Responsible Gaming Section */}
-      <Box
-        id="responsible-gaming"
-        sx={{
-          py: 10,
-          bgcolor: isDarkMode ? 'background.default' : 'grey.100',
-          textAlign: 'center',
-          color: 'text.primary',
-        }}
-      >
-        <Container>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, mb: 2 }}>
-            <span role="img" aria-label="helping hands" style={{ fontSize: '2rem', color: '#d32f2f' }}>
-              🤝
-            </span>
-            <Typography variant="h4" fontWeight="bold">
-              {`Helping Hands, Winning Plans`}
-            </Typography>
-          </Box>
-          <Typography variant="h6" maxWidth={600} mx="auto" mb={4}>
-            {`Whether you're chasing wins or playing just for kicks, Tabsy's got your back. Lean on budget tools and community tips to stay grounded and game wisely.`}
-          </Typography>
-          <Button
-            variant="contained"
-            sx={{ bgcolor: 'error.main', color: 'white' }}
-            onClick={() => (window.location.href = '/support-circle')}
-          >
-            {`Tabsy's Play it Cool Guide`}
-          </Button>
         </Container>
       </Box>
 
       {/* Final Call to Action Section */}
       <Box
         sx={{
-          bgcolor: isDarkMode ? 'background.paper' : 'primary.main',
+          bgcolor: isDarkMode ? 'background.default' : 'primary.main',
           color: isDarkMode ? 'text.primary' : 'white',
-          py: 10,
+          py: 6,
           textAlign: 'center',
         }}
       >
@@ -142,11 +143,12 @@ const Features: React.FC = () => {
           <Typography variant="h4" fontWeight="bold" gutterBottom>
             {`Ready to Join Tabsy's Community?`}
           </Typography>
-          <Typography variant="h6" maxWidth={600} mx="auto" mb={4}>
+          <Typography variant="h6" maxWidth={600} mx="auto" mb={3}>
             Connect with fellow enthusiasts, share insights, and elevate your pull tab experience today.
           </Typography>
           <Button
             variant="contained"
+            href="/signup"
             sx={{
               bgcolor: 'secondary.main',
               color: 'white',
@@ -154,7 +156,6 @@ const Features: React.FC = () => {
                 bgcolor: isDarkMode ? 'secondary.dark' : 'secondary.light',
               },
             }}
-            onClick={() => window.location.href = '/'}
           >
             Join Now
           </Button>

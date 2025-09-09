@@ -18,10 +18,7 @@ import {
   IconButton,
   Card,
   CardContent,
-  Chip,
   Paper,
-  ToggleButtonGroup,
-  ToggleButton,
 } from "@mui/material";
 import CloseIcon from '@mui/icons-material/Close';
 import PlaceIcon from '@mui/icons-material/Place';
@@ -30,7 +27,6 @@ import Edit from '@mui/icons-material/Edit';
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../firebase";
 import { CreateBoxForm } from "./AddBox";
-import NeonHeader from "../../components/NeonHeader";
 import NeonToggle from "../../components/NeonToggle";
 import NeonStatusPill from "../../components/NeonStatusPill";
 import { EditBoxForm } from "./EditBox";
@@ -45,6 +41,7 @@ import ShareBoxDialog from "./ShareBoxDialog";
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../../firebase';
 import { StatusType, statusColors, getNeonHeaderStyle } from '../../utils/neonUtils';
+import { useTheme } from '@mui/material/styles';
 
 interface Location {
   id: string;
@@ -59,6 +56,8 @@ interface WinningTicket {
 }
 
 export const Play: React.FC = () => {
+  const theme = useTheme();
+  
   // Use location context instead of local state
   const { 
     selectedLocation, 
@@ -805,7 +804,7 @@ export const Play: React.FC = () => {
                                     e.stopPropagation();
                                     setEditFormBox(box);
                                   }}
-                                  sx={{ color: 'secondary.main' }}
+                                  sx={theme.neon.effects.interactiveIcon()}
                                 >
                                   <Edit fontSize="small" />
                                 </IconButton>
@@ -1011,10 +1010,7 @@ export const Play: React.FC = () => {
                                         e.stopPropagation();
                                         setEditFormBox(box);
                                       }}
-                                      sx={{ 
-                                        color: evColor,
-                                        '&:hover': { backgroundColor: `${evColor}20` }
-                                      }}
+                                      sx={theme.neon.effects.interactiveIcon()}
                                     >
                                       <Edit sx={{ fontSize: 16 }} />
                                     </IconButton>

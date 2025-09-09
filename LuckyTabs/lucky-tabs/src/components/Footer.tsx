@@ -38,7 +38,7 @@ export const Footer = () => {
         {/* Social Media Icons */}
         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, my: 2 }}>
           <IconButton
-            href="https://facebook.com/tabsyscommunity"
+            href="https://www.facebook.com/profile.php?id=61580827040302"
             target="_blank"
             rel="noopener noreferrer"
             sx={{ 
@@ -60,7 +60,7 @@ export const Footer = () => {
             <InstagramIcon />
           </IconButton>
           <IconButton
-            href="https://twitter.com/tabsyscommunity"
+            href="https://x.com/TabsyWins"
             target="_blank"
             rel="noopener noreferrer"
             sx={{ 
