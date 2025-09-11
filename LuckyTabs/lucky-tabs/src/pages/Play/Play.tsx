@@ -75,7 +75,7 @@ export const Play: React.FC = () => {
   // Track home page visits for analytics
   useEffect(() => {
     if (user) {
-      trackHomePageVisit(user.uid);
+      trackHomePageVisit("logged_in");
     }
   }, [user]);
 
@@ -94,6 +94,7 @@ export const Play: React.FC = () => {
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [shareBoxId, setShareBoxId] = useState<string>('');
   const [shareBoxName, setShareBoxName] = useState<string>('');
+  const [shareBoxData, setShareBoxData] = useState<BoxItem | null>(null);
 
   // Restore missing helper functions
   const handleChange = (event: any) => {
@@ -413,6 +414,15 @@ export const Play: React.FC = () => {
     }
   }, [selectedLocation, user, userData, userGroups, refreshBoxes]);
 
+  // Update share box data when dialog opens or boxes change
+  useEffect(() => {
+    if (shareDialogOpen && shareBoxId) {
+      const allBoxes = [...myBoxes, ...groupBoxes];
+      const boxData = allBoxes.find(box => box.id === shareBoxId);
+      setShareBoxData(boxData || null);
+    }
+  }, [shareDialogOpen, shareBoxId, myBoxes, groupBoxes]);
+
   // Get current boxes to display based on toggle
   const currentBoxes = boxView === 'my' ? myBoxes : groupBoxes;
   const wallBoxes = currentBoxes.filter((box) => box.type === "wall");
@@ -422,6 +432,8 @@ export const Play: React.FC = () => {
   const handleShareBox = (boxId: string, boxName: string) => {
     setShareBoxId(boxId);
     setShareBoxName(boxName);
+    // Don't set shareBoxData here - let the dialog open and then set it
+    // This ensures we always get the most current data
     setShareDialogOpen(true);
   };
 
@@ -1020,7 +1032,7 @@ export const Play: React.FC = () => {
                                       }}
                                       sx={theme.neon.effects.interactiveIcon()}
                                     >
-                                      <Edit sx={{ fontSize: 16 }} />
+                                      <Edit fontSize="small" />
                                     </IconButton>
                                     <IconButton
                                       size="small"
@@ -1028,12 +1040,9 @@ export const Play: React.FC = () => {
                                         e.stopPropagation();
                                         handleShareBox(box.id, box.boxName);
                                       }}
-                                      sx={{ 
-                                        color: evColor,
-                                        '&:hover': { backgroundColor: `${evColor}20` }
-                                      }}
+                                      sx={{ color: 'primary.main' }}
                                     >
-                                      <ShareIcon sx={{ fontSize: 16 }} />
+                                      <ShareIcon fontSize="small" />
                                     </IconButton>
                                   </Box>
                                 )}
@@ -1136,13 +1145,17 @@ export const Play: React.FC = () => {
       {user && (
         <ShareBoxDialog
           open={shareDialogOpen}
-          onClose={() => setShareDialogOpen(false)}
+          onClose={() => {
+            setShareDialogOpen(false);
+            setShareBoxData(null); // Clear box data when closing
+          }}
           onShare={() => {
             void refreshBoxes();
           }}
           boxId={shareBoxId}
           boxName={shareBoxName}
           currentUserId={user.uid}
+          existingShares={shareBoxData?.shares || []}
         />
       )}
       </Box>
