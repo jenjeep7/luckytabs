@@ -22,6 +22,7 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { auth, db, storage } from "../../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { userService, UserData } from "../../services/userService";
+import { trackBoxCreated, trackFlareSheetUploaded } from "../../utils/analytics";
 
 interface Props {
   location: { id: string; name: string };
@@ -323,12 +324,28 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
 
       // Create the box first to get the document ID
       const docRef = await addDoc(collection(db, "boxes"), newBox);
-            if (flareSheetImage) {
+      
+      // Track box creation
+      trackBoxCreated({
+        type: type,
+        pricePerTicket: parseFloat(pricePerTicket),
+        userPlan: userProfile?.plan || 'free',
+        startingTickets: Number(startingTickets) || undefined
+      });
+      
+      if (flareSheetImage) {
         try {
           const flareSheetUrl = await uploadFlareSheetImage(flareSheetImage, docRef.id);
           // Update the box with the image URL
           const boxDocRef = doc(db, "boxes", docRef.id);
           await updateDoc(boxDocRef, { flareSheetUrl });
+          
+          // Track flare sheet upload
+          trackFlareSheetUploaded({
+            boxId: docRef.id,
+            boxType: type,
+            userPlan: userProfile?.plan || 'free'
+          });
         } catch (imageError) {
           console.error("Error uploading flare sheet:", imageError);
           setUploadError("Failed to upload flare sheet image");

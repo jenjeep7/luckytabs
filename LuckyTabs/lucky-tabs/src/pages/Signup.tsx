@@ -6,6 +6,7 @@ import { createUserWithEmailAndPassword, updateProfile, User, onAuthStateChanged
 import { auth, db } from '../firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
+import { trackUserSignup } from '../utils/analytics';
 import {
   Box,
   Button,
@@ -75,6 +76,9 @@ const Signup: React.FC = () => {
         await sendEmailVerification(confirmedUser);
         setVerificationSent(true);
       }
+
+      // Track successful signup
+      trackUserSignup('email');
 
       setError('');
       // Do not navigate until verified

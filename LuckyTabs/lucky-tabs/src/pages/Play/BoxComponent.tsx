@@ -27,6 +27,12 @@ import {
   rtpRemaining,
   Prize
 } from './helpers';
+import {
+  trackBoxRemoved,
+  trackTicketsEstimated,
+  trackPrizeClaimed,
+  trackAdvancedAnalyticsViewed
+} from '../../utils/analytics';
 
 interface WinningTicket {
   totalPrizes: number;
@@ -213,9 +219,22 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
     const removeBox = async () => {
       try {
         const boxRef = doc(db, 'boxes', confirmDialog.boxId);
+        
+        // Find the box being removed for analytics
+        const boxToRemove = boxes.find(b => b.id === confirmDialog.boxId);
+        
         await updateDoc(boxRef, {
           isActive: false
         });
+        
+        // Track box removal
+        if (boxToRemove) {
+          trackBoxRemoved({
+            boxId: confirmDialog.boxId,
+            boxType: boxToRemove.type,
+            userPlan: userProfile?.plan || 'free'
+          });
+        }
         
         setConfirmDialog({ open: false, boxId: '', boxName: '' });
         
@@ -285,6 +304,15 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
             winningTickets: updatedTickets
           });
 
+          // Track prize claim/unclaim
+          trackPrizeClaimed({
+            boxId,
+            boxType: box.type,
+            prizeValue: Number(currentTicket.prize),
+            userPlan: userProfile?.plan || 'free',
+            action: isPrizeClaimed ? 'unclaimed' : 'claimed'
+          });
+
           // Keep the optimistic update - no need to clear it since UI should stay updated
           // Only refresh boxes in background for data consistency
           if (refreshBoxes) {
@@ -351,6 +379,18 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
           rowEstimates: rowEstimates,
           estimatedTicketsUpdated: new Date(),
         });
+
+        // Track tickets estimation
+        const box = boxes.find(b => b.id === estimateDialog.boxId);
+        if (box) {
+          trackTicketsEstimated({
+            boxId: estimateDialog.boxId,
+            boxType: box.type,
+            estimatedTickets: totalTickets,
+            userPlan: userProfile?.plan || 'free',
+            estimationMethod: 'row_by_row'
+          });
+        }
 
         setEstimateDialog({ open: false, boxId: '', boxName: '' });
         
@@ -440,6 +480,18 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
           estimatedRemainingTickets: ticketsRemaining
         });
         
+        // Track manual ticket estimation
+        const box = boxes.find(b => b.id === boxId);
+        if (box && ticketsRemaining > 0) {
+          trackTicketsEstimated({
+            boxId,
+            boxType: box.type,
+            estimatedTickets: ticketsRemaining,
+            userPlan: userProfile?.plan || 'free',
+            estimationMethod: 'manual'
+          });
+        }
+        
         // Refresh the parent component's boxes state with the updated data
         if (refreshBoxes) {
           refreshBoxes(boxId);
@@ -450,7 +502,7 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
     };
     
     void updateFirestore();
-  }, [firebaseUser?.uid, refreshBoxes]);
+  }, [firebaseUser?.uid, refreshBoxes, boxes, userProfile?.plan]);
 
   // Helper function to get effective winning tickets (considering optimistic updates)
   const getEffectiveWinningTickets = useCallback((box: BoxItem): WinningTicket[] => {
@@ -664,7 +716,20 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
                 
                 {/* Advanced Metrics Section in Accordion (Pro users only) */}
                 {remainingTicketsInput[box.id] && firebaseUser && userProfile?.plan === 'pro' && (
-                  <Accordion sx={{ mt: 2, maxWidth: 800, mx: 'auto' }} defaultExpanded={false}>
+                  <Accordion 
+                    sx={{ mt: 2, maxWidth: 800, mx: 'auto' }} 
+                    defaultExpanded={false}
+                    onChange={(event, isExpanded) => {
+                      if (isExpanded) {
+                        trackAdvancedAnalyticsViewed({
+                          boxId: box.id,
+                          boxType: box.type,
+                          userPlan: userProfile?.plan || 'free',
+                          accessGranted: true
+                        });
+                      }
+                    }}
+                  >
                     <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Typography variant="h6">Advanced Analytics</Typography>

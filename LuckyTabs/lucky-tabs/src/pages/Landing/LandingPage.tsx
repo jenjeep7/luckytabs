@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 /* eslint-disable @typescript-eslint/no-floating-promises */
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../../firebase';
+import { trackLandingPageVisit } from '../../utils/analytics';
 import {
   Box,
   Button,
@@ -13,6 +14,32 @@ import {
 
 export const LandingPage: React.FC = () => {
   const [user] = useAuthState(auth);
+
+  // Track landing page visit when component mounts
+  useEffect(() => {
+    // Get referrer information for traffic source tracking
+    const referrer = document.referrer;
+    let source = 'direct';
+    let medium = 'none';
+    
+    if (referrer) {
+      if (referrer.includes('google')) {
+        source = 'google';
+        medium = 'organic';
+      } else if (referrer.includes('facebook')) {
+        source = 'facebook';
+        medium = 'social';
+      } else if (referrer.includes('twitter')) {
+        source = 'twitter';
+        medium = 'social';
+      } else {
+        source = 'referral';
+        medium = 'referral';
+      }
+    }
+
+    trackLandingPageVisit(source, medium);
+  }, []);
 
   return (
     <Box sx={{ 

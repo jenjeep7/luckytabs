@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../firebase';
 import { userService } from '../services/userService';
+import { setUserAnalyticsProperties } from '../utils/analytics';
 
 export type UserProfile = {
   plan?: string;
@@ -26,6 +27,16 @@ export const UserProfileProvider: React.FC<{ children: ReactNode }> = ({ childre
       setLoading(true);
       const profile = await userService.getUserProfile(firebaseUser.uid);
       setUserProfile(profile);
+      
+      // Set analytics user properties when profile is loaded
+      if (profile) {
+        setUserAnalyticsProperties({
+          userId: firebaseUser.uid,
+          plan: profile.plan || 'free',
+          signupDate: firebaseUser.metadata.creationTime || ''
+        });
+      }
+      
       setLoading(false);
     } else {
       setUserProfile(null);

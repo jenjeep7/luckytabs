@@ -29,6 +29,7 @@ import { db } from "../../firebase";
 import { CreateBoxForm } from "./AddBox";
 import NeonToggle from "../../components/NeonToggle";
 import NeonStatusPill from "../../components/NeonStatusPill";
+import { trackHomePageVisit } from "../../utils/analytics";
 import { EditBoxForm } from "./EditBox";
 import { BoxComponent } from "./BoxComponent";
 import { LocationManager } from "./LocationManager";
@@ -70,6 +71,13 @@ export const Play: React.FC = () => {
   const [user] = useAuthState(auth);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [userGroups, setUserGroups] = useState<GroupData[]>([]);
+
+  // Track home page visits for analytics
+  useEffect(() => {
+    if (user) {
+      trackHomePageVisit(user.uid);
+    }
+  }, [user]);
 
   // Box view toggle state
   const [boxView, setBoxView] = useState<'my' | 'group'>('my');
