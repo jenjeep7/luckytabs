@@ -71,8 +71,6 @@ export const LocationManager: React.FC<LocationManagerProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [predictions, setPredictions] = useState<any[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [placesService, setPlacesService] = useState<any>(null);
-  const [autocompleteService, setAutocompleteService] = useState<any>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [user] = useAuthState(auth);
 
@@ -120,15 +118,8 @@ export const LocationManager: React.FC<LocationManagerProps> = ({
     try {
       await getGoogleMapsLoader();
 
-      // Initialize AutocompleteService for predictions
-      const autocompleteServiceInstance = new (window as any).google.maps.places.AutocompleteService();
-      setAutocompleteService(autocompleteServiceInstance);
-
-      // Initialize PlacesService for place details (needs a map element)
-      const mapDiv = document.createElement('div');
-      const map = new (window as any).google.maps.Map(mapDiv);
-      const placesServiceInstance = new (window as any).google.maps.places.PlacesService(map);
-      setPlacesService(placesServiceInstance);
+      // Note: AutocompleteService is deprecated, we'll use the new AutocompleteSuggestion API instead
+      // No need to initialize AutocompleteService anymore
       
     } catch (err) {
       console.error('💥 Error loading Google Maps:', err);
@@ -151,7 +142,7 @@ export const LocationManager: React.FC<LocationManagerProps> = ({
   };
 
   // Handle search input changes
-  const handleSearchInputChange = (value: string) => {
+  const handleSearchInputChange = async (value: string) => {
     setSearchQuery(value);
     
     if (!value.trim()) {
@@ -160,57 +151,106 @@ export const LocationManager: React.FC<LocationManagerProps> = ({
       return;
     }
 
-    if (autocompleteService) {
+    try {
+      // Use the new AutocompleteSuggestion API instead of deprecated AutocompleteService
+      const { AutocompleteSuggestion } = await (window as any).google.maps.importLibrary("places") as google.maps.PlacesLibrary;
+      
       const request = {
         input: value,
-        types: ['establishment'],
-        componentRestrictions: { country: 'us' },
+        includedPrimaryTypes: ['restaurant', 'bar', 'meal_takeaway', 'food', 'night_club'],
+        language: 'en',
+        region: 'us'
       };
 
-      autocompleteService.getPlacePredictions(request, (predictions: any[], status: any) => {
-        if (status === (window as any).google.maps.places.PlacesServiceStatus.OK && predictions) {
-          // Filter for restaurants and bars
-          const filteredPredictions = predictions.filter((prediction: any) => {
-            return prediction.types?.some((type: string) => 
-              ['restaurant', 'bar', 'meal_takeaway', 'food', 'night_club', 'establishment'].includes(type)
-            );
-          });
-          setPredictions(filteredPredictions);
-          setShowDropdown(filteredPredictions.length > 0);
-        } else {
-          setPredictions([]);
-          setShowDropdown(false);
-        }
-      });
+      const { suggestions } = await AutocompleteSuggestion.fetchAutocompleteSuggestions(request);
+      
+      if (suggestions && suggestions.length > 0) {
+        // Convert suggestions to match our existing prediction structure
+        const convertedPredictions = suggestions
+          .filter((suggestion: any) => suggestion.placePrediction) // Only place predictions
+          .map((suggestion: any) => ({
+            place_id: suggestion.placePrediction.placeId,
+            description: suggestion.placePrediction.text?.text || '',
+            structured_formatting: {
+              main_text: suggestion.placePrediction.structuredFormat?.mainText?.text || '',
+              secondary_text: suggestion.placePrediction.structuredFormat?.secondaryText?.text || ''
+            },
+            types: suggestion.placePrediction.types || []
+          }));
+          
+        setPredictions(convertedPredictions);
+        setShowDropdown(convertedPredictions.length > 0);
+      } else {
+        setPredictions([]);
+        setShowDropdown(false);
+      }
+    } catch (error) {
+      console.error('Error fetching autocomplete suggestions:', error);
+      setPredictions([]);
+      setShowDropdown(false);
     }
   };
 
   // Handle place selection from custom dropdown
-  const handlePlaceSelect = (placeId: string) => {
-    if (!placesService) return;
+  const handlePlaceSelect = async (placeId: string) => {
+    try {
+      // Use the new Place API instead of deprecated PlacesService
+      const { Place } = await (window as any).google.maps.importLibrary("places") as google.maps.PlacesLibrary;
+      
+      const place = new Place({
+        id: placeId,
+        requestedLanguage: 'en',
+      });
 
-    const request = {
-      placeId,
-      fields: [
-        'place_id',
-        'name',
-        'formatted_address',
-        'address_components',
-        'geometry',
-        'types',
-        'rating',
-        'formatted_phone_number',
-        'website',
-        'business_status'
-      ]
-    };
+      // Fetch place details using the new API
+      await place.fetchFields({
+        fields: [
+          'id',
+          'displayName',
+          'formattedAddress',
+          'addressComponents',
+          'location',
+          'types',
+          'rating',
+          'internationalPhoneNumber',
+          'websiteURI',
+          'businessStatus'
+        ]
+      });
 
-    placesService.getDetails(request, (place: any, status: any) => {
-      if (status === (window as any).google.maps.places.PlacesServiceStatus.OK && place) {
+      if (place.displayName && place.location) {
+        // Extract coordinates safely by calling the methods
+        const latValue = place.location.lat?.() ?? 0;
+        const lngValue = place.location.lng?.() ?? 0;
+        
+        // Convert the new Place object to match our existing structure
+        const placeData = {
+          place_id: place.id,
+          name: place.displayName,
+          formatted_address: place.formattedAddress,
+          address_components: place.addressComponents,
+          geometry: {
+            location: {
+              lat: () => latValue,
+              lng: () => lngValue
+            }
+          },
+          // Store actual coordinate values for Firebase
+          coordinates: {
+            lat: latValue,
+            lng: lngValue
+          },
+          types: place.types,
+          rating: place.rating,
+          formatted_phone_number: place.internationalPhoneNumber,
+          website: place.websiteURI,
+          business_status: place.businessStatus
+        };
+
         // Check if this location already exists
-        const isDuplicate = isDuplicateLocation(place);
+        const isDuplicate = isDuplicateLocation(placeData);
 
-        setSelectedPlace(place);
+        setSelectedPlace(placeData);
         
         if (isDuplicate) {
           setError('This location has already been added to the system.');
@@ -220,11 +260,11 @@ export const LocationManager: React.FC<LocationManagerProps> = ({
 
         // Extract city from address components for better display
         let cityName = '';
-        if (place.address_components && Array.isArray(place.address_components)) {
-          for (const component of place.address_components) {
+        if (place.addressComponents && Array.isArray(place.addressComponents)) {
+          for (const component of place.addressComponents) {
             if (component.types && Array.isArray(component.types)) {
               if (component.types.includes('locality') || component.types.includes('administrative_area_level_3')) {
-                cityName = component.long_name ? String(component.long_name) : '';
+                cityName = component.longText ? String(component.longText) : '';
                 break;
               }
             }
@@ -232,14 +272,17 @@ export const LocationManager: React.FC<LocationManagerProps> = ({
         }
 
         // Update the input field with the selected place name and city
-        const placeName = place.name ? String(place.name) : (place.formatted_address ? String(place.formatted_address) : '');
+        const placeName = place.displayName ? String(place.displayName) : (place.formattedAddress ? String(place.formattedAddress) : '');
         const displayName = cityName 
           ? `${placeName} (${cityName})`
           : placeName;
         setSearchQuery(displayName);
         setShowDropdown(false);
       }
-    });
+    } catch (error) {
+      console.error('Error fetching place details:', error);
+      setError('Error loading place details. Please try again.');
+    }
   };
 
   const handleAddLocation = async () => {
@@ -259,9 +302,9 @@ export const LocationManager: React.FC<LocationManagerProps> = ({
         name: selectedPlace.name || '',
         address: selectedPlace.formatted_address || '',
         placeId: selectedPlace.place_id || '',
-        coordinates: {
-          lat: selectedPlace.geometry?.location?.lat() || 0,
-          lng: selectedPlace.geometry?.location?.lng() || 0,
+        coordinates: selectedPlace.coordinates || {
+          lat: 0,
+          lng: 0
         },
         businessInfo: {
           phone: selectedPlace.formatted_phone_number || '',
@@ -337,7 +380,9 @@ export const LocationManager: React.FC<LocationManagerProps> = ({
               variant="outlined"
               size="medium"
               value={searchQuery}
-              onChange={(e) => handleSearchInputChange(e.target.value)}
+              onChange={(e) => {
+                void handleSearchInputChange(e.target.value);
+              }}
               onFocus={() => {
                 if (predictions.length > 0) {
                   setShowDropdown(true);
@@ -372,7 +417,9 @@ export const LocationManager: React.FC<LocationManagerProps> = ({
                     {predictions.map((prediction) => (
                       <MenuItem
                         key={prediction.place_id}
-                        onClick={() => handlePlaceSelect(prediction.place_id)}
+                        onClick={() => {
+                          void handlePlaceSelect(prediction.place_id);
+                        }}
                         sx={{
                           py: 1.5,
                           px: 2,
