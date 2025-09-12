@@ -47,6 +47,13 @@ import { useTheme } from '@mui/material/styles';
 interface Location {
   id: string;
   name: string;
+  address?: string;
+  type?: "restaurant" | "bar";
+  placeId?: string;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
   [key: string]: any;
 }
 
@@ -296,6 +303,34 @@ export const Play: React.FC = () => {
     }
   }, []);
 
+  // Helper: Extract city from address
+  const extractCityFromAddress = (address: string): string => {
+    if (!address) return '';
+    
+    // Split address by commas and look for city (usually second to last part before state/zip)
+    const parts = address.split(',').map(part => part.trim());
+    
+    // Look for patterns that indicate city names
+    // City is typically after the street address and before state
+    for (let i = 1; i < parts.length - 1; i++) {
+      const part = parts[i];
+      // Skip parts that look like street numbers, states, or zip codes
+      if (!/^\d/.test(part) && // not starting with number
+          !/^[A-Z]{2}$/.test(part) && // not a state abbreviation
+          !/^\d{5}/.test(part) && // not a zip code
+          part.length > 2) { // reasonable city name length
+        return part;
+      }
+    }
+    
+    // Fallback: return the second part if it exists and looks reasonable
+    if (parts.length >= 2 && parts[1].length > 2) {
+      return parts[1];
+    }
+    
+    return '';
+  };
+
   // Helper: Haversine formula for distance in meters
   function getDistanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
     const toRad = (v: number) => (v * Math.PI) / 180;
@@ -483,11 +518,30 @@ export const Play: React.FC = () => {
               onChange={handleChange}
               size="small"
             >
-              {sortedLocations.map((loc) => (
-                <MenuItem key={loc.id} value={loc.id}>
-                  {loc.name}
-                </MenuItem>
-              ))}
+              {sortedLocations.map((loc) => {
+                const city = extractCityFromAddress(String(loc.address || ''));
+                return (
+                  <MenuItem key={loc.id} value={loc.id}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="body1" sx={{ flex: 1 }}>
+                        {loc.name}
+                      </Typography>
+                      {city && (
+                        <Typography 
+                          variant="caption" 
+                          sx={{ 
+                            color: 'text.secondary',
+                            fontSize: '0.75rem',
+                            fontStyle: 'italic'
+                          }}
+                        >
+                          {city}
+                        </Typography>
+                      )}
+                    </Box>
+                  </MenuItem>
+                );
+              })}
             </Select>
           </FormControl>
 
