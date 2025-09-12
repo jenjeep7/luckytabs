@@ -1181,6 +1181,7 @@ export const Play: React.FC = () => {
                 showOwner={true}
                 marginTop={0}
                 refreshBoxes={(boxId: string | undefined) => { void refreshBoxes(boxId); }}
+                userGroups={userGroups.map(g => g.id)} // Pass group IDs for permission checking
               />
             </Box>
           )}

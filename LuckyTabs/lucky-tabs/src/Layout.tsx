@@ -77,7 +77,12 @@ function Layout({ children, title }: LayoutProps) {
 
   const handleNavItemClick = (item: typeof navItems[number]) => {
     if (item.route) {
-      void navigate(item.route);
+      // Clear search parameters when navigating to main tabs to prevent tab conflicts
+      if (item.route === '/community') {
+        void navigate(item.route, { replace: true });
+      } else {
+        void navigate(item.route);
+      }
     } else if (item.email) {
       const subject = encodeURIComponent('Tabsy Wins - Contact');
       const body = encodeURIComponent('Hello,\n\nI would like to get in touch regarding Tabsy Wins.\n\nThank you!');

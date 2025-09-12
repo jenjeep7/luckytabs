@@ -14,30 +14,76 @@ const Features: React.FC = () => {
   const isDarkMode = theme.palette.mode === 'dark';
 
   return (
-    <>
+    <Box sx={{ 
+      width: '100%', 
+      minHeight: '100vh',
+      position: 'relative',
+      zIndex: 1,
+      overflow: 'hidden'
+    }}>
       {/* Hero Section */}
-      <Box sx={{ py: 4, bgcolor: isDarkMode ? 'background.default' : 'grey.100' }}>
-        <Container>
-          <Typography variant="h4" align="center" fontWeight="bold" gutterBottom color="text.primary">
+      <Box sx={{ 
+        py: { xs: 3, md: 4 }, 
+        bgcolor: isDarkMode ? 'background.default' : 'grey.100',
+        width: '100%'
+      }}>
+        <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
+          <Typography 
+            variant="h4" 
+            align="center" 
+            fontWeight="bold" 
+            gutterBottom 
+            color="text.primary"
+            sx={{
+              fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' },
+              mb: { xs: 2, md: 3 }
+            }}
+          >
             ✨ Why Tabsy Wins?
           </Typography>
-          <Typography variant="h6" align="center" maxWidth={800} mx="auto" mb={3} color="text.secondary">
+          <Typography 
+            variant="h6" 
+            align="center" 
+            maxWidth={800} 
+            mx="auto" 
+            mb={3} 
+            color="text.secondary"
+            sx={{
+              fontSize: { xs: '0.9rem', sm: '1rem', md: '1.25rem' },
+              px: { xs: 1, sm: 2 },
+              lineHeight: { xs: 1.4, md: 1.6 }
+            }}
+          >
             {`Play smarter. Pull together. Win with purpose. Tabsy isn't just another app—it's your magical companion for tracking, predicting, and celebrating pull tab play. Whether you're a casual ripper or a streak-chasing strategist, Tabsy helps you play with confidence and connect with a vibrant community.`}
           </Typography>
         </Container>
       </Box>
 
       {/* Main Features */}
-      <Box sx={{ py: 4, bgcolor: isDarkMode ? 'background.paper' : 'white' }}>
-        <Container>
-          <Grid container spacing={3}>
+      <Box sx={{ 
+        py: { xs: 3, md: 4 }, 
+        bgcolor: isDarkMode ? 'background.paper' : 'white',
+        width: '100%'
+      }}>
+        <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
+          <Grid container spacing={{ xs: 2, md: 3 }}>
             {/* Smarter Predictions */}
             <Grid size={{ xs: 12, md: 6 }}>
-              <Paper elevation={3} sx={{ p: 3, height: '100%' }}>
-                <Typography variant="h5" fontWeight="bold" gutterBottom color="text.primary">
+              <Paper elevation={3} sx={{ p: { xs: 2, md: 3 }, height: '100%' }}>
+                <Typography 
+                  variant="h5" 
+                  fontWeight="bold" 
+                  gutterBottom 
+                  color="text.primary"
+                  sx={{ fontSize: { xs: '0.85rem', sm: '0.9rem', md: '1rem' } }}
+                >
                   🔍 Smarter Predictions
                 </Typography>
-                <Typography variant="body1" color="text.secondary">
+                <Typography 
+                  variant="body1" 
+                  color="text.secondary"
+                  sx={{ fontSize: { xs: '0.85rem', sm: '0.9rem', md: '1rem' } }}
+                >
                   {`Tabsy doesn't guess—he calculates. Using real player data, timing patterns, and community wisdom, Tabsy conjures up predictions that help you decide when to jump in, hold off, or walk away. His crystal ball isn't just for show—it's powered by insights that evolve with every box scanned and every streak logged.`}
                 </Typography>
               </Paper>
@@ -161,7 +207,7 @@ const Features: React.FC = () => {
           </Button>
         </Container>
       </Box>
-    </>
+    </Box>
   );
 };
 

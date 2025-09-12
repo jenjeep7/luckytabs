@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -425,6 +425,7 @@ function PostCard({
 export const Community: React.FC = () => {
   const [user] = useAuthState(auth);
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   
   // Parse initial tab from URL parameter
   const getInitialTab = () => {
@@ -542,6 +543,15 @@ export const Community: React.FC = () => {
     // Clear posts immediately when switching tabs to prevent showing wrong posts
     setPosts([]);
     setActiveTab(newValue);
+    
+    // Update URL to reflect tab change
+    if (newValue === 0) {
+      void navigate('/community', { replace: true }); // Public Feed - no tab parameter
+    } else if (newValue === 1) {
+      void navigate('/community?tab=1', { replace: true }); // Group Feed
+    } else if (newValue === 2) {
+      void navigate('/community?tab=2', { replace: true }); // My Groups
+    }
   };
 
   const handleLike = async (postId: string) => {

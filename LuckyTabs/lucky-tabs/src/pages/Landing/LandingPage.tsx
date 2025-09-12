@@ -111,11 +111,7 @@ export const LandingPage: React.FC = () => {
                 whiteSpace: 'pre-line'
               }}
             >
-              {`📊 Track your sessions, wins, losses and pull tab box analytics to spot patterns and improve your odds.
-
-🧑‍🤝‍🧑 Share tips, swap stories, and pull responsibly with Tabsy cheering you on the whole way.
-
-📈 From budget alerts to flair scans, custom profiles to achievement badges, Tabsy helps you play with purpose, connect with others, and celebrate every streak.`}
+              {`Tabsy Wins isn’t just another app—it’s a magical toolkit for pull tab players. Log your sessions, scan boxes, predict smarter outcomes, and connect with a crew of streak-chasers who play with heart. Whether you're a casual ripper or a strategic player, Tabsy helps you stay sharp, stay social, and stay in the game.`}
             </Typography>
           </Box>
           <Box sx={{ 

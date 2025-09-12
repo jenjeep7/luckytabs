@@ -34,6 +34,13 @@ import {
   trackAdvancedAnalyticsViewed
 } from '../../utils/analytics';
 
+interface BoxShare {
+  sharedWith: string[]; // Array of user IDs or group IDs
+  sharedBy: string; // User ID who shared the box
+  sharedAt: Date;
+  shareType: 'user' | 'group';
+}
+
 interface WinningTicket {
   totalPrizes: number;
   claimedTotal: number;
@@ -59,6 +66,7 @@ interface BoxItem {
     row3: number;
     row4: number;
   };
+  shares?: BoxShare[]; // Array of share configurations
   [key: string]: unknown;
 }
 
@@ -70,6 +78,7 @@ interface BoxComponentProps {
   showOwner?: boolean;
   marginTop?: number;
   refreshBoxes?: (boxId?: string) => void;
+  userGroups?: string[]; // Array of group IDs the user belongs to
 }
 
 export const BoxComponent: React.FC<BoxComponentProps> = ({ 
@@ -77,12 +86,32 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
   onBoxRemoved,
   showOwner = true,
   marginTop = 3,
-  refreshBoxes
+  refreshBoxes,
+  userGroups = []
 }) => {
   const [firebaseUser] = useAuthState(auth);
   const { userProfile } = useUserProfile();
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';
+
+  // Helper function to check if user can edit a box
+  const canEditBox = useCallback((box: BoxItem): boolean => {
+    if (!firebaseUser?.uid) return false;
+    
+    // Owner can always edit
+    if (box.ownerId === firebaseUser.uid) return true;
+    
+    // Check if user is in a group that the box is shared with
+    if (box.shares && userGroups.length > 0) {
+      return box.shares.some((share: BoxShare) => 
+        share.shareType === 'group' && 
+        share.sharedWith.some((groupId: string) => userGroups.includes(groupId))
+      );
+    }
+    
+    return false;
+  }, [firebaseUser?.uid, userGroups]);
+
   const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; boxId: string; boxName: string }>({
     open: false,
     boxId: '',
@@ -263,7 +292,13 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
         const boxRef = doc(db, 'boxes', boxId);
         const box = boxes.find(b => b.id === boxId);
         
-        if (box && box.winningTickets) {
+        // Check if user has permission to edit this box
+        if (!box || !canEditBox(box)) {
+          console.warn('User does not have permission to edit this box');
+          return;
+        }
+        
+        if (box.winningTickets) {
           const currentTicket = box.winningTickets[ticketIndex];
           // Use optimistic update if available, otherwise use the actual value
           const currentClaimedTotal = optimisticUpdates[boxId]?.[ticketIndex] ?? currentTicket.claimedTotal;
@@ -360,9 +395,12 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
   const handleEstimateUpdate = (totalTickets: number, rowEstimates: { row1: number; row2: number; row3: number; row4: number }) => {
     const updateEstimate = async () => {
       try {
-        // Check if user is authenticated
-  if (!firebaseUser?.uid) {
-          console.warn('User not authenticated, cannot update box');
+        // Find the box being updated
+        const box = boxes.find(b => b.id === estimateDialog.boxId);
+        
+        // Check if user has permission to edit this box
+        if (!box || !canEditBox(box)) {
+          console.warn('User does not have permission to edit this box');
           return;
         }
 
@@ -381,11 +419,11 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
         });
 
         // Track tickets estimation
-        const box = boxes.find(b => b.id === estimateDialog.boxId);
-        if (box) {
+        const boxForTracking = boxes.find(b => b.id === estimateDialog.boxId);
+        if (boxForTracking) {
           trackTicketsEstimated({
             boxId: estimateDialog.boxId,
-            boxType: box.type,
+            boxType: boxForTracking.type,
             estimatedTickets: totalTickets,
             userPlan: userProfile?.plan || 'free',
             estimationMethod: 'row_by_row'
@@ -469,9 +507,12 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
     // Update Firestore
     const updateFirestore = async () => {
       try {
-        // Check if user is authenticated
-        if (!firebaseUser?.uid) {
-          console.warn('User not authenticated, cannot update box');
+        // Find the box being updated
+        const targetBox = boxes.find(b => b.id === boxId);
+        
+        // Check if user has permission to edit this box
+        if (!targetBox || !canEditBox(targetBox)) {
+          console.warn('User does not have permission to edit this box');
           return;
         }
 
@@ -502,7 +543,7 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
     };
     
     void updateFirestore();
-  }, [firebaseUser?.uid, refreshBoxes, boxes, userProfile?.plan]);
+  }, [canEditBox, refreshBoxes, boxes, userProfile?.plan]);
 
   // Helper function to get effective winning tickets (considering optimistic updates)
   const getEffectiveWinningTickets = useCallback((box: BoxItem): WinningTicket[] => {
