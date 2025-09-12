@@ -61,7 +61,6 @@ export const ProfileFlare: React.FC = () => {
         <Button
           key={index}
           variant="contained"
-          color={button.color}
           size="small"
           sx={flareButtonStyle}
           onClick={button.onClick ? () => handleButtonClick(button.onClick) : undefined}

@@ -13,7 +13,7 @@ import {
   useTheme,
 } from '@mui/material';
 import LogoutIcon from '@mui/icons-material/Logout';
-import HomeIcon from '@mui/icons-material/Home';
+import AutoGraph from '@mui/icons-material/AutoGraph';
 import GroupIcon from '@mui/icons-material/Group';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import PersonIcon from '@mui/icons-material/Person';
@@ -33,7 +33,7 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { label: 'Profile', route: '/profile', icon: <PersonIcon /> },
-  { label: 'Play', route: '/play', icon: <HomeIcon /> },
+  { label: 'Predict', route: '/play', icon: <AutoGraph /> },
   { label: 'Tracking', route: '/tracking', icon: <ListAltIcon /> },
   { label: 'Social', route: '/community', icon: <GroupIcon /> },
 ];
