@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -423,7 +424,17 @@ function PostCard({
 
 export const Community: React.FC = () => {
   const [user] = useAuthState(auth);
-  const [activeTab, setActiveTab] = useState(0); // 0=Public, 1=Group, 2=My Groups
+  const [searchParams] = useSearchParams();
+  
+  // Parse initial tab from URL parameter
+  const getInitialTab = () => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === '1') return 1; // Group Feed
+    if (tabParam === '2') return 2; // My Groups
+    return 0; // Default to Public Feed
+  };
+  
+  const [activeTab, setActiveTab] = useState(getInitialTab()); // 0=Public, 1=Group, 2=My Groups
   const [posts, setPosts] = useState<Post[]>([]);
   const [newPostDialog, setNewPostDialog] = useState(false);
   const [newPostContent, setNewPostContent] = useState('');
@@ -441,6 +452,18 @@ export const Community: React.FC = () => {
     message: '',
     severity: 'success',
   });
+
+  // Handle URL parameter changes for tab switching
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    let newTab = 0; // Default to Public Feed
+    if (tabParam === '1') newTab = 1; // Group Feed
+    if (tabParam === '2') newTab = 2; // My Groups
+    
+    if (newTab !== activeTab) {
+      setActiveTab(newTab);
+    }
+  }, [searchParams, activeTab]);
 
   // Load posts (on mount / tab change)
   useEffect(() => {

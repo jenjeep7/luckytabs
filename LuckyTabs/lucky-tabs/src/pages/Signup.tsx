@@ -152,6 +152,16 @@ const Signup: React.FC = () => {
               color="primary" 
               type="submit"
               disabled={!termsAccepted}
+              sx={{
+                color: '#000000', // Force dark text
+                fontWeight: 600,
+                '&.Mui-disabled': {
+                  color: '#666666', // Dark gray for disabled state
+                },
+                '&:hover': {
+                  color: '#000000', // Maintain dark text on hover
+                }
+              }}
             >
               Sign Up
             </Button>

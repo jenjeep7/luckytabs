@@ -23,7 +23,6 @@ import {
   Paper,
   MenuItem,
   MenuList,
-  Popper,
   ClickAwayListener,
 } from '@mui/material';
 import { LocationOn as LocationIcon } from '@mui/icons-material';

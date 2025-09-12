@@ -1,4 +1,3 @@
-import z from "zod";
 
 export type StatusType = 'poor' | 'decent' | 'excellent';
 

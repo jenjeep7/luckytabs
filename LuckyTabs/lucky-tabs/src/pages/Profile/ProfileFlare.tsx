@@ -13,20 +13,35 @@ const flareButtonStyle = {
 
 // Button configuration data
 const flareButtons = [
-  { text: 'Locations', color: 'primary' as const, onClick: '/play' },
-  { text: 'Community', color: 'secondary' as const, onClick: '/community' },
-  { text: 'Groups', color: 'success' as const, onClick: null },
-  { text: 'Support', color: 'warning' as const, onClick: null },
-  { text: 'Budget', color: 'info' as const, onClick: '/tracking' },
-  { text: 'Learn Metrics', color: 'primary' as const, onClick: null },
-  { text: 'Go Pro', color: 'success' as const, onClick: null },
-  { text: '#5', color: 'primary' as const, onClick: null },
-  { text: '#4', color: 'secondary' as const, onClick: null },
-  { text: '#3', color: 'warning' as const, onClick: null },
+  { text: 'Establishments', onClick: '/play' },
+  { text: 'Community', onClick: '/community' },
+  { text: 'Crews', onClick: '/community?tab=2' },
+  { text: 'Support', onClick: 'mailto:TabsyWins@gmail.com' },
+  { text: 'Wins/Losses', onClick: '/tracking' },
+  { text: 'Responsible Playing', onClick: '/features#responsible-playing' },
+  { text: 'Go Pro', onClick: null },
+  { text: 'Coming Soon', onClick: null },
+  { text: 'Coming Soon', onClick: null },
+  { text: 'Coming Soon', onClick: null },
 ];
 
 export const ProfileFlare: React.FC = () => {
   const navigate = useNavigate();
+  
+  const handleButtonClick = (onClick: string | null) => {
+    if (!onClick) return;
+    
+    if (onClick.startsWith('mailto:')) {
+      // Handle email links
+      window.location.href = onClick;
+    } else if (onClick.startsWith('http') || onClick.includes('#')) {
+      // Handle external links or anchor links
+      window.location.href = onClick;
+    } else {
+      // Handle internal navigation
+      void navigate(onClick);
+    }
+  };
   
   return (
     <Box sx={{ 
@@ -49,7 +64,7 @@ export const ProfileFlare: React.FC = () => {
           color={button.color}
           size="small"
           sx={flareButtonStyle}
-          onClick={button.onClick ? () => void navigate(button.onClick) : undefined}
+          onClick={button.onClick ? () => handleButtonClick(button.onClick) : undefined}
         >
           {button.text}
         </Button>
