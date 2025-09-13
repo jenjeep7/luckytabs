@@ -11,7 +11,7 @@ import { Play } from './pages/Play/Play';
 import { Tracking } from './pages/Tracking/Tracking';
 import { Community } from './pages/Community/Community';
 import { UserProfile } from './pages/Profile/UserProfile';
-import Features from './pages/Features';
+import Features from './pages/Landing/Features';
 import React from 'react';
 import { 
   Box, 

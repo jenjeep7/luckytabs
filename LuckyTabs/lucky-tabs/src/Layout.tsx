@@ -13,7 +13,7 @@ import {
   useTheme,
 } from '@mui/material';
 import LogoutIcon from '@mui/icons-material/Logout';
-import HomeIcon from '@mui/icons-material/Home';
+import AutoGraph from '@mui/icons-material/AutoGraph';
 import GroupIcon from '@mui/icons-material/Group';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import PersonIcon from '@mui/icons-material/Person';
@@ -33,7 +33,7 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { label: 'Profile', route: '/profile', icon: <PersonIcon /> },
-  { label: 'Play', route: '/play', icon: <HomeIcon /> },
+  { label: 'Predict', route: '/play', icon: <AutoGraph /> },
   { label: 'Tracking', route: '/tracking', icon: <ListAltIcon /> },
   { label: 'Social', route: '/community', icon: <GroupIcon /> },
 ];
@@ -77,7 +77,12 @@ function Layout({ children, title }: LayoutProps) {
 
   const handleNavItemClick = (item: typeof navItems[number]) => {
     if (item.route) {
-      void navigate(item.route);
+      // Clear search parameters when navigating to main tabs to prevent tab conflicts
+      if (item.route === '/community') {
+        void navigate(item.route, { replace: true });
+      } else {
+        void navigate(item.route);
+      }
     } else if (item.email) {
       const subject = encodeURIComponent('Tabsy Wins - Contact');
       const body = encodeURIComponent('Hello,\n\nI would like to get in touch regarding Tabsy Wins.\n\nThank you!');

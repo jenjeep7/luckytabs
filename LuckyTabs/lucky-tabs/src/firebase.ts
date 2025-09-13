@@ -17,10 +17,11 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// Initialize analytics (unused in dev but needed for production)
-void getAnalytics(app);
+// Initialize analytics
+const analytics = getAnalytics(app);
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const functions = getFunctions(app, 'us-central1'); // Specify region
+export { analytics };

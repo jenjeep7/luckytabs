@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -25,6 +26,7 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  Menu,
 } from '@mui/material';
 import {
   Favorite,
@@ -37,6 +39,9 @@ import {
   Groups as GroupsIcon,
   Image as ImageIcon,
   Close as CloseIcon,
+  MoreVert,
+  Edit,
+  Delete,
 } from '@mui/icons-material';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../../firebase';
@@ -64,6 +69,9 @@ interface PostCardProps {
   post: Post;
   onLike: (postId: string) => void;
   onComment: (postId: string, comment: string) => void;
+  onEdit?: (postId: string, newContent: string) => void;
+  onDelete?: (postId: string) => void;
+  setDeleteConfirmation?: (state: { open: boolean; postId: string | null }) => void;
   currentUserId?: string;
   currentUserName?: string;
   currentUserAvatar?: string;
@@ -74,6 +82,9 @@ function PostCard({
   post,
   onLike,
   onComment,
+  onEdit,
+  onDelete,
+  setDeleteConfirmation,
   currentUserId,
   currentUserName,
   currentUserAvatar,
@@ -84,6 +95,9 @@ function PostCard({
   const [comments, setComments] = useState<Comment[]>([]);
   const [loadingComments, setLoadingComments] = useState(false);
   const [commentCount, setCommentCount] = useState<number>(0);
+  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(post.content);
 
   // Image modal state
   const [imageModalOpen, setImageModalOpen] = React.useState<boolean>(false);
@@ -221,16 +235,92 @@ function PostCard({
               />
             </Box>
           </Box>
-          {/* <IconButton size="small" sx={{ color: 'text.secondary' }}>
-            <MoreVert />
-          </IconButton> */}
+          {/* Three dots menu - only show for posts by current user */}
+          {currentUserId === post.authorId && (
+            <>
+              <IconButton 
+                size="small" 
+                sx={{ color: 'text.secondary' }}
+                onClick={(e) => setMenuAnchor(e.currentTarget)}
+              >
+                <MoreVert />
+              </IconButton>
+              <Menu
+                anchorEl={menuAnchor}
+                open={Boolean(menuAnchor)}
+                onClose={() => setMenuAnchor(null)}
+                PaperProps={{
+                  sx: { bgcolor: 'background.paper', color: 'text.primary' }
+                }}
+              >
+                <MenuItem onClick={() => {
+                  setIsEditing(true);
+                  setMenuAnchor(null);
+                }}>
+                  <Edit sx={{ mr: 1, fontSize: 20 }} />
+                  Edit Post
+                </MenuItem>
+                <MenuItem 
+                  onClick={() => {
+                    if (onDelete && setDeleteConfirmation) {
+                      setDeleteConfirmation({ open: true, postId: post.id });
+                    }
+                    setMenuAnchor(null);
+                  }}
+                  sx={{ color: 'error.main' }}
+                >
+                  <Delete sx={{ mr: 1, fontSize: 20 }} />
+                  Delete Post
+                </MenuItem>
+              </Menu>
+            </>
+          )}
         </Box>
 
         {/* Post Text */}
         {post.content && (
-          <Typography variant="body1" sx={{ mb: post.media?.length ? 1 : 2, whiteSpace: 'pre-wrap', color: 'text.primary' }}>
-            {post.content}
-          </Typography>
+          <>
+            {isEditing ? (
+              <Box sx={{ mb: 2 }}>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={3}
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  variant="outlined"
+                  sx={{ mb: 1 }}
+                />
+                <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                  <Button 
+                    size="small" 
+                    onClick={() => {
+                      setIsEditing(false);
+                      setEditContent(post.content);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    size="small" 
+                    variant="contained"
+                    onClick={() => {
+                      if (onEdit && editContent.trim()) {
+                        onEdit(post.id, editContent.trim());
+                        setIsEditing(false);
+                      }
+                    }}
+                  >
+                    Save
+                  </Button>
+                </Box>
+              </Box>
+            ) : (
+              <Typography variant="body1" sx={{ mb: post.media?.length ? 1 : 2, whiteSpace: 'pre-wrap', color: 'text.primary' }}>
+                {post.content}
+              </Typography>
+            )}
+          </>
         )}
 
         {/* Post Images */}
@@ -423,8 +513,27 @@ function PostCard({
 
 export const Community: React.FC = () => {
   const [user] = useAuthState(auth);
-  const [activeTab, setActiveTab] = useState(0); // 0=Public, 1=Group, 2=My Groups
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  
+  // Parse initial tab from URL parameter
+  const getInitialTab = () => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === '1') return 1; // Group Feed
+    if (tabParam === '2') return 2; // My Groups
+    return 0; // Default to Public Feed
+  };
+  
+  const [activeTab, setActiveTab] = useState(getInitialTab()); // 0=Public, 1=Group, 2=My Groups
+  const [publicPosts, setPublicPosts] = useState<Post[]>([]);
+  const [groupPosts, setGroupPosts] = useState<Post[]>([]); // For specific group in Group Feed tab
+  const [allGroupPosts, setAllGroupPosts] = useState<Post[]>([]); // For My Groups tab
+  
+  // Get the current posts based on active tab - THIS PREVENTS RACE CONDITIONS
+  const currentPosts = activeTab === 0 ? publicPosts : 
+                      activeTab === 1 ? groupPosts : 
+                      allGroupPosts;
+  
   const [newPostDialog, setNewPostDialog] = useState(false);
   const [newPostContent, setNewPostContent] = useState('');
   const [files, setFiles] = useState<File[]>([]);
@@ -441,6 +550,22 @@ export const Community: React.FC = () => {
     message: '',
     severity: 'success',
   });
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ open: boolean; postId: string | null }>({
+    open: false,
+    postId: null,
+  });
+
+  // Handle URL parameter changes for tab switching
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    let newTab = 0; // Default to Public Feed
+    if (tabParam === '1') newTab = 1; // Group Feed
+    if (tabParam === '2') newTab = 2; // My Groups
+    
+    if (newTab !== activeTab) {
+      setActiveTab(newTab);
+    }
+  }, [searchParams, activeTab]);
 
   // Load posts (on mount / tab change)
   useEffect(() => {
@@ -448,18 +573,37 @@ export const Community: React.FC = () => {
       if (!user) return;
       setLoading(true);
       try {
-        const feedType = activeTab === 0 ? 'public' : 'group';
-        const groupId = activeTab === 1 ? selectedGroupId : undefined;
+        let feedType: 'public' | 'group';
+        let groupId: string | undefined;
         
-        // Don't load group posts if no group is selected
+        if (activeTab === 0) {
+          feedType = 'public';
+          groupId = undefined;
+        } else if (activeTab === 1) {
+          feedType = 'group';
+          groupId = selectedGroupId; // Specific group for Group Feed
+        } else {
+          feedType = 'group';
+          groupId = undefined; // All groups for My Groups tab
+        }
+        
+        // Don't load group posts if no group is selected for Group Feed tab
         if (activeTab === 1 && !selectedGroupId) {
-          setPosts([]);
+          setGroupPosts([]);
           setLoading(false);
           return;
         }
         
         const fetchedPosts = await communityService.getPosts(feedType, groupId);
-        setPosts(fetchedPosts);
+        
+        // Set posts to the correct state based on which tab is active
+        if (activeTab === 0) {
+          setPublicPosts(fetchedPosts);
+        } else if (activeTab === 1) {
+          setGroupPosts(fetchedPosts);
+        } else if (activeTab === 2) {
+          setAllGroupPosts(fetchedPosts);
+        }
 
         // Load author profiles
         const authorIds = Array.from(new Set(fetchedPosts.map((p) => p.authorId)));
@@ -516,21 +660,69 @@ export const Community: React.FC = () => {
   }, [user]);
 
   const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
-    // Clear posts immediately when switching tabs to prevent showing wrong posts
-    setPosts([]);
     setActiveTab(newValue);
+    
+    // Update URL to reflect tab change
+    if (newValue === 0) {
+      void navigate('/community', { replace: true }); // Public Feed - no tab parameter
+    } else if (newValue === 1) {
+      void navigate('/community?tab=1', { replace: true }); // Group Feed
+    } else if (newValue === 2) {
+      void navigate('/community?tab=2', { replace: true }); // My Groups
+    }
   };
 
   const handleLike = async (postId: string) => {
     if (!user) return;
     try {
       await communityService.likePost(postId, user.uid);
-      const feedType = activeTab === 0 ? 'public' : 'group';
-      const groupId = activeTab === 1 ? selectedGroupId : undefined;
-      const updated = await communityService.getPosts(feedType, groupId);
-      setPosts(updated);
+      // Refresh both states to ensure consistency
+      const [updatedPublicPosts, updatedGroupPosts] = await Promise.all([
+        communityService.getPosts('public'),
+        selectedGroupId ? communityService.getPosts('group', selectedGroupId) : Promise.resolve([])
+      ]);
+      setPublicPosts(updatedPublicPosts);
+      setGroupPosts(updatedGroupPosts);
     } catch {
       setSnackbar({ open: true, message: 'Failed to update like', severity: 'error' });
+    }
+  };
+
+  const handleEdit = async (postId: string, newContent: string): Promise<void> => {
+    if (!user) return;
+    try {
+      await communityService.updatePost(postId, newContent);
+      // Refresh all states to ensure consistency
+      const [updatedPublicPosts, updatedGroupPosts, updatedAllGroupPosts] = await Promise.all([
+        communityService.getPosts('public'),
+        selectedGroupId ? communityService.getPosts('group', selectedGroupId) : Promise.resolve([]),
+        communityService.getPosts('group') // All group posts for My Groups tab
+      ]);
+      setPublicPosts(updatedPublicPosts);
+      setGroupPosts(updatedGroupPosts);
+      setAllGroupPosts(updatedAllGroupPosts);
+      setSnackbar({ open: true, message: 'Post updated successfully!', severity: 'success' });
+    } catch {
+      setSnackbar({ open: true, message: 'Failed to update post', severity: 'error' });
+    }
+  };
+
+  const handleDelete = async (postId: string) => {
+    if (!user) return;
+    try {
+      await communityService.deletePost(postId);
+      // Refresh all states to ensure consistency
+      const [updatedPublicPosts, updatedGroupPosts, updatedAllGroupPosts] = await Promise.all([
+        communityService.getPosts('public'),
+        selectedGroupId ? communityService.getPosts('group', selectedGroupId) : Promise.resolve([]),
+        communityService.getPosts('group') // All group posts for My Groups tab
+      ]);
+      setPublicPosts(updatedPublicPosts);
+      setGroupPosts(updatedGroupPosts);
+      setAllGroupPosts(updatedAllGroupPosts);
+      setSnackbar({ open: true, message: 'Post deleted successfully!', severity: 'success' });
+    } catch {
+      setSnackbar({ open: true, message: 'Failed to delete post', severity: 'error' });
     }
   };
 
@@ -594,8 +786,13 @@ export const Community: React.FC = () => {
       clearComposer();
       setNewPostDialog(false);
 
-      const updated = await communityService.getPosts(feedType, groupId);
-      setPosts(updated);
+      // Refresh both states to ensure consistency
+      const [updatedPublicPosts, updatedGroupPosts] = await Promise.all([
+        communityService.getPosts('public'),
+        selectedGroupId ? communityService.getPosts('group', selectedGroupId) : Promise.resolve([])
+      ]);
+      setPublicPosts(updatedPublicPosts);
+      setGroupPosts(updatedGroupPosts);
       setSnackbar({ open: true, message: 'Post created successfully!', severity: 'success' });
     } catch (e) {
       console.error(e);
@@ -625,16 +822,7 @@ export const Community: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="md" sx={{ py: 2, bgcolor: 'background.default', minHeight: '100vh' }}>
-      <Paper
-        sx={{
-          mb: 2,
-          bgcolor: 'background.paper',
-          border: '1px solid',
-          borderColor: 'divider',
-          boxShadow: (theme) => (theme.palette.mode === 'dark' ? 'none' : 1),
-        }}
-      >
+    <Container maxWidth="md" sx={{ py: 0, px: 0, bgcolor: 'background.default', minHeight: '100vh' }}>
         <Tabs
           value={activeTab}
           onChange={handleTabChange}
@@ -671,12 +859,12 @@ export const Community: React.FC = () => {
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
               <CircularProgress sx={{ color: 'primary.main' }} />
             </Box>
-          ) : posts.length === 0 ? (
+          ) : currentPosts.length === 0 ? (
             <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
               No public posts yet. Be the first to share something!
             </Typography>
           ) : (
-            posts.map((post) => (
+            currentPosts.map((post) => (
               <PostCard
                 key={post.id}
                 post={post}
@@ -686,6 +874,13 @@ export const Community: React.FC = () => {
                 onComment={(postId, content) => {
                   void handleComment(postId, content);
                 }}
+                onEdit={(postId, newContent) => {
+                  void handleEdit(postId, newContent);
+                }}
+                onDelete={(postId) => {
+                  void handleDelete(postId);
+                }}
+                setDeleteConfirmation={setDeleteConfirmation}
                 currentUserId={user?.uid}
                 currentUserName={currentUserProfile?.displayName || user?.displayName || undefined}
                 currentUserAvatar={currentUserProfile?.avatar || user?.photoURL || undefined}
@@ -744,13 +939,13 @@ export const Community: React.FC = () => {
             <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
               Select a group above to view and share posts with group members.
             </Typography>
-          ) : posts.length === 0 ? (
+          ) : currentPosts.length === 0 ? (
             <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
               No posts in {userGroups.find(g => g.id === selectedGroupId)?.name || 'this group'} yet. Be the first to share something!
             </Typography>
           ) : (
             <>
-              {posts.map((post) => (
+              {currentPosts.map((post) => (
                 <PostCard
                   key={post.id}
                   post={post}
@@ -760,6 +955,13 @@ export const Community: React.FC = () => {
                   onComment={(postId, content) => {
                     void handleComment(postId, content);
                   }}
+                  onEdit={(postId, newContent) => {
+                    void handleEdit(postId, newContent);
+                  }}
+                  onDelete={(postId) => {
+                    void handleDelete(postId);
+                  }}
+                  setDeleteConfirmation={setDeleteConfirmation}
                   currentUserId={user?.uid}
                   currentUserName={currentUserProfile?.displayName || user?.displayName || undefined}
                   currentUserAvatar={currentUserProfile?.avatar || user?.photoURL || undefined}
@@ -774,8 +976,6 @@ export const Community: React.FC = () => {
         <TabPanel value={activeTab} index={2}>
           <GroupsManager currentUserId={user.uid} currentUserName={currentUserProfile?.displayName || user?.displayName || undefined} />
         </TabPanel>
-      </Paper>
-
       {/* New Post Dialog (with images) */}
       <Dialog
         open={newPostDialog}
@@ -886,6 +1086,43 @@ export const Community: React.FC = () => {
           </Button>
           <Button onClick={() => void handleCreatePost()} variant="contained" disabled={uploading || (!newPostContent.trim() && files.length === 0)}>
             {uploading ? 'Posting…' : 'Post'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteConfirmation.open}
+        onClose={() => setDeleteConfirmation({ open: false, postId: null })}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Delete Post
+        </DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete this post? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setDeleteConfirmation({ open: false, postId: null })}
+            sx={{ color: 'text.secondary' }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              if (deleteConfirmation.postId) {
+                void handleDelete(deleteConfirmation.postId);
+              }
+              setDeleteConfirmation({ open: false, postId: null });
+            }}
+            variant="contained"
+            color="error"
+          >
+            Delete
           </Button>
         </DialogActions>
       </Dialog>

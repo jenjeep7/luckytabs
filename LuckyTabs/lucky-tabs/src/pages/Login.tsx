@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { auth } from '../firebase';
 import { useNavigate } from 'react-router-dom';
+import { trackUserLogin } from '../utils/analytics';
 import {
   Box,
   Button,
@@ -33,6 +34,10 @@ const Login: React.FC = () => {
         setError('Please verify your email address before logging in.');
         return;
       }
+      
+      // Track successful login
+      trackUserLogin('email');
+      
       setError('');
       void navigate('/');
     } catch (err: unknown) {
@@ -48,6 +53,10 @@ const Login: React.FC = () => {
     try {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
+      
+      // Track successful Google login
+      trackUserLogin('google');
+      
       setError('');
       void navigate('/');
     } catch (err: unknown) {

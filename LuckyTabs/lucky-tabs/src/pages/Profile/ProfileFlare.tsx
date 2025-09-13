@@ -2,11 +2,50 @@ import React from 'react';
 import { Box, Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
+// Shared button styling
+const flareButtonStyle = {
+  minWidth: 64,
+  fontWeight: 600,
+  fontSize: 13,
+  px: 1,
+  py: 0.5
+};
+
+// Button configuration data
+const flareButtons = [
+  { text: 'Establishments', onClick: '/play' },
+  { text: 'Community', onClick: '/community' },
+  { text: 'Crews', onClick: '/community?tab=2' },
+  { text: 'Support', onClick: 'mailto:TabsyWins@gmail.com' },
+  { text: 'Wins/Losses', onClick: '/tracking' },
+  { text: 'Responsible Playing', onClick: '/features#responsible-playing' },
+  { text: 'Go Pro', onClick: null },
+  { text: 'Coming Soon', onClick: null },
+  { text: 'Coming Soon', onClick: null },
+  { text: 'Coming Soon', onClick: null },
+];
+
 export const ProfileFlare: React.FC = () => {
   const navigate = useNavigate();
+  
+  const handleButtonClick = (onClick: string | null) => {
+    if (!onClick) return;
+    
+    if (onClick.startsWith('mailto:')) {
+      // Handle email links
+      window.location.href = onClick;
+    } else if (onClick.startsWith('http') || onClick.includes('#')) {
+      // Handle external links or anchor links
+      window.location.href = onClick;
+    } else {
+      // Handle internal navigation
+      void navigate(onClick);
+    }
+  };
+  
   return (
     <Box sx={{ 
-      mb: 3, 
+      mb: 1, 
       display: 'flex', 
       flexDirection: 'row', 
       flexWrap: 'wrap', 
@@ -18,87 +57,17 @@ export const ProfileFlare: React.FC = () => {
       boxShadow: 2, 
       py: 2 
     }}>
-      <Button
-        variant="contained"
-        color="primary"
-        size="small"
-        sx={{ minWidth: 64, fontWeight: 600, fontSize: 13, px: 1, py: 0.5 }}
-        onClick={() => void navigate('/play')}
-      >
-        Locations
-      </Button>
-      <Button 
-        variant="contained" 
-        color="secondary" 
-        size="small" 
-        sx={{ minWidth: 64, fontWeight: 600, fontSize: 13, px: 1, py: 0.5 }} 
-        onClick={() => void navigate('/community')}
-      >
-        Community
-      </Button>
-      <Button 
-        variant="contained" 
-        color="success" 
-        size="small" 
-        sx={{ minWidth: 64, fontWeight: 600, fontSize: 13, px: 1, py: 0.5 }}
-      >
-        Groups
-      </Button>
-      <Button 
-        variant="contained" 
-        color="warning" 
-        size="small" 
-        sx={{ minWidth: 64, fontWeight: 600, fontSize: 13, px: 1, py: 0.5 }}
-      >
-        Support
-      </Button>
-      <Button 
-        variant="contained" 
-        color="info" 
-        size="small" 
-        sx={{ minWidth: 64, fontWeight: 600, fontSize: 13, px: 1, py: 0.5 }}
-        onClick={() => void navigate('/tracking')}
-      >
-        Budget
-      </Button>
-      <Button 
-        variant="contained" 
-        color="primary" 
-        size="small" 
-        sx={{ minWidth: 64, fontWeight: 600, fontSize: 13, px: 1, py: 0.5 }}
-      >
-        Learn Metrics
-      </Button>
-      <Button 
-        variant="contained" 
-        color="success" 
-        size="small" 
-        sx={{ minWidth: 64, fontWeight: 600, fontSize: 13, px: 1, py: 0.5 }}
-      >
-        Go Pro
-      </Button>
-            <Button 
-        variant="contained" 
-        color="primary" 
-        size="small" 
-        sx={{ minWidth: 64, fontWeight: 600, fontSize: 13, px: 1, py: 0.5 }}
-      >
-        #5
-      </Button>      <Button 
-        variant="contained" 
-        color="secondary" 
-        size="small" 
-        sx={{ minWidth: 64, fontWeight: 600, fontSize: 13, px: 1, py: 0.5 }}
-      >
-        #4
-      </Button>      <Button 
-        variant="contained" 
-        color="warning" 
-        size="small" 
-        sx={{ minWidth: 64, fontWeight: 600, fontSize: 13, px: 1, py: 0.5 }}
-      >
-        #3
-      </Button>
+      {flareButtons.map((button, index) => (
+        <Button
+          key={index}
+          variant="contained"
+          size="small"
+          sx={flareButtonStyle}
+          onClick={button.onClick ? () => handleButtonClick(button.onClick) : undefined}
+        >
+          {button.text}
+        </Button>
+      ))}
     </Box>
   );
 };

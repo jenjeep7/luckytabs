@@ -18,10 +18,7 @@ import {
   IconButton,
   Card,
   CardContent,
-  Chip,
   Paper,
-  ToggleButtonGroup,
-  ToggleButton,
 } from "@mui/material";
 import CloseIcon from '@mui/icons-material/Close';
 import PlaceIcon from '@mui/icons-material/Place';
@@ -30,9 +27,9 @@ import Edit from '@mui/icons-material/Edit';
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../firebase";
 import { CreateBoxForm } from "./AddBox";
-import NeonHeader from "../../components/NeonHeader";
 import NeonToggle from "../../components/NeonToggle";
 import NeonStatusPill from "../../components/NeonStatusPill";
+import { trackHomePageVisit } from "../../utils/analytics";
 import { EditBoxForm } from "./EditBox";
 import { BoxComponent } from "./BoxComponent";
 import { LocationManager } from "./LocationManager";
@@ -44,11 +41,19 @@ import { groupService, GroupData } from "../../services/groupService";
 import ShareBoxDialog from "./ShareBoxDialog";
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../../firebase';
-import { StatusType, statusColors, getNeonHeaderStyle } from '../../utils/neonUtils';
+import { statusColors, getNeonHeaderStyle } from '../../utils/neonUtils';
+import { useTheme } from '@mui/material/styles';
 
 interface Location {
   id: string;
   name: string;
+  address?: string;
+  type?: "restaurant" | "bar";
+  placeId?: string;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
   [key: string]: any;
 }
 
@@ -59,6 +64,8 @@ interface WinningTicket {
 }
 
 export const Play: React.FC = () => {
+  const theme = useTheme();
+  
   // Use location context instead of local state
   const { 
     selectedLocation, 
@@ -71,6 +78,13 @@ export const Play: React.FC = () => {
   const [user] = useAuthState(auth);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [userGroups, setUserGroups] = useState<GroupData[]>([]);
+
+  // Track home page visits for analytics
+  useEffect(() => {
+    if (user) {
+      trackHomePageVisit("logged_in");
+    }
+  }, [user]);
 
   // Box view toggle state
   const [boxView, setBoxView] = useState<'my' | 'group'>('my');
@@ -87,6 +101,7 @@ export const Play: React.FC = () => {
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [shareBoxId, setShareBoxId] = useState<string>('');
   const [shareBoxName, setShareBoxName] = useState<string>('');
+  const [shareBoxData, setShareBoxData] = useState<BoxItem | null>(null);
 
   // Restore missing helper functions
   const handleChange = (event: any) => {
@@ -288,6 +303,34 @@ export const Play: React.FC = () => {
     }
   }, []);
 
+  // Helper: Extract city from address
+  const extractCityFromAddress = (address: string): string => {
+    if (!address) return '';
+    
+    // Split address by commas and look for city (usually second to last part before state/zip)
+    const parts = address.split(',').map(part => part.trim());
+    
+    // Look for patterns that indicate city names
+    // City is typically after the street address and before state
+    for (let i = 1; i < parts.length - 1; i++) {
+      const part = parts[i];
+      // Skip parts that look like street numbers, states, or zip codes
+      if (!/^\d/.test(part) && // not starting with number
+          !/^[A-Z]{2}$/.test(part) && // not a state abbreviation
+          !/^\d{5}/.test(part) && // not a zip code
+          part.length > 2) { // reasonable city name length
+        return part;
+      }
+    }
+    
+    // Fallback: return the second part if it exists and looks reasonable
+    if (parts.length >= 2 && parts[1].length > 2) {
+      return parts[1];
+    }
+    
+    return '';
+  };
+
   // Helper: Haversine formula for distance in meters
   function getDistanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
     const toRad = (v: number) => (v * Math.PI) / 180;
@@ -406,6 +449,15 @@ export const Play: React.FC = () => {
     }
   }, [selectedLocation, user, userData, userGroups, refreshBoxes]);
 
+  // Update share box data when dialog opens or boxes change
+  useEffect(() => {
+    if (shareDialogOpen && shareBoxId) {
+      const allBoxes = [...myBoxes, ...groupBoxes];
+      const boxData = allBoxes.find(box => box.id === shareBoxId);
+      setShareBoxData(boxData || null);
+    }
+  }, [shareDialogOpen, shareBoxId, myBoxes, groupBoxes]);
+
   // Get current boxes to display based on toggle
   const currentBoxes = boxView === 'my' ? myBoxes : groupBoxes;
   const wallBoxes = currentBoxes.filter((box) => box.type === "wall");
@@ -415,6 +467,8 @@ export const Play: React.FC = () => {
   const handleShareBox = (boxId: string, boxName: string) => {
     setShareBoxId(boxId);
     setShareBoxName(boxName);
+    // Don't set shareBoxData here - let the dialog open and then set it
+    // This ensures we always get the most current data
     setShareDialogOpen(true);
   };
 
@@ -464,11 +518,30 @@ export const Play: React.FC = () => {
               onChange={handleChange}
               size="small"
             >
-              {sortedLocations.map((loc) => (
-                <MenuItem key={loc.id} value={loc.id}>
-                  {loc.name}
-                </MenuItem>
-              ))}
+              {sortedLocations.map((loc) => {
+                const city = extractCityFromAddress(String(loc.address || ''));
+                return (
+                  <MenuItem key={loc.id} value={loc.id}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="body1" sx={{ flex: 1 }}>
+                        {loc.name}
+                      </Typography>
+                      {city && (
+                        <Typography 
+                          variant="caption" 
+                          sx={{ 
+                            color: 'text.secondary',
+                            fontSize: '0.75rem',
+                            fontStyle: 'italic'
+                          }}
+                        >
+                          {city}
+                        </Typography>
+                      )}
+                    </Box>
+                  </MenuItem>
+                );
+              })}
             </Select>
           </FormControl>
 
@@ -805,7 +878,7 @@ export const Play: React.FC = () => {
                                     e.stopPropagation();
                                     setEditFormBox(box);
                                   }}
-                                  sx={{ color: 'secondary.main' }}
+                                  sx={theme.neon.effects.interactiveIcon()}
                                 >
                                   <Edit fontSize="small" />
                                 </IconButton>
@@ -1011,12 +1084,9 @@ export const Play: React.FC = () => {
                                         e.stopPropagation();
                                         setEditFormBox(box);
                                       }}
-                                      sx={{ 
-                                        color: evColor,
-                                        '&:hover': { backgroundColor: `${evColor}20` }
-                                      }}
+                                      sx={theme.neon.effects.interactiveIcon()}
                                     >
-                                      <Edit sx={{ fontSize: 16 }} />
+                                      <Edit fontSize="small" />
                                     </IconButton>
                                     <IconButton
                                       size="small"
@@ -1024,12 +1094,9 @@ export const Play: React.FC = () => {
                                         e.stopPropagation();
                                         handleShareBox(box.id, box.boxName);
                                       }}
-                                      sx={{ 
-                                        color: evColor,
-                                        '&:hover': { backgroundColor: `${evColor}20` }
-                                      }}
+                                      sx={{ color: 'primary.main' }}
                                     >
-                                      <ShareIcon sx={{ fontSize: 16 }} />
+                                      <ShareIcon fontSize="small" />
                                     </IconButton>
                                   </Box>
                                 )}
@@ -1114,6 +1181,7 @@ export const Play: React.FC = () => {
                 showOwner={true}
                 marginTop={0}
                 refreshBoxes={(boxId: string | undefined) => { void refreshBoxes(boxId); }}
+                userGroups={userGroups.map(g => g.id)} // Pass group IDs for permission checking
               />
             </Box>
           )}
@@ -1132,13 +1200,17 @@ export const Play: React.FC = () => {
       {user && (
         <ShareBoxDialog
           open={shareDialogOpen}
-          onClose={() => setShareDialogOpen(false)}
+          onClose={() => {
+            setShareDialogOpen(false);
+            setShareBoxData(null); // Clear box data when closing
+          }}
           onShare={() => {
             void refreshBoxes();
           }}
           boxId={shareBoxId}
           boxName={shareBoxName}
           currentUserId={user.uid}
+          existingShares={shareBoxData?.shares || []}
         />
       )}
       </Box>

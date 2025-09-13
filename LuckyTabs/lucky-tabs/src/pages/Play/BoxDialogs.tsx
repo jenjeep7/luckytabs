@@ -103,12 +103,12 @@ interface RowSliderProps {
 }
 
 const RowSlider: React.FC<RowSliderProps> = ({ label, value, onChange, isMobile, claimedPrizes = [] }) => {
-  const handleSliderChange = (_: Event, newValue: number | number[]) => {
+  const handleSliderChange = React.useCallback((_: Event, newValue: number | number[]) => {
     const val = Array.isArray(newValue) ? newValue[0] : newValue;
     onChange(val);
-  };
+  }, [onChange]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     if (val === "") {
       onChange(0);
@@ -116,7 +116,7 @@ const RowSlider: React.FC<RowSliderProps> = ({ label, value, onChange, isMobile,
     }
     const num = Math.max(0, Math.min(800, Number(val)));
     onChange(num);
-  };
+  }, [onChange]);
 
   // Standard marks for ticket counts
   const marks = [
@@ -172,7 +172,17 @@ const RowSlider: React.FC<RowSliderProps> = ({ label, value, onChange, isMobile,
       />
       
       {/* Container for slider and prize markers */}
-      <Box sx={{ position: 'relative', height: isMobile ? 330 : 330, overflow: 'visible', width: 'fit-content' }}>
+      <Box sx={{ 
+        position: 'relative', 
+        height: isMobile ? 330 : 330, 
+        overflow: 'visible', 
+        width: 'fit-content',
+        touchAction: 'none',
+        overscrollBehavior: 'contain',
+        WebkitOverflowScrolling: 'auto',
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+      }}>
         <Slider
           orientation="vertical"
           value={value}
@@ -185,11 +195,13 @@ const RowSlider: React.FC<RowSliderProps> = ({ label, value, onChange, isMobile,
           sx={{
             height: isMobile ? 330 : 330,
             mb: 2,
+            touchAction: 'none',
             '& .MuiSlider-thumb': {
               backgroundColor: '#e140a1',
               border: '2px solid #fff',
               width: 20,
               height: 20,
+              WebkitTapHighlightColor: 'transparent',
             },
             '& .MuiSlider-track': {
               backgroundColor: '#e140a1',
@@ -307,12 +319,12 @@ export const AddWinsDialog: React.FC<AddWinsDialogProps> = ({
     }
   };
 
-  const handlePositionSliderChange = (_: Event, value: number | number[]) => {
+  const handlePositionSliderChange = React.useCallback((_: Event, value: number | number[]) => {
     const numValue = Array.isArray(value) ? value[0] : value;
     setPositionInRow(numValue);
-  };
+  }, []);
 
-  const handlePositionInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePositionInputChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
     if (value === '') {
       setPositionInRow(0);
@@ -322,7 +334,7 @@ export const AddWinsDialog: React.FC<AddWinsDialogProps> = ({
     if (!isNaN(numValue)) {
       setPositionInRow(numValue);
     }
-  };
+  }, []);
 
   const handleSubmit = () => {
     if (selectedPrize === 0) {
@@ -423,48 +435,62 @@ export const AddWinsDialog: React.FC<AddWinsDialogProps> = ({
             type="number"
             value={positionInRow}
             onChange={handlePositionInputChange}
-            inputProps={{
-              min: 0,
-              max: 800,
-              step: 1,
+            slotProps={{
+              htmlInput: {
+                min: 0,
+                max: 800,
+                step: 1,
+              }
             }}
             sx={{ mb: 2, width: '150px' }}
             size="small"
           />
           
-          {/* Slider */}
-          <Slider
-            value={positionInRow}
-            onChange={handlePositionSliderChange}
-            min={0}
-            max={800}
-            step={5}
-            marks={[
-              { value: 0, label: '0' },
-              { value: 100, label: '100' },
-              { value: 200, label: '200' },
-              { value: 300, label: '300' },
-              { value: 400, label: '400' },
-              { value: 500, label: '500' },
-              { value: 600, label: '600' },
-              { value: 700, label: '700' },
-              { value: 800, label: '800' }
-            ]}
-            valueLabelDisplay="auto"
-            valueLabelFormat={(value) => `#${value}`}
+          {/* Slider Container with iOS touch fix */}
+          <Box
             sx={{
-              '& .MuiSlider-thumb': {
-                backgroundColor: '#e140a1',
-                border: '2px solid #fff',
-              },
-              '& .MuiSlider-track': {
-                backgroundColor: '#e140a1',
-              },
-              '& .MuiSlider-mark': {
-                backgroundColor: '#e140a1',
-              },
+              touchAction: 'none',
+              overscrollBehavior: 'contain',
+              WebkitOverflowScrolling: 'auto',
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
             }}
-          />
+          >
+            <Slider
+              value={positionInRow}
+              onChange={handlePositionSliderChange}
+              min={0}
+              max={800}
+              step={5}
+              marks={[
+                { value: 0, label: '0' },
+                { value: 100, label: '100' },
+                { value: 200, label: '200' },
+                { value: 300, label: '300' },
+                { value: 400, label: '400' },
+                { value: 500, label: '500' },
+                { value: 600, label: '600' },
+                { value: 700, label: '700' },
+                { value: 800, label: '800' }
+              ]}
+              valueLabelDisplay="auto"
+              valueLabelFormat={(value) => `#${value}`}
+              sx={{
+                touchAction: 'none',
+                '& .MuiSlider-thumb': {
+                  backgroundColor: '#e140a1',
+                  border: '2px solid #fff',
+                  WebkitTapHighlightColor: 'transparent',
+                },
+                '& .MuiSlider-track': {
+                  backgroundColor: '#e140a1',
+                },
+                '& .MuiSlider-mark': {
+                  backgroundColor: '#e140a1',
+                },
+              }}
+            />
+          </Box>
         </Box>
 
         {/* Prize Amount Selection */}

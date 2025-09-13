@@ -6,6 +6,7 @@ import { createUserWithEmailAndPassword, updateProfile, User, onAuthStateChanged
 import { auth, db } from '../firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
+import { trackUserSignup } from '../utils/analytics';
 import {
   Box,
   Button,
@@ -75,6 +76,9 @@ const Signup: React.FC = () => {
         await sendEmailVerification(confirmedUser);
         setVerificationSent(true);
       }
+
+      // Track successful signup
+      trackUserSignup('email');
 
       setError('');
       // Do not navigate until verified
@@ -148,6 +152,16 @@ const Signup: React.FC = () => {
               color="primary" 
               type="submit"
               disabled={!termsAccepted}
+              sx={{
+                color: '#000000', // Force dark text
+                fontWeight: 600,
+                '&.Mui-disabled': {
+                  color: '#666666', // Dark gray for disabled state
+                },
+                '&:hover': {
+                  color: '#000000', // Maintain dark text on hover
+                }
+              }}
             >
               Sign Up
             </Button>

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react';
-import { Box, Typography, Card, CardContent, Chip, Tooltip, IconButton } from '@mui/material';
+import { Box, Typography, Card, CardContent, Chip, Tooltip, IconButton, useTheme } from '@mui/material';
 import InfoIcon from '@mui/icons-material/Info';
 
 import { calculateAdvancedMetrics } from './helpers';
@@ -32,7 +32,32 @@ interface AdvancedAnalyticsProps {
   getEvColor: (_evValue: number, rtpValue: number, isPercentage?: boolean) => string;
 }
 
-export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remainingTickets, getEvColor }) => {
+export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remainingTickets, getEvColor: _getEvColor }) => {
+  const theme = useTheme();
+  
+  // Helper function to get neon colors based on EV status
+  const getNeonColorForEV = (evValue: number) => {
+    if (evValue > 0) return theme.neon.colors.cyan; // Positive EV - cyan (good)
+    if (evValue > -0.5) return theme.neon.colors.amber; // Slightly negative - amber (caution)
+    return theme.neon.colors.pink; // Very negative - red (bad)
+  };
+  
+  // Helper function to get neon colors based on risk ratio
+  const getNeonColorForRisk = (riskValue: number) => {
+    if (riskValue > 0.1) return theme.neon.colors.green; // Excellent risk-adjusted returns
+    if (riskValue > 0) return theme.neon.colors.cyan; // Good returns
+    if (riskValue > -0.1) return theme.neon.colors.amber; // Caution - some risk
+    return theme.neon.colors.pink; // High risk with losses
+  };
+  
+  // Helper function to get neon colors based on goodness score
+  const getNeonColorForGoodness = (goodnessValue: number) => {
+    if (goodnessValue >= 0.8) return theme.neon.colors.green; // Excellent
+    if (goodnessValue >= 0.6) return theme.neon.colors.cyan; // Good
+    if (goodnessValue >= 0.4) return theme.neon.colors.amber; // Average
+    return theme.neon.colors.pink; // Poor
+  };
+  
   const [payoutTooltipOpen, setPayoutTooltipOpen] = React.useState(false);
   const handlePayoutTooltipToggle = () => setPayoutTooltipOpen((open) => !open);
   const handlePayoutTooltipClose = () => setPayoutTooltipOpen(false);
@@ -86,19 +111,51 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         {/* Core Metrics */}
         <Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 2 }}>{`📊 Core Metrics`}</Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-            <Card variant="outlined" sx={{ flex: '1 1 200px' }}>
-              <CardContent sx={{ p: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center' }}>
-                  <Typography variant="caption" color="text.secondary">{`EV per Ticket`}</Typography>
+          <Typography 
+            variant="subtitle1" 
+            sx={{ 
+              fontWeight: 'bold', 
+              mb: 2, 
+              textAlign: 'center',
+              ...theme.neon.effects.textGlow(theme.neon.colors.cyan, 0.6),
+              fontSize: '1.2rem'
+            }}
+          >
+            📊 Core Metrics
+          </Typography>
+          <Box sx={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: 2 
+          }}>
+            <Card 
+              variant="outlined" 
+              sx={{ 
+                ...theme.neon.effects.boxGlow(theme.neon.colors.cyan, 0.15),
+                ...theme.neon.effects.hoverTransform,
+                background: `linear-gradient(135deg, 
+                  rgba(125,249,255,0.05) 0%, 
+                  rgba(18,20,24,0.95) 50%, 
+                  rgba(125,249,255,0.03) 100%)`,
+                borderColor: 'rgba(125,249,255,0.2)'
+              }}
+            >
+              <CardContent sx={{ p: 1.5, textAlign: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, justifyContent: 'center', mb: 0.5 }}>
+                  <Typography variant="caption" sx={{ fontSize: '0.7rem', color: theme.neon.colors.text.secondary }}>
+                    EV/Ticket
+                  </Typography>
                   <Tooltip
                     title={
                       <Box>
-                        <Typography variant="subtitle2" sx={{ mb: 1 }}>{`Expected Value per Ticket`}</Typography>
-                        <Typography variant="body2" sx={{ mb: 1 }}>{`This shows the average profit or loss per ticket if you played many times.`}</Typography>
-                        <Typography variant="body2" sx={{ mb: 1 }}>{`Positive (+)`}<strong>{`Positive (+)`}</strong>{`: Good! You expect to make money on average`}<br/>{`Negative (-)`}<strong>{`Negative (-)`}</strong>{`: Bad! You expect to lose money on average`}<br/>{`Zero (0)`}<strong>{`Zero (0)`}</strong>{`: Break-even, no profit or loss expected`}</Typography>
-                        <Typography variant="body2"><em>{`Example: +$0.25 means you'd expect to profit 25¢ per ticket over many pulls`}</em></Typography>
+                        <Typography variant="subtitle2" sx={{ mb: 1 }}>Expected Value per Ticket</Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>This shows the average profit or loss per ticket if you played many times.</Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          <strong>Positive (+):</strong> Good! You expect to make money on average<br/>
+                          <strong>Negative (-):</strong> Bad! You expect to lose money on average<br/>
+                          <strong>Zero (0):</strong> Break-even, no profit or loss expected
+                        </Typography>
+                        <Typography variant="body2"><em>Example: +$0.25 means you&apos;d expect to profit 25¢ per ticket over many pulls</em></Typography>
                       </Box>
                     }
                     arrow
@@ -109,25 +166,47 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
                     disableHoverListener
                     disableTouchListener
                   >
-                    <IconButton size="small" sx={{ p: 0.25 }} onClick={handleEvTooltipToggle}>
-                      <InfoIcon fontSize="small" />
+                    <IconButton size="small" sx={{ p: 0.25, color: 'white' }} onClick={handleEvTooltipToggle}>
+                      <InfoIcon sx={{ fontSize: '0.9rem' }} />
                     </IconButton>
                   </Tooltip>
-                  <Typography variant="h6" sx={{ color: getEvColor(metrics.evPerTicket, metrics.rtpRemaining, false), ml: 1 }}>
-                    {metrics.evPerTicket >= 0 ? '+' : ''}${metrics.evPerTicket.toFixed(2)}
-                  </Typography>
                 </Box>
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    color: getNeonColorForEV(metrics.evPerTicket),
+                    fontWeight: 'bold',
+                    fontSize: '1.1rem',
+                    ...theme.neon.effects.textGlow(getNeonColorForEV(metrics.evPerTicket), 0.4)
+                  }}
+                >
+                  {metrics.evPerTicket >= 0 ? '+' : ''}${metrics.evPerTicket.toFixed(2)}
+                </Typography>
               </CardContent>
             </Card>
-            <Card variant="outlined" sx={{ flex: '1 1 200px' }}>
-              <CardContent sx={{ p: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center' }}>
-                  <Typography variant="caption" color="text.secondary">{`EV per Dollar`}</Typography>
+
+            <Card 
+              variant="outlined" 
+              sx={{ 
+                ...theme.neon.effects.boxGlow(theme.neon.colors.pink, 0.15),
+                ...theme.neon.effects.hoverTransform,
+                background: `linear-gradient(135deg, 
+                  rgba(255,60,172,0.05) 0%, 
+                  rgba(18,20,24,0.95) 50%, 
+                  rgba(255,60,172,0.03) 100%)`,
+                borderColor: 'rgba(255,60,172,0.2)'
+              }}
+            >
+              <CardContent sx={{ p: 1.5, textAlign: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, justifyContent: 'center', mb: 0.5 }}>
+                  <Typography variant="caption" sx={{ fontSize: '0.7rem', color: theme.neon.colors.text.secondary }}>
+                    EV/Dollar
+                  </Typography>
                   <Tooltip
                     title={
                       <Box>
-                        <Typography variant="subtitle2" sx={{ mb: 1 }}>{`EV per Dollar (Return Multiple)`}</Typography>
-                        <Typography variant="body2" sx={{ mb: 1 }}>{`Shows how much you get back for every dollar spent. This is the most important metric for comparing boxes.`}</Typography>
+                        <Typography variant="subtitle2" sx={{ mb: 1 }}>EV per Dollar (Return Multiple)</Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>Shows how much you get back for every dollar spent. This is the most important metric for comparing boxes.</Typography>
                         <Typography variant="body2" sx={{ mb: 1 }}>
                           <strong>Above 1.0:</strong> Excellent! You expect to get more than you spend<br/>
                           <strong>0.8-1.0:</strong> Decent (75-100% return rate)<br/>
@@ -148,25 +227,47 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
                     disableHoverListener
                     disableTouchListener
                   >
-                    <IconButton size="small" sx={{ p: 0.25 }} onClick={handleEvPerDollarTooltipToggle}>
-                      <InfoIcon fontSize="small" />
+                    <IconButton size="small" sx={{ p: 0.25, color: 'white' }} onClick={handleEvPerDollarTooltipToggle}>
+                      <InfoIcon sx={{ fontSize: '0.9rem' }} />
                     </IconButton>
                   </Tooltip>
-                  <Typography variant="h6" sx={{ color: getEvColor(metrics.evPerTicket, metrics.rtpRemaining, false), ml: 1 }}>
-                    ${metrics.evPerDollar.toFixed(2)}
-                  </Typography>
                 </Box>
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    color: getNeonColorForEV(metrics.evPerTicket),
+                    fontWeight: 'bold',
+                    fontSize: '1.1rem',
+                    ...theme.neon.effects.textGlow(getNeonColorForEV(metrics.evPerTicket), 0.4)
+                  }}
+                >
+                  ${metrics.evPerDollar.toFixed(2)}
+                </Typography>
               </CardContent>
             </Card>
-            <Card variant="outlined" sx={{ flex: '1 1 200px' }}>
-                <CardContent sx={{ p: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center' }}>
-                  <Typography variant="caption" color="text.secondary">{`Value/Risk Ratio`}</Typography>
+
+            <Card 
+              variant="outlined" 
+              sx={{ 
+                ...theme.neon.effects.boxGlow(theme.neon.colors.green, 0.15),
+                ...theme.neon.effects.hoverTransform,
+                background: `linear-gradient(135deg, 
+                  rgba(0,230,118,0.05) 0%, 
+                  rgba(18,20,24,0.95) 50%, 
+                  rgba(0,230,118,0.03) 100%)`,
+                borderColor: 'rgba(0,230,118,0.2)'
+              }}
+            >
+              <CardContent sx={{ p: 1.5, textAlign: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, justifyContent: 'center', mb: 0.5 }}>
+                  <Typography variant="caption" sx={{ fontSize: '0.7rem', color: theme.neon.colors.text.secondary }}>
+                    Risk Ratio
+                  </Typography>
                   <Tooltip
                     title={
                       <Box>
-                        <Typography variant="subtitle2" sx={{ mb: 1 }}>{`Value/Risk Ratio (Risk-Adjusted Return)`}</Typography>
-                        <Typography variant="body2" sx={{ mb: 1 }}>{`A Sharpe-like ratio that measures expected value relative to volatility. This helps you find boxes with good returns that won't bankrupt you with bad streaks.`}</Typography>
+                        <Typography variant="subtitle2" sx={{ mb: 1 }}>Value/Risk Ratio (Risk-Adjusted Return)</Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>A Sharpe-like ratio that measures expected value relative to volatility. This helps you find boxes with good returns that won&apos;t bankrupt you with bad streaks.</Typography>
                         <Typography variant="body2" sx={{ mb: 1 }}>
                           <strong>Above 0.1:</strong> Excellent risk-adjusted returns<br/>
                           <strong>0.0 to 0.1:</strong> Good, manageable risk for the expected return<br/>
@@ -187,31 +288,47 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
                     disableHoverListener
                     disableTouchListener
                   >
-                    <IconButton size="small" sx={{ p: 0.25 }} onClick={handleValueRiskTooltipToggle}>
-                      <InfoIcon fontSize="small" />
+                    <IconButton size="small" sx={{ p: 0.25, color: 'white' }} onClick={handleValueRiskTooltipToggle}>
+                      <InfoIcon sx={{ fontSize: '0.9rem' }} />
                     </IconButton>
                   </Tooltip>
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      ml: 1,
-                      color: metrics.valueRiskRatio > 0 ? 'success.main' : 'error.main'
-                    }}
-                  >
-                    {metrics.valueRiskRatio.toFixed(2)}
-                  </Typography>
                 </Box>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    color: getNeonColorForRisk(metrics.valueRiskRatio),
+                    fontWeight: 'bold',
+                    fontSize: '1.1rem',
+                    ...theme.neon.effects.textGlow(getNeonColorForRisk(metrics.valueRiskRatio), 0.4)
+                  }}
+                >
+                  {metrics.valueRiskRatio.toFixed(2)}
+                </Typography>
               </CardContent>
             </Card>
-            <Card variant="outlined" sx={{ flex: '1 1 200px' }}>
-                <CardContent sx={{ p: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center' }}>
-                  <Typography variant="caption" color="text.secondary">{`Goodness Score`}</Typography>
+
+            <Card 
+              variant="outlined" 
+              sx={{ 
+                ...theme.neon.effects.boxGlow(theme.neon.colors.purple, 0.15),
+                ...theme.neon.effects.hoverTransform,
+                background: `linear-gradient(135deg, 
+                  rgba(106,90,205,0.05) 0%, 
+                  rgba(18,20,24,0.95) 50%, 
+                  rgba(106,90,205,0.03) 100%)`,
+                borderColor: 'rgba(106,90,205,0.2)'
+              }}
+            >
+              <CardContent sx={{ p: 1.5, textAlign: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, justifyContent: 'center', mb: 0.5 }}>
+                  <Typography variant="caption" sx={{ fontSize: '0.7rem', color: theme.neon.colors.text.secondary }}>
+                    Goodness
+                  </Typography>
                   <Tooltip
                     title={
                       <Box>
-                        <Typography variant="subtitle2" sx={{ mb: 1 }}>{`Goodness Score`}</Typography>
-                        <Typography variant="body2" sx={{ mb: 1 }}>{`A quick summary of how favorable this box is for players, combining expected value, odds, risk, and stability.`}</Typography>
+                        <Typography variant="subtitle2" sx={{ mb: 1 }}>Goodness Score</Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>A quick summary of how favorable this box is for players, combining expected value, odds, risk, and stability.</Typography>
                         <Typography variant="body2" sx={{ mb: 1 }}>
                           <strong>80–100:</strong> Excellent (very favorable box)<br/>
                           <strong>60–79:</strong> Good (worth considering)<br/>
@@ -228,25 +345,22 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
                     disableHoverListener
                     disableTouchListener
                   >
-                    <IconButton size="small" sx={{ p: 0.25 }} onClick={handleGoodnessTooltipToggle}>
-                      <InfoIcon fontSize="small" />
+                    <IconButton size="small" sx={{ p: 0.25, color: 'white' }} onClick={handleGoodnessTooltipToggle}>
+                      <InfoIcon sx={{ fontSize: '0.9rem' }} />
                     </IconButton>
                   </Tooltip>
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      ml: 1,
-                      color:
-                        metrics.goodnessScore >= 0.8
-                          ? 'success.main'
-                          : metrics.goodnessScore >= 0.4
-                          ? 'warning.main'
-                          : 'error.main',
-                    }}
-                  >
-                    {(metrics.goodnessScore * 100).toFixed(0)}/100
-                  </Typography>
                 </Box>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    color: getNeonColorForGoodness(metrics.goodnessScore),
+                    fontWeight: 'bold',
+                    fontSize: '1.1rem',
+                    ...theme.neon.effects.textGlow(getNeonColorForGoodness(metrics.goodnessScore), 0.4)
+                  }}
+                >
+                  {(metrics.goodnessScore * 100).toFixed(0)}/100
+                </Typography>
               </CardContent>
             </Card>
           </Box>
@@ -254,24 +368,93 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
 
         {/* Buyout Analysis */}
         <Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', my: 1 }}>{`💰 Buyout Analysis`}</Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 3, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'background.paper', px: 2, py: 1, borderRadius: 1, boxShadow: 1 }}>
-              <Typography variant="caption" color="text.secondary">{`Cost to Clear:`}</Typography>
-              <Typography variant="h6">${metrics.costToClear.toFixed(2)}</Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'background.paper', px: 2, py: 1, borderRadius: 1, boxShadow: 1 }}>
-              <Typography variant="caption" color="text.secondary">{`Net if Cleared:`}</Typography>
-              <Typography variant="h6" color={metrics.netIfCleared >= 0 ? 'success.main' : 'error.main'}>
-                {metrics.netIfCleared >= 0 ? '+' : ''}${metrics.netIfCleared.toFixed(2)}
-              </Typography>
-            </Box>
+          <Typography 
+            variant="subtitle1" 
+            sx={{ 
+              fontWeight: 'bold', 
+              mb: 2, 
+              textAlign: 'center',
+              ...theme.neon.effects.textGlow(theme.neon.colors.amber, 0.6),
+              fontSize: '1.2rem'
+            }}
+          >
+            💰 Buyout Analysis
+          </Typography>
+          <Box sx={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: 2 
+          }}>
+            <Card 
+              variant="outlined" 
+              sx={{ 
+                ...theme.neon.effects.boxGlow(theme.neon.colors.amber, 0.15),
+                ...theme.neon.effects.hoverTransform,
+                background: `linear-gradient(135deg, 
+                  rgba(255,193,7,0.05) 0%, 
+                  rgba(18,20,24,0.95) 50%, 
+                  rgba(255,193,7,0.03) 100%)`,
+                borderColor: 'rgba(255,193,7,0.2)'
+              }}
+            >
+              <CardContent sx={{ p: 1.5, textAlign: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, justifyContent: 'center', mb: 0.5 }}>
+                  <Typography variant="caption" sx={{ fontSize: '0.7rem', color: theme.neon.colors.text.secondary }}>
+                    Cost to Clear
+                  </Typography>
+           
+                </Box>
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    color: theme.neon.colors.amber,
+                    fontWeight: 'bold',
+                    fontSize: '1.1rem',
+                    ...theme.neon.effects.textGlow(theme.neon.colors.amber, 0.4)
+                  }}
+                >
+                  ${metrics.costToClear.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </Typography>
+              </CardContent>
+            </Card>
+
+            <Card 
+              variant="outlined" 
+              sx={{ 
+                ...theme.neon.effects.boxGlow(metrics.netIfCleared >= 0 ? theme.neon.colors.green : theme.neon.colors.pink, 0.15),
+                ...theme.neon.effects.hoverTransform,
+                background: `linear-gradient(135deg, 
+                  ${metrics.netIfCleared >= 0 ? 'rgba(0,230,118,0.05)' : 'rgba(255,60,172,0.05)'} 0%, 
+                  rgba(18,20,24,0.95) 50%, 
+                  ${metrics.netIfCleared >= 0 ? 'rgba(0,230,118,0.03)' : 'rgba(255,60,172,0.03)'} 100%)`,
+                borderColor: metrics.netIfCleared >= 0 ? 'rgba(0,230,118,0.2)' : 'rgba(255,60,172,0.2)'
+              }}
+            >
+              <CardContent sx={{ p: 1.5, textAlign: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, justifyContent: 'center', mb: 0.5 }}>
+                  <Typography variant="caption" sx={{ fontSize: '0.7rem', color: theme.neon.colors.text.secondary }}>
+                    Net if Cleared
+                  </Typography>
+                </Box>
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    color: metrics.netIfCleared >= 0 ? theme.neon.colors.green : theme.neon.colors.pink,
+                    fontWeight: 'bold',
+                    fontSize: '1.1rem',
+                    ...theme.neon.effects.textGlow(metrics.netIfCleared >= 0 ? theme.neon.colors.green : theme.neon.colors.pink, 0.4)
+                  }}
+                >
+                  {metrics.netIfCleared >= 0 ? '+' : '-'}${Math.abs(metrics.netIfCleared).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </Typography>
+              </CardContent>
+            </Card>
           </Box>
         </Box>
 
         {/* Probability of Profit for Different Budgets */}
         <Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', my: 1 }}>{`🎲 Probability of Profit`}</Typography>
+          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', my: 1, textAlign: 'center' }}>{`🎲 Probability of Profit`}</Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
             <Card variant="outlined" sx={{ flex: '1 1 250px' }}>
               <CardContent sx={{ p: 2 }}>
@@ -346,7 +529,7 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
 
         {/* Big Hit Analysis */}
         <Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', my: 1 }}>{`🎯 Big Hit Analysis`}</Typography>
+          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', my: 1, textAlign: 'center' }}>{`🎯 Big Hit Analysis`}</Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
             <Card variant="outlined" sx={{ flex: '1 1 300px' }}>
               <CardContent sx={{ p: 2 }}>
@@ -485,7 +668,7 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
 
         {/* Odds Analysis */}
         <Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', my: 1 }}>{`🎯 Odds Analysis`}</Typography>
+          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', my: 1, textAlign: 'center' }}>{`🎯 Odds Analysis`}</Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
             <Card variant="outlined" sx={{ flex: '1 1 300px' }}>
                 <CardContent sx={{ p: 1 }}>
@@ -605,7 +788,7 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
 
         {/* Risk Analysis */}
         <Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', my: 2 }}>{`⚠️ Risk Analysis`}</Typography>
+          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', my: 2, textAlign: 'center' }}>{`⚠️ Risk Analysis`}</Typography>
           <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 3, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'background.paper', px: 2, py: 1, borderRadius: 1, boxShadow: 1 }}>
               <Typography variant="caption" color="text.secondary">{`Risk per Ticket:`}</Typography>

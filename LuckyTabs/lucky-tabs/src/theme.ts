@@ -81,6 +81,16 @@ const neonEffects = {
       boxShadow: `0 0 16px rgba(${hexToRgb(brandColor)}, 0.4)`,
       transform: 'translateY(-2px)'
     }
+  }),
+  
+  // Interactive icon button with neon cyan styling
+  interactiveIcon: (color: string = neonColors.cyan) => ({
+    color: color,
+    transition: 'all 0.3s ease',
+    '&:hover': {
+      backgroundColor: `rgba(${hexToRgb(color)}, 0.1)`,
+      boxShadow: `0 0 8px rgba(${hexToRgb(color)}, 0.3)`
+    }
   })
 };
 
@@ -136,9 +146,10 @@ const neonGamingTheme = createTheme({
     h5: { fontWeight: 800, letterSpacing: .2 },
     button: { fontWeight: 700, letterSpacing: .3, textTransform: 'none' },
   },
-  shadows: [
-    'none',
-    ...Array(24).fill('0 0 0 rgba(0,0,0,0.0)') as string[]
+  shadows: Array(25).fill('none') as [
+    "none", "none", "none", "none", "none", "none", "none", "none", 
+    "none", "none", "none", "none", "none", "none", "none", "none", 
+    "none", "none", "none", "none", "none", "none", "none", "none", "none"
   ],
   components: {
     MuiCardContent: {

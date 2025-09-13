@@ -19,7 +19,7 @@ import FlareSheetDisplay from '../../components/FlareSheetDisplay';
 import { Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { EvChip } from '../../components/EvChip';
-import { StatusType, getCardGlowStyles } from '../../utils/neonUtils';
+import { StatusType } from '../../utils/neonUtils';
 import {
   calculateTotalRemainingPrizeValue,
   calculateOneInXChances,
@@ -27,6 +27,19 @@ import {
   rtpRemaining,
   Prize
 } from './helpers';
+import {
+  trackBoxRemoved,
+  trackTicketsEstimated,
+  trackPrizeClaimed,
+  trackAdvancedAnalyticsViewed
+} from '../../utils/analytics';
+
+interface BoxShare {
+  sharedWith: string[]; // Array of user IDs or group IDs
+  sharedBy: string; // User ID who shared the box
+  sharedAt: Date;
+  shareType: 'user' | 'group';
+}
 
 interface WinningTicket {
   totalPrizes: number;
@@ -53,6 +66,7 @@ interface BoxItem {
     row3: number;
     row4: number;
   };
+  shares?: BoxShare[]; // Array of share configurations
   [key: string]: unknown;
 }
 
@@ -64,6 +78,7 @@ interface BoxComponentProps {
   showOwner?: boolean;
   marginTop?: number;
   refreshBoxes?: (boxId?: string) => void;
+  userGroups?: string[]; // Array of group IDs the user belongs to
 }
 
 export const BoxComponent: React.FC<BoxComponentProps> = ({ 
@@ -71,12 +86,32 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
   onBoxRemoved,
   showOwner = true,
   marginTop = 3,
-  refreshBoxes
+  refreshBoxes,
+  userGroups = []
 }) => {
   const [firebaseUser] = useAuthState(auth);
   const { userProfile } = useUserProfile();
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';
+
+  // Helper function to check if user can edit a box
+  const canEditBox = useCallback((box: BoxItem): boolean => {
+    if (!firebaseUser?.uid) return false;
+    
+    // Owner can always edit
+    if (box.ownerId === firebaseUser.uid) return true;
+    
+    // Check if user is in a group that the box is shared with
+    if (box.shares && userGroups.length > 0) {
+      return box.shares.some((share: BoxShare) => 
+        share.shareType === 'group' && 
+        share.sharedWith.some((groupId: string) => userGroups.includes(groupId))
+      );
+    }
+    
+    return false;
+  }, [firebaseUser?.uid, userGroups]);
+
   const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; boxId: string; boxName: string }>({
     open: false,
     boxId: '',
@@ -107,30 +142,30 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
     return box?.claimedPrizes || [];
   }, [localClaimedPrizes, boxes]);
 
-  // Helper function to determine EV color based on three-tier system
-  // Green: RTP >= 100% (Excellent)
-  // Orange: RTP >= 80% and < 100% (Decent)
-  // Red: RTP < 80% (Poor)
+  // Helper function to determine EV color based on neon theme system
+  // Cyan: RTP >= 100% (Excellent)
+  // Amber: RTP >= 80% and < 100% (Decent)
+  // Pink: RTP < 80% (Poor)
   const getEvColor = (_evValue: number, rtpValue: number, isPercentage = true): string => {
-    const rtpGreen = isPercentage ? 100 : 1.0;
-    const rtpOrange = isPercentage ? 80 : 0.80;
-    if (rtpValue >= rtpGreen) {
-      return '#4caf50'; // Green for RTP >= 100%
-    } else if (rtpValue >= rtpOrange) {
-      return '#ff9800'; // Orange for RTP >= 80%
+    const rtpExcellent = isPercentage ? 100 : 1.0;
+    const rtpDecent = isPercentage ? 80 : 0.80;
+    if (rtpValue >= rtpExcellent) {
+      return theme.neon.colors.cyan; // Cyan for RTP >= 100%
+    } else if (rtpValue >= rtpDecent) {
+      return theme.neon.colors.amber; // Amber for RTP >= 80%
     } else {
-      return '#f44336'; // Red for RTP < 80%
+      return theme.neon.colors.pink; // Pink for RTP < 80%
     }
   };
 
-  // Helper function to get EV status text
+  // Helper function to get EV status text based on neon theme
   const getEvStatus = (evValue: number, rtpValue: number): StatusType => {
     if (evValue >= 0) {
-      return 'excellent';
+      return 'excellent'; // Positive EV = excellent (cyan)
     } else if (rtpValue >= 80) {
-      return 'decent';
+      return 'decent'; // Negative EV but decent RTP = decent (amber)
     } else {
-      return 'poor';
+      return 'poor'; // Low RTP = poor (pink)
     }
   };
 
@@ -213,9 +248,22 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
     const removeBox = async () => {
       try {
         const boxRef = doc(db, 'boxes', confirmDialog.boxId);
+        
+        // Find the box being removed for analytics
+        const boxToRemove = boxes.find(b => b.id === confirmDialog.boxId);
+        
         await updateDoc(boxRef, {
           isActive: false
         });
+        
+        // Track box removal
+        if (boxToRemove) {
+          trackBoxRemoved({
+            boxId: confirmDialog.boxId,
+            boxType: boxToRemove.type,
+            userPlan: userProfile?.plan || 'free'
+          });
+        }
         
         setConfirmDialog({ open: false, boxId: '', boxName: '' });
         
@@ -244,7 +292,13 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
         const boxRef = doc(db, 'boxes', boxId);
         const box = boxes.find(b => b.id === boxId);
         
-        if (box && box.winningTickets) {
+        // Check if user has permission to edit this box
+        if (!box || !canEditBox(box)) {
+          console.warn('User does not have permission to edit this box');
+          return;
+        }
+        
+        if (box.winningTickets) {
           const currentTicket = box.winningTickets[ticketIndex];
           // Use optimistic update if available, otherwise use the actual value
           const currentClaimedTotal = optimisticUpdates[boxId]?.[ticketIndex] ?? currentTicket.claimedTotal;
@@ -283,6 +337,15 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
 
           await updateDoc(boxRef, {
             winningTickets: updatedTickets
+          });
+
+          // Track prize claim/unclaim
+          trackPrizeClaimed({
+            boxId,
+            boxType: box.type,
+            prizeValue: Number(currentTicket.prize),
+            userPlan: userProfile?.plan || 'free',
+            action: isPrizeClaimed ? 'unclaimed' : 'claimed'
           });
 
           // Keep the optimistic update - no need to clear it since UI should stay updated
@@ -332,9 +395,12 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
   const handleEstimateUpdate = (totalTickets: number, rowEstimates: { row1: number; row2: number; row3: number; row4: number }) => {
     const updateEstimate = async () => {
       try {
-        // Check if user is authenticated
-  if (!firebaseUser?.uid) {
-          console.warn('User not authenticated, cannot update box');
+        // Find the box being updated
+        const box = boxes.find(b => b.id === estimateDialog.boxId);
+        
+        // Check if user has permission to edit this box
+        if (!box || !canEditBox(box)) {
+          console.warn('User does not have permission to edit this box');
           return;
         }
 
@@ -351,6 +417,18 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
           rowEstimates: rowEstimates,
           estimatedTicketsUpdated: new Date(),
         });
+
+        // Track tickets estimation
+        const boxForTracking = boxes.find(b => b.id === estimateDialog.boxId);
+        if (boxForTracking) {
+          trackTicketsEstimated({
+            boxId: estimateDialog.boxId,
+            boxType: boxForTracking.type,
+            estimatedTickets: totalTickets,
+            userPlan: userProfile?.plan || 'free',
+            estimationMethod: 'row_by_row'
+          });
+        }
 
         setEstimateDialog({ open: false, boxId: '', boxName: '' });
         
@@ -429,9 +507,12 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
     // Update Firestore
     const updateFirestore = async () => {
       try {
-        // Check if user is authenticated
-        if (!firebaseUser?.uid) {
-          console.warn('User not authenticated, cannot update box');
+        // Find the box being updated
+        const targetBox = boxes.find(b => b.id === boxId);
+        
+        // Check if user has permission to edit this box
+        if (!targetBox || !canEditBox(targetBox)) {
+          console.warn('User does not have permission to edit this box');
           return;
         }
 
@@ -439,6 +520,18 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
         await updateDoc(boxRef, {
           estimatedRemainingTickets: ticketsRemaining
         });
+        
+        // Track manual ticket estimation
+        const box = boxes.find(b => b.id === boxId);
+        if (box && ticketsRemaining > 0) {
+          trackTicketsEstimated({
+            boxId,
+            boxType: box.type,
+            estimatedTickets: ticketsRemaining,
+            userPlan: userProfile?.plan || 'free',
+            estimationMethod: 'manual'
+          });
+        }
         
         // Refresh the parent component's boxes state with the updated data
         if (refreshBoxes) {
@@ -450,7 +543,7 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
     };
     
     void updateFirestore();
-  }, [firebaseUser?.uid, refreshBoxes]);
+  }, [canEditBox, refreshBoxes, boxes, userProfile?.plan]);
 
   // Helper function to get effective winning tickets (considering optimistic updates)
   const getEffectiveWinningTickets = useCallback((box: BoxItem): WinningTicket[] => {
@@ -664,7 +757,20 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
                 
                 {/* Advanced Metrics Section in Accordion (Pro users only) */}
                 {remainingTicketsInput[box.id] && firebaseUser && userProfile?.plan === 'pro' && (
-                  <Accordion sx={{ mt: 2, maxWidth: 800, mx: 'auto' }} defaultExpanded={false}>
+                  <Accordion 
+                    sx={{ mt: 2, maxWidth: 800, mx: 'auto' }} 
+                    defaultExpanded={false}
+                    onChange={(event, isExpanded) => {
+                      if (isExpanded) {
+                        trackAdvancedAnalyticsViewed({
+                          boxId: box.id,
+                          boxType: box.type,
+                          userPlan: userProfile?.plan || 'free',
+                          accessGranted: true
+                        });
+                      }
+                    }}
+                  >
                     <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Typography variant="h6">Advanced Analytics</Typography>

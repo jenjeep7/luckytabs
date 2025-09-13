@@ -14,10 +14,10 @@ import {
   Typography,
   Box,
   Alert,
-  CircularProgress
+  CircularProgress,
 } from '@mui/material';
 import { groupService, GroupData } from '../../services/groupService';
-import { boxService } from '../../services/boxService';
+import { boxService, BoxShare } from '../../services/boxService';
 
 interface ShareBoxDialogProps {
   open: boolean;
@@ -26,6 +26,7 @@ interface ShareBoxDialogProps {
   boxId: string;
   boxName: string;
   currentUserId: string;
+  existingShares?: BoxShare[]; // Pass in existing shares from parent
 }
 
 const ShareBoxDialog: React.FC<ShareBoxDialogProps> = ({
@@ -34,10 +35,12 @@ const ShareBoxDialog: React.FC<ShareBoxDialogProps> = ({
   onShare,
   boxId,
   boxName,
-  currentUserId
+  currentUserId,
+  existingShares = []
 }) => {
   const [groups, setGroups] = useState<GroupData[]>([]);
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
+  const [currentlySharedGroups, setCurrentlySharedGroups] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -49,19 +52,37 @@ const ShareBoxDialog: React.FC<ShareBoxDialogProps> = ({
     try {
       const userGroups = await groupService.getUserGroups(currentUserId);
       setGroups(userGroups);
+      
+      // Extract currently shared group IDs from existing shares
+      const sharedGroupIds: string[] = [];
+      existingShares.forEach(share => {
+        if (share.shareType === 'group') {
+          sharedGroupIds.push(...share.sharedWith);
+        }
+      });
+      setCurrentlySharedGroups(sharedGroupIds);
+      setSelectedGroups([...sharedGroupIds]); // Pre-select currently shared groups (create new array)
+      
     } catch (err) {
       console.error('Error loading groups:', err);
       setError('Failed to load groups');
     } finally {
       setLoading(false);
     }
-  }, [currentUserId]);
+  }, [currentUserId, existingShares]);
 
   useEffect(() => {
     if (open) {
+      // Reset states when dialog opens
+      setSuccess(false);
+      setSharing(false);
+      setError('');
+      // Clear previous selections to force fresh load
+      setSelectedGroups([]);
+      setCurrentlySharedGroups([]);
       void loadGroups();
     }
-  }, [open, currentUserId, loadGroups]);
+  }, [open, loadGroups]);
 
   const handleToggleGroup = (groupId: string) => {
     setSelectedGroups(prev => 
@@ -72,16 +93,32 @@ const ShareBoxDialog: React.FC<ShareBoxDialogProps> = ({
   };
 
   const handleShare = async () => {
-    if (selectedGroups.length === 0) return;
-
     setSharing(true);
     setError('');
     try {
-      // Share with groups
-      await boxService.shareBox(boxId, currentUserId, selectedGroups, 'group');
+      // Determine which groups need to be shared and unshared
+      const groupsToShare = selectedGroups.filter(groupId => !currentlySharedGroups.includes(groupId));
+      const groupsToUnshare = currentlySharedGroups.filter(groupId => !selectedGroups.includes(groupId));
+      
+      // Share with new groups
+      if (groupsToShare.length > 0) {
+        await boxService.shareBox(boxId, currentUserId, groupsToShare, 'group');
+      }
+      
+      // Unshare from removed groups
+      if (groupsToUnshare.length > 0) {
+        // Find the shares to remove
+        const sharesToRemove = existingShares.filter(share => 
+          share.shareType === 'group' && 
+          share.sharedWith.some(groupId => groupsToUnshare.includes(groupId))
+        );
+        
+        for (const share of sharesToRemove) {
+          await boxService.unshareBox(boxId, share);
+        }
+      }
       
       setSuccess(true);
-      setSelectedGroups([]);
       
       // Close dialog after a brief success message
       setTimeout(() => {
@@ -92,8 +129,8 @@ const ShareBoxDialog: React.FC<ShareBoxDialogProps> = ({
         }
       }, 500);
     } catch (err) {
-      console.error('Error sharing box:', err);
-      setError('Failed to share box');
+      console.error('Error updating box shares:', err);
+      setError('Failed to update box shares');
     } finally {
       setSharing(false);
     }
@@ -101,6 +138,7 @@ const ShareBoxDialog: React.FC<ShareBoxDialogProps> = ({
 
   const handleClose = () => {
     setSelectedGroups([]);
+    setCurrentlySharedGroups([]);
     setError('');
     setSuccess(false);
     setSharing(false);
@@ -139,33 +177,38 @@ const ShareBoxDialog: React.FC<ShareBoxDialogProps> = ({
         ) : (
           <>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Select groups to share this box with:
+              Select groups to share this box with.
             </Typography>
             <List>
-              {groups.map((group) => (
-                <ListItem 
-                  key={group.id}
-                  dense
-                  sx={{ cursor: 'pointer' }}
-                  onClick={() => handleToggleGroup(group.id)}
-                >
-                  <Checkbox
-                    edge="start"
-                    checked={selectedGroups.includes(group.id)}
-                    tabIndex={-1}
-                    disableRipple
-                  />
-                  <ListItemAvatar>
-                    <Avatar>
-                      {group.name[0].toUpperCase()}
-                    </Avatar>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={group.name}
-                    secondary={group.description || `${group.members.length} members`}
-                  />
-                </ListItem>
-              ))}
+              {groups.map((group) => {
+                const isCurrentlyShared = currentlySharedGroups.includes(group.id);
+                const isSelected = selectedGroups.includes(group.id);
+                
+                return (
+                  <ListItem 
+                    key={group.id}
+                    dense
+                    sx={{ cursor: 'pointer' }}
+                    onClick={() => handleToggleGroup(group.id)}
+                  >
+                    <Checkbox
+                      edge="start"
+                      checked={isSelected}
+                      tabIndex={-1}
+                      disableRipple
+                    />
+                    <ListItemAvatar>
+                      <Avatar sx={{ bgcolor: isCurrentlyShared ? 'success.main' : 'grey.400' }}>
+                        {group.name[0].toUpperCase()}
+                      </Avatar>
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={group.name}
+                      secondary={group.description || `${group.members.length} members`}
+                    />
+                  </ListItem>
+                );
+              })}
             </List>
           </>
         )}
@@ -175,16 +218,27 @@ const ShareBoxDialog: React.FC<ShareBoxDialogProps> = ({
         <Button
           onClick={() => { void handleShare(); }}
           variant="contained"
-          disabled={selectedGroups.length === 0 || sharing || success}
+          disabled={sharing || success}
         >
           {sharing ? (
             <CircularProgress size={20} />
           ) : success ? (
-            'Shared!'
+            'Updated!'
           ) : (
-            `Share with ${selectedGroups.length} ${
-              selectedGroups.length === 1 ? 'group' : 'groups'
-            }`
+            (() => {
+              const groupsToShare = selectedGroups.filter(groupId => !currentlySharedGroups.includes(groupId));
+              const groupsToUnshare = currentlySharedGroups.filter(groupId => !selectedGroups.includes(groupId));
+              
+              if (groupsToShare.length > 0 && groupsToUnshare.length > 0) {
+                return `Update Sharing (${groupsToShare.length} new, ${groupsToUnshare.length} removed)`;
+              } else if (groupsToShare.length > 0) {
+                return `Share with ${groupsToShare.length} ${groupsToShare.length === 1 ? 'group' : 'groups'}`;
+              } else if (groupsToUnshare.length > 0) {
+                return `Unshare from ${groupsToUnshare.length} ${groupsToUnshare.length === 1 ? 'group' : 'groups'}`;
+              } else {
+                return 'No Changes';
+              }
+            })()
           )}
         </Button>
       </DialogActions>
