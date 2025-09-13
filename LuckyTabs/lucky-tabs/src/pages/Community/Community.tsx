@@ -436,7 +436,15 @@ export const Community: React.FC = () => {
   };
   
   const [activeTab, setActiveTab] = useState(getInitialTab()); // 0=Public, 1=Group, 2=My Groups
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [publicPosts, setPublicPosts] = useState<Post[]>([]);
+  const [groupPosts, setGroupPosts] = useState<Post[]>([]); // For specific group in Group Feed tab
+  const [allGroupPosts, setAllGroupPosts] = useState<Post[]>([]); // For My Groups tab
+  
+  // Get the current posts based on active tab - THIS PREVENTS RACE CONDITIONS
+  const currentPosts = activeTab === 0 ? publicPosts : 
+                      activeTab === 1 ? groupPosts : 
+                      allGroupPosts;
+  
   const [newPostDialog, setNewPostDialog] = useState(false);
   const [newPostContent, setNewPostContent] = useState('');
   const [files, setFiles] = useState<File[]>([]);
@@ -472,18 +480,37 @@ export const Community: React.FC = () => {
       if (!user) return;
       setLoading(true);
       try {
-        const feedType = activeTab === 0 ? 'public' : 'group';
-        const groupId = activeTab === 1 ? selectedGroupId : undefined;
+        let feedType: 'public' | 'group';
+        let groupId: string | undefined;
         
-        // Don't load group posts if no group is selected
+        if (activeTab === 0) {
+          feedType = 'public';
+          groupId = undefined;
+        } else if (activeTab === 1) {
+          feedType = 'group';
+          groupId = selectedGroupId; // Specific group for Group Feed
+        } else {
+          feedType = 'group';
+          groupId = undefined; // All groups for My Groups tab
+        }
+        
+        // Don't load group posts if no group is selected for Group Feed tab
         if (activeTab === 1 && !selectedGroupId) {
-          setPosts([]);
+          setGroupPosts([]);
           setLoading(false);
           return;
         }
         
         const fetchedPosts = await communityService.getPosts(feedType, groupId);
-        setPosts(fetchedPosts);
+        
+        // Set posts to the correct state based on which tab is active
+        if (activeTab === 0) {
+          setPublicPosts(fetchedPosts);
+        } else if (activeTab === 1) {
+          setGroupPosts(fetchedPosts);
+        } else if (activeTab === 2) {
+          setAllGroupPosts(fetchedPosts);
+        }
 
         // Load author profiles
         const authorIds = Array.from(new Set(fetchedPosts.map((p) => p.authorId)));
@@ -540,8 +567,6 @@ export const Community: React.FC = () => {
   }, [user]);
 
   const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
-    // Clear posts immediately when switching tabs to prevent showing wrong posts
-    setPosts([]);
     setActiveTab(newValue);
     
     // Update URL to reflect tab change
@@ -558,10 +583,13 @@ export const Community: React.FC = () => {
     if (!user) return;
     try {
       await communityService.likePost(postId, user.uid);
-      const feedType = activeTab === 0 ? 'public' : 'group';
-      const groupId = activeTab === 1 ? selectedGroupId : undefined;
-      const updated = await communityService.getPosts(feedType, groupId);
-      setPosts(updated);
+      // Refresh both states to ensure consistency
+      const [updatedPublicPosts, updatedGroupPosts] = await Promise.all([
+        communityService.getPosts('public'),
+        selectedGroupId ? communityService.getPosts('group', selectedGroupId) : Promise.resolve([])
+      ]);
+      setPublicPosts(updatedPublicPosts);
+      setGroupPosts(updatedGroupPosts);
     } catch {
       setSnackbar({ open: true, message: 'Failed to update like', severity: 'error' });
     }
@@ -627,8 +655,13 @@ export const Community: React.FC = () => {
       clearComposer();
       setNewPostDialog(false);
 
-      const updated = await communityService.getPosts(feedType, groupId);
-      setPosts(updated);
+      // Refresh both states to ensure consistency
+      const [updatedPublicPosts, updatedGroupPosts] = await Promise.all([
+        communityService.getPosts('public'),
+        selectedGroupId ? communityService.getPosts('group', selectedGroupId) : Promise.resolve([])
+      ]);
+      setPublicPosts(updatedPublicPosts);
+      setGroupPosts(updatedGroupPosts);
       setSnackbar({ open: true, message: 'Post created successfully!', severity: 'success' });
     } catch (e) {
       console.error(e);
@@ -704,12 +737,12 @@ export const Community: React.FC = () => {
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
               <CircularProgress sx={{ color: 'primary.main' }} />
             </Box>
-          ) : posts.length === 0 ? (
+          ) : currentPosts.length === 0 ? (
             <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
               No public posts yet. Be the first to share something!
             </Typography>
           ) : (
-            posts.map((post) => (
+            currentPosts.map((post) => (
               <PostCard
                 key={post.id}
                 post={post}
@@ -777,13 +810,13 @@ export const Community: React.FC = () => {
             <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
               Select a group above to view and share posts with group members.
             </Typography>
-          ) : posts.length === 0 ? (
+          ) : currentPosts.length === 0 ? (
             <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
               No posts in {userGroups.find(g => g.id === selectedGroupId)?.name || 'this group'} yet. Be the first to share something!
             </Typography>
           ) : (
             <>
-              {posts.map((post) => (
+              {currentPosts.map((post) => (
                 <PostCard
                   key={post.id}
                   post={post}
