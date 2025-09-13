@@ -1,5 +1,5 @@
 // App version management
-export const APP_VERSION = '1.1.7'; // Update this with each significant deploy
+export const APP_VERSION = '1.1.8'; // Update this with each significant deploy
 
 // Check if user has the latest version
 export const checkVersion = () => {

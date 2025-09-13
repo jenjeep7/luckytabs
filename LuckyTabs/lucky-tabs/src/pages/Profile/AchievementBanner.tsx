@@ -6,7 +6,7 @@ export const AchievementBanner: React.FC = () => {
   return (
     <Box 
       sx={{
-        ...getCardGlowStyles('excellent'),
+        ...getCardGlowStyles('poor'),
         mb: 2,
         p: 2,
         position: 'relative',
@@ -59,11 +59,11 @@ export const AchievementBanner: React.FC = () => {
             px: 2,
             py: 1,
             borderRadius: 2,
-            border: '2px solid #00E676',
+            border: '2px solid #00e649ff',
             background: 'rgba(0, 230, 118, 0.1)',
             boxShadow: '0 0 15px rgba(0, 230, 118, 0.3)'
           }}>
-            <Typography sx={{ fontSize: '1.2rem' }}>🏆</Typography>
+            <Typography sx={{ fontSize: '.85rem' }}>🏆</Typography>
             {/* <Typography variant="body2" sx={{ color: '#00E676', fontWeight: 600 }}>
               First Win
             </Typography> */}
@@ -80,7 +80,7 @@ export const AchievementBanner: React.FC = () => {
             background: 'rgba(125, 249, 255, 0.1)',
             boxShadow: '0 0 15px rgba(125, 249, 255, 0.3)'
           }}>
-            <Typography sx={{ fontSize: '1.2rem' }}>📦</Typography>
+            <Typography sx={{ fontSize: '.85rem' }}>📦</Typography>
             {/* <Typography variant="body2" sx={{ color: '#7DF9FF', fontWeight: 600 }}>
               10 Boxes Added
             </Typography> */}
@@ -97,7 +97,7 @@ export const AchievementBanner: React.FC = () => {
             background: 'rgba(255, 193, 7, 0.1)',
             boxShadow: '0 0 15px rgba(255, 193, 7, 0.3)'
           }}>
-            <Typography sx={{ fontSize: '1.2rem' }}>⚡</Typography>
+            <Typography sx={{ fontSize: '.85rem' }}>⚡</Typography>
             {/* <Typography variant="body2" sx={{ color: '#FFC107', fontWeight: 600 }}>
               Power User
             </Typography> */}

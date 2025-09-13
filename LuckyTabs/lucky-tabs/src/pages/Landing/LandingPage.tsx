@@ -136,13 +136,13 @@ export const LandingPage: React.FC = () => {
                   color="success"
                   sx={{
                     px: { xs: 2, sm: 2.5 },
-                    py: { xs: 1, sm: 1 },
+                    py: { xs: 2, sm: 1 },
                     fontWeight: 800,
                     textTransform: 'none',
                     fontSize: { xs: '0.85rem', sm: '1rem' },
                     minWidth: { xs: '80px', sm: '100px' },
                     boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
-                    height: { xs: '40px', sm: '48px' }
+                    height: { xs: '48px' }
                   }}
                 >
                   {`Join Tabsy's Crew`}
@@ -162,7 +162,7 @@ export const LandingPage: React.FC = () => {
                   fontSize: { xs: '0.85rem', sm: '1rem' },
                   minWidth: { xs: '100px', sm: '120px' },
                   boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
-                  height: { xs: '40px', sm: '48px' }
+                  height: { xs: '48px' }
                 }}
               >
                 {`Tabsy's Crystal Ball`}

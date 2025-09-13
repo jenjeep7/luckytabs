@@ -28,6 +28,7 @@ interface Props {
   location: { id: string; name: string };
   onClose: () => void;
   onBoxCreated?: () => void;
+  replaceMode?: boolean;
 }
 
 interface Prize {
@@ -36,7 +37,7 @@ interface Prize {
   claimedTotal: number;
 }
 
-export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated }) => {
+export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated, replaceMode = false }) => {
   const [type, setType] = useState<"wall" | "bar box">("wall");
   const [boxName, setBoxName] = useState("");
   const [boxNumber, setBoxNumber] = useState("");
@@ -389,7 +390,7 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
   return (
     <Box sx={{ mt: 2 }}>
       <Typography variant="h6" gutterBottom sx={{ textAlign: 'center' }}>
-        Add New Box for: <strong>{location?.name}</strong>
+        <strong>{location?.name}</strong>
       </Typography>
 
       <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
@@ -681,10 +682,10 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
         disabled={uploading || parsing}
       >
         {uploading 
-          ? 'Creating Box...' 
+          ? (replaceMode ? 'Replacing Box...' : 'Creating Box...')
           : parsing
             ? 'Parsing Image...'
-            : 'Create Box'
+            : (replaceMode ? 'Replace Box' : 'Create Box')
         }
       </Button>
     </Box>
