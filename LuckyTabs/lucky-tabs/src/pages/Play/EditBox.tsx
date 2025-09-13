@@ -487,7 +487,7 @@ export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onCl
           </Grid>
           <Grid size={4}>
             <TextField
-              label="Starting # of Tickets"
+              label="# of Tickets"
               type="number"
               fullWidth
               value={startingTickets}

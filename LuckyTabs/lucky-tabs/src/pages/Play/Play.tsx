@@ -648,6 +648,7 @@ export const Play: React.FC = () => {
               onClose={handleCloseCreateBox}
               onBoxCreated={() => { void refreshBoxes(); }}
               replaceMode={replaceMode}
+              boxToReplace={boxToReplace}
             />
           )}
         </DialogContent>
@@ -780,7 +781,18 @@ export const Play: React.FC = () => {
               }}>
                 {wallBoxes.map((box) => {
               const pricePerTicket = parseFloat(box.pricePerTicket);
-              const estimatedTickets = box.estimatedRemainingTickets || 0;
+              
+              // Calculate estimated tickets from either format
+              let estimatedTickets = box.estimatedRemainingTickets || 0;
+              
+              // If no top-level estimatedRemainingTickets, try to calculate from rows
+              if (estimatedTickets === 0 && (box as any).rows && Array.isArray((box as any).rows)) {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+                estimatedTickets = (box as any).rows.reduce((total: number, row: any) => {
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                  return total + (Number(row.estimatedTicketsRemaining) || 0);
+                }, 0);
+              }
               
               // Calculate EV and metrics
               let evColor = statusColors.poor; // Default to poor
@@ -997,7 +1009,18 @@ export const Play: React.FC = () => {
               }}>
                 {barBoxes.map((box) => {
                   const pricePerTicket = parseFloat(box.pricePerTicket);
-                  const estimatedTickets = box.estimatedRemainingTickets || 0;
+                  
+                  // Calculate estimated tickets from either format
+                  let estimatedTickets = box.estimatedRemainingTickets || 0;
+                  
+                  // If no top-level estimatedRemainingTickets, try to calculate from rows
+                  if (estimatedTickets === 0 && (box as any).rows && Array.isArray((box as any).rows)) {
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+                    estimatedTickets = (box as any).rows.reduce((total: number, row: any) => {
+                      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                      return total + (Number(row.estimatedTicketsRemaining) || 0);
+                    }, 0);
+                  }
                   
                   // Calculate EV and metrics
                   let evColor = statusColors.poor; // Default to poor

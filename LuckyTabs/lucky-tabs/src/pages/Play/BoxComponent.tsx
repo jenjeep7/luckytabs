@@ -60,6 +60,7 @@ interface BoxItem {
   winningTickets?: WinningTicket[];
   claimedPrizes?: ClaimedPrize[];
   estimatedRemainingTickets?: number;
+  rows?: { rowNumber: number; estimatedTicketsRemaining: number }[];
   rowEstimates?: {
     row1: number;
     row2: number;
@@ -412,11 +413,28 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
 
         // Update Firestore with both total and row estimates
         const boxRef = doc(db, 'boxes', estimateDialog.boxId);
-        await updateDoc(boxRef, {
+        const updateData: {
+          estimatedRemainingTickets: number;
+          rowEstimates: { row1: number; row2: number; row3: number; row4: number };
+          estimatedTicketsUpdated: Date;
+          rows?: { rowNumber: number; estimatedTicketsRemaining: number }[];
+        } = {
           estimatedRemainingTickets: totalTickets,
           rowEstimates: rowEstimates,
           estimatedTicketsUpdated: new Date(),
-        });
+        };
+
+        // For wall boxes, also update the rows array to keep both formats in sync
+        if (box?.type === 'wall') {
+          updateData.rows = [
+            { rowNumber: 1, estimatedTicketsRemaining: rowEstimates.row1 },
+            { rowNumber: 2, estimatedTicketsRemaining: rowEstimates.row2 },
+            { rowNumber: 3, estimatedTicketsRemaining: rowEstimates.row3 },
+            { rowNumber: 4, estimatedTicketsRemaining: rowEstimates.row4 },
+          ];
+        }
+
+        await updateDoc(boxRef, updateData);
 
         // Track tickets estimation
         const boxForTracking = boxes.find(b => b.id === estimateDialog.boxId);
@@ -814,7 +832,24 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
         boxName={estimateDialog.boxName}
         boxType={boxes.find(b => b.id === estimateDialog.boxId)?.type === 'wall' ? 'wall' : 'bar'}
         currentValue={Number(remainingTicketsInput[estimateDialog.boxId] || '0')}
-        currentRowEstimates={boxes.find(b => b.id === estimateDialog.boxId)?.rowEstimates}
+        currentRowEstimates={(() => {
+          const box = boxes.find(b => b.id === estimateDialog.boxId);
+          // Convert rows array to rowEstimates object format
+          if (box?.rows && Array.isArray(box.rows)) {
+            const rowEstimates: { row1: number; row2: number; row3: number; row4: number } = {
+              row1: 0, row2: 0, row3: 0, row4: 0
+            };
+            box.rows.forEach((row: { rowNumber: number; estimatedTicketsRemaining: number }) => {
+              if (row.rowNumber === 1) rowEstimates.row1 = row.estimatedTicketsRemaining || 0;
+              if (row.rowNumber === 2) rowEstimates.row2 = row.estimatedTicketsRemaining || 0;
+              if (row.rowNumber === 3) rowEstimates.row3 = row.estimatedTicketsRemaining || 0;
+              if (row.rowNumber === 4) rowEstimates.row4 = row.estimatedTicketsRemaining || 0;
+            });
+            return rowEstimates;
+          }
+          // Fallback to existing rowEstimates if available
+          return box?.rowEstimates;
+        })()}
         claimedPrizes={getClaimedPrizes(estimateDialog.boxId)}
         availablePrizes={boxes.find(b => b.id === estimateDialog.boxId)?.winningTickets?.map(ticket => Number(ticket.prize)).filter(prize => prize > 0) || []}
         onUpdate={handleEstimateUpdate}

@@ -14,14 +14,14 @@ const flareButtonStyle = {
 
 // Button configuration data
 const flareButtons = [
-  { text: 'Establishments', onClick: '/play' },
+  { text: 'Predict Boxes', onClick: '/play' },
   { text: 'Community', onClick: '/community' },
   { text: 'Crews', onClick: '/community?tab=2' },
+  { text: 'Get App', onClick: 'getApp' },
   { text: 'Support', onClick: 'mailto:TabsyWins@gmail.com' },
   { text: 'Wins/Losses', onClick: '/tracking' },
   { text: 'Responsible Playing', onClick: '/features#responsible-playing' },
   { text: 'Go Pro', onClick: null },
-  { text: 'Get App', onClick: 'getApp' },
   { text: 'Coming Soon', onClick: null },
   { text: 'Coming Soon', onClick: null },
 ];
