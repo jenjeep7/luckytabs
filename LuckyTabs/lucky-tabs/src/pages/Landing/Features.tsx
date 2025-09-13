@@ -75,7 +75,6 @@ const Features: React.FC = () => {
                   fontWeight="bold" 
                   gutterBottom 
                   color="text.primary"
-                  sx={{ fontSize: { xs: '0.85rem', sm: '0.9rem', md: '1rem' } }}
                 >
                   🔍 Smarter Predictions
                 </Typography>

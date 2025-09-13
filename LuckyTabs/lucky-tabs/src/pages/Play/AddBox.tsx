@@ -23,11 +23,14 @@ import { auth, db, storage } from "../../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { userService, UserData } from "../../services/userService";
 import { trackBoxCreated, trackFlareSheetUploaded } from "../../utils/analytics";
+import { EstimateRemainingDialog } from "./BoxDialogs";
 
 interface Props {
   location: { id: string; name: string };
   onClose: () => void;
   onBoxCreated?: () => void;
+  replaceMode?: boolean;
+  boxToReplace?: { id: string; boxName: string } | null;
 }
 
 interface Prize {
@@ -36,7 +39,7 @@ interface Prize {
   claimedTotal: number;
 }
 
-export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated }) => {
+export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated, replaceMode = false, boxToReplace = null }) => {
   const [type, setType] = useState<"wall" | "bar box">("wall");
   const [boxName, setBoxName] = useState("");
   const [boxNumber, setBoxNumber] = useState("");
@@ -59,19 +62,20 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
   const [parseError, setParseError] = useState<string | null>(null);
   const [tempBoxId, setTempBoxId] = useState<string | null>(null);
   
-  // Entry mode toggle - manual is default
-  const [entryMode, setEntryMode] = useState<"auto" | "manual">("manual");
+  // Entry mode toggle - auto is default
+  const [entryMode, setEntryMode] = useState<"auto" | "manual">("auto");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch user profile to check plan
+  // Estimate tickets dialog state
+  const [estimateDialogOpen, setEstimateDialogOpen] = useState(false);
+  const [rowEstimates, setRowEstimates] = useState<{ row1: number; row2: number; row3: number; row4: number } | null>(null);
+  
+  // Fetch user profile
   useEffect(() => {
     if (user?.uid) {
       userService.getUserProfile(user.uid).then(setUserProfile).catch(console.error);
     }
   }, [user?.uid]);
-
-  // Check if user has pro plan
-  const isProUser = userProfile?.plan === "pro";
 
   // Convert HEIC files to JPEG
   const convertHeicToJpeg = async (file: File): Promise<File> => {
@@ -102,14 +106,6 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
     
     return file; // Return original file if not HEIC
   };
-
-  // Reset to manual mode if user is not pro and somehow in auto mode
-  useEffect(() => {
-    if (userProfile && entryMode === "auto" && !isProUser) {
-      setEntryMode("manual");
-      setParseError("Auto Fill is only available for Pro users. Switched to manual entry.");
-    }
-  }, [userProfile, entryMode, isProUser]);
 
   // Listen for OCR results when parsing
   useEffect(() => {
@@ -181,8 +177,8 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
           };
           reader.readAsDataURL(processedFile);
 
-          // If auto mode and user has pro plan, upload and parse immediately
-          if (entryMode === "auto" && isProUser) {
+          // If auto mode, upload and parse immediately
+          if (entryMode === "auto") {
             void parseImageImmediately(processedFile);
           }
         } catch (error) {
@@ -190,8 +186,6 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
           setUploadError(error instanceof Error ? error.message : "Failed to process file");
         }
       })();
-    } else if (entryMode === "auto" && !isProUser) {
-      setParseError("Auto Fill is a Pro feature. Please upgrade your plan or use manual entry.");
     }
   };
 
@@ -233,6 +227,22 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
     await uploadBytes(imageRef, file);
     return await getDownloadURL(imageRef);
   };
+
+  // Estimate dialog handlers
+  const handleEstimateClick = () => {
+    setEstimateDialogOpen(true);
+  };
+
+  const handleEstimateUpdate = (totalTickets: number, estimates: { row1: number; row2: number; row3: number; row4: number }) => {
+    setStartingTickets(totalTickets.toString());
+    setRowEstimates(estimates);
+    setEstimateDialogOpen(false);
+  };
+
+  const handleEstimateCancel = () => {
+    setEstimateDialogOpen(false);
+  };
+
   const handleSubmit = async () => {
     try {
       setUploading(true);
@@ -246,8 +256,8 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
       }
 
       // Validation for both modes now
-      if (!boxNumber.trim()) {
-        setUploadError('Box number is required');
+      if (type === "bar box" && !boxNumber.trim()) {
+        setUploadError('Box number is required for bar boxes');
         setUploading(false);
         return;
       }
@@ -287,16 +297,28 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
       let boxSpecificData = {};
       
       if (type === "wall") {
-        // Wall boxes: divide total tickets by 4 rows
-        const ticketsPerRow = Math.floor(totalStartingTickets / 4);
-        boxSpecificData = {
-          rows: [
-            { rowNumber: 1, estimatedTicketsRemaining: ticketsPerRow },
-            { rowNumber: 2, estimatedTicketsRemaining: ticketsPerRow },
-            { rowNumber: 3, estimatedTicketsRemaining: ticketsPerRow },
-            { rowNumber: 4, estimatedTicketsRemaining: ticketsPerRow },
-          ],
-        };
+        // Wall boxes: use row estimates if available, otherwise divide total tickets by 4 rows
+        if (rowEstimates) {
+          boxSpecificData = {
+            rows: [
+              { rowNumber: 1, estimatedTicketsRemaining: rowEstimates.row1 },
+              { rowNumber: 2, estimatedTicketsRemaining: rowEstimates.row2 },
+              { rowNumber: 3, estimatedTicketsRemaining: rowEstimates.row3 },
+              { rowNumber: 4, estimatedTicketsRemaining: rowEstimates.row4 },
+            ],
+          };
+        } else {
+          // Fallback to equal distribution
+          const ticketsPerRow = Math.floor(totalStartingTickets / 4);
+          boxSpecificData = {
+            rows: [
+              { rowNumber: 1, estimatedTicketsRemaining: ticketsPerRow },
+              { rowNumber: 2, estimatedTicketsRemaining: ticketsPerRow },
+              { rowNumber: 3, estimatedTicketsRemaining: ticketsPerRow },
+              { rowNumber: 4, estimatedTicketsRemaining: ticketsPerRow },
+            ],
+          };
+        }
       } else {
         // Bar boxes: single value for all remaining tickets
         boxSpecificData = {
@@ -305,8 +327,8 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
       }
 
       const newBox: Box = {
-        boxName: boxName || `Box ${boxNumber}`,
-        boxNumber: boxNumber,
+        boxName: boxName || (type === "bar box" ? `Box ${boxNumber}` : "Wall Box"),
+        boxNumber: type === "bar box" ? boxNumber : "",
         pricePerTicket: pricePerTicket,
         startingTickets: totalStartingTickets,
         type,
@@ -352,6 +374,21 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
         }
       }
 
+      // If in replace mode, deactivate the old box
+      if (replaceMode && boxToReplace?.id) {
+        try {
+          const oldBoxRef = doc(db, "boxes", boxToReplace.id);
+          await updateDoc(oldBoxRef, { 
+            isActive: false,
+            lastUpdated: serverTimestamp()
+          });
+          console.log(`Deactivated old box: ${boxToReplace.boxName} (${boxToReplace.id})`);
+        } catch (deactivateError) {
+          console.error("Error deactivating old box:", deactivateError);
+          // Don't fail the whole operation if deactivation fails
+        }
+      }
+
       onBoxCreated?.();
       onClose();
     } catch (err) {
@@ -389,13 +426,14 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
   return (
     <Box sx={{ mt: 2 }}>
       <Typography variant="h6" gutterBottom sx={{ textAlign: 'center' }}>
-        Add New Box for: <strong>{location?.name}</strong>
+        <strong>{location?.name}</strong>
       </Typography>
 
       <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
         <ToggleButtonGroup
           color="info"
           value={type}
+          size="small"
           exclusive
           onChange={(_, val: "wall" | "bar box" | null) => {
             if (val) setType(val);
@@ -408,7 +446,7 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
 
       {/* Flare Sheet Image Upload Section */}
       <Box sx={{ textAlign: 'center' }}>
-        <Typography variant="h6" sx={{ mb: 1 }}>
+        <Typography variant="body1" sx={{ mb: 1 }}>
           Flare Sheet *
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -426,38 +464,19 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
             }}
             size="small"
           >
+            <ToggleButton value="auto">
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <Typography variant="caption">Auto Fill</Typography>
+              </Box>
+            </ToggleButton>
             <ToggleButton value="manual">
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <Typography variant="caption">Manual Entry</Typography>
               </Box>
             </ToggleButton>
-            <ToggleButton 
-              value="auto" 
-              disabled={!isProUser}
-              sx={{
-                opacity: !isProUser ? 0.5 : 1,
-                '&.Mui-disabled': {
-                  color: 'text.disabled',
-                  borderColor: 'action.disabled'
-                }
-              }}
-            >
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <Typography variant="caption">Auto Fill {!isProUser && '(Pro)'}</Typography>
-                <Typography variant="caption" sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
-                  {`(pro feature)`}
-                </Typography>
-              </Box>
-            </ToggleButton>
+
           </ToggleButtonGroup>
         </Box>
-
-        {!isProUser && entryMode === "auto" && (
-          <Alert severity="info" sx={{ mb: 2, maxWidth: 400, mx: 'auto' }}>
-            Auto Fill is a Pro feature. Upgrade your plan to use OCR auto-parsing.
-          </Alert>
-        )}
-
         {uploadError && (
           <Alert severity="error" sx={{ mb: 2, maxWidth: 400, mx: 'auto' }}>
             {uploadError}
@@ -540,25 +559,18 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
             {parseError}
           </Alert>
         )}
-
-        {/* Success message when auto parsing completes */}
-        {entryMode === "auto" && isProUser && !parsing && !parseError && boxName && boxName !== "" && (
-          <Alert severity="success" sx={{ mt: 2, maxWidth: 400, mx: 'auto' }}>
-            ✅ Image parsed successfully! Review and edit the data below before creating the box.
-          </Alert>
-        )}
       </Box>
 
       {/* Form Fields - Always shown now */}
-      {entryMode === "auto" && isProUser && !flareSheetImage && (
+      {entryMode === "auto" && !flareSheetImage && (
         <Box sx={{ textAlign: 'center', mb: 3 }}>
           <Alert severity="info" sx={{ mb: 2 }}>
-            Upload a flare sheet image and we&apos;ll automatically extract the box details using OCR!
+            Upload a flare sheet image and Tabsy will automatically extract the box details using OCR!
           </Alert>
         </Box>
       )}
 
-      {entryMode === "auto" && isProUser && flareSheetImage && !parsing && winningTickets.length > 0 && (
+      {entryMode === "auto" && flareSheetImage && !parsing && winningTickets.length > 0 && (
         <Box sx={{ textAlign: 'center', mb: 3 }}>
           <Alert severity="success" sx={{ mb: 2 }}>
             ✅ Image parsed successfully! Review and edit the data below before creating the box.
@@ -580,19 +592,21 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
             disabled={parsing}
           />
         </Grid>
-        <Grid size={{ xs: 12, sm: 3 }}>
-          <TextField
-            size="small"
-            label="Box Number"
-            fullWidth
-            value={boxNumber}
-            onChange={(e) => {
-              setBoxNumber(e.target.value);
-            }}
-            required
-            disabled={parsing}
-          />
-        </Grid>
+        {type === "bar box" && (
+          <Grid size={{ xs: 12, sm: 3 }}>
+            <TextField
+              size="small"
+              label="Box Number"
+              fullWidth
+              value={boxNumber}
+              onChange={(e) => {
+                setBoxNumber(e.target.value);
+              }}
+              required
+              disabled={parsing}
+            />
+          </Grid>
+        )}
         <Grid size={{ xs: 12, sm: 3 }}>
           <TextField
             size="small"
@@ -611,22 +625,24 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
         <Grid size={{ xs: 12, sm: 3 }}>
           <TextField
             size="small"
-            label="Starting # of Tickets"
+            label="# of Tickets"
             type="number"
             fullWidth
             value={startingTickets}
             onChange={(e) => setStartingTickets(e.target.value)}
-            required
             disabled={parsing}
           />
-          {/* Show ticket distribution info */}
-          {startingTickets && Number(startingTickets) > 0 && (
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-              {type === "wall" 
-                ? `${Math.floor(Number(startingTickets) / 4)} tickets per row (4 rows)`
-                : `${startingTickets} tickets total`
-              }
-            </Typography>
+          {/* Estimate by row button for wall boxes */}
+          {type === "wall" && (
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={handleEstimateClick}
+              sx={{ mt: 1, fontSize: '0.75rem', height: '28px' }}
+              disabled={parsing}
+            >
+              Set by Row
+            </Button>
           )}
         </Grid>
       </Grid>
@@ -635,7 +651,7 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
         <Typography variant="subtitle1">Prizes</Typography>
         {winningTickets.map((prize, idx) => (
           <Grid container spacing={1} key={idx} sx={{ mt: 1 }}>
-            <Grid size={{ xs: 6, sm: 6 }}>
+            <Grid size={{ xs: 5 }}>
               <TextField
                 label="Prize Amount"
                 value={prize.prize}
@@ -646,12 +662,23 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
                 disabled={parsing}
               />
             </Grid>
-            <Grid size={{ xs: 6, sm: 6 }}>
+            <Grid size={{ xs:3 }}>
               <TextField
                 label="Total"
                 type="number"
                 value={prize.totalPrizes || ""}
                 onChange={(e) => handlePrizeChange(idx, "totalPrizes", e.target.value)}
+                fullWidth
+                size="small"
+                disabled={parsing}
+              />
+            </Grid>
+            <Grid size={{ xs: 4 }}>
+              <TextField
+                label="Claimed"
+                type="number"
+                value={prize.claimedTotal || ""}
+                onChange={(e) => handlePrizeChange(idx, "claimedTotal", e.target.value)}
                 fullWidth
                 size="small"
                 disabled={parsing}
@@ -671,22 +698,34 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
         </Button>
       </Box>
 
-      <Button 
-        size="small" 
-        variant="contained" 
-        onClick={() => { 
-          void handleSubmit(); 
-        }} 
-        sx={{ mt: 4 }}
-        disabled={uploading || parsing}
-      >
-        {uploading 
-          ? 'Creating Box...' 
-          : parsing
-            ? 'Parsing Image...'
-            : 'Create Box'
-        }
-      </Button>
+      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+        <Button 
+          size="small" 
+          variant="contained" 
+          onClick={() => { 
+            void handleSubmit(); 
+          }} 
+          disabled={uploading || parsing}
+        >
+          {uploading 
+            ? (replaceMode ? 'Replacing Box...' : 'Creating Box...')
+            : parsing
+              ? 'Parsing Image...'
+              : (replaceMode ? 'Replace Box' : 'Create Box')
+          }
+        </Button>
+      </Box>
+
+      {/* Estimate Remaining Tickets Dialog */}
+      <EstimateRemainingDialog
+        open={estimateDialogOpen}
+        boxName={boxName || "New Box"}
+        currentValue={Number(startingTickets) || 0}
+        boxType="wall"
+        currentRowEstimates={rowEstimates || undefined}
+        onUpdate={handleEstimateUpdate}
+        onCancel={handleEstimateCancel}
+      />
     </Box>
   );
 };

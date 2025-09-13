@@ -15,6 +15,8 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogContentText,
+  DialogActions,
   IconButton,
   Card,
   CardContent,
@@ -24,6 +26,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import PlaceIcon from '@mui/icons-material/Place';
 import ShareIcon from '@mui/icons-material/Share';
 import Edit from '@mui/icons-material/Edit';
+import AutorenewIcon from '@mui/icons-material/Autorenew';
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../firebase";
 import { CreateBoxForm } from "./AddBox";
@@ -287,6 +290,11 @@ export const Play: React.FC = () => {
   const [editBox, setEditBox] = useState<BoxItem | null>(null);
   const [editFormBox, setEditFormBox] = useState<BoxItem | null>(null);
   const [showLocationSelector, setShowLocationSelector] = useState(false);
+  
+  // Replace box state
+  const [replaceConfirmOpen, setReplaceConfirmOpen] = useState(false);
+  const [boxToReplace, setBoxToReplace] = useState<BoxItem | null>(null);
+  const [replaceMode, setReplaceMode] = useState(false);
 
   // Get user location on mount
   useEffect(() => {
@@ -472,6 +480,29 @@ export const Play: React.FC = () => {
     setShareDialogOpen(true);
   };
 
+  // Replace box handlers
+  const handleReplaceBox = (box: BoxItem) => {
+    setBoxToReplace(box);
+    setReplaceConfirmOpen(true);
+  };
+
+  const handleConfirmReplace = () => {
+    setReplaceConfirmOpen(false);
+    setReplaceMode(true);
+    setOpenCreateBox(true);
+  };
+
+  const handleCancelReplace = () => {
+    setReplaceConfirmOpen(false);
+    setBoxToReplace(null);
+  };
+
+  const handleCloseCreateBox = () => {
+    setOpenCreateBox(false);
+    setReplaceMode(false);
+    setBoxToReplace(null);
+  };
+
   return (
     <Box sx={{ 
       width: '100%', 
@@ -590,7 +621,11 @@ export const Play: React.FC = () => {
                 bgcolor: 'secondary.dark'
               }
             }}
-            onClick={() => setOpenCreateBox(true)}
+            onClick={() => {
+              setReplaceMode(false);
+              setBoxToReplace(null);
+              setOpenCreateBox(true);
+            }}
             size="small"
           >
             Create New Box
@@ -599,10 +634,10 @@ export const Play: React.FC = () => {
       )}
 
       {/* Create Box Modal */}
-  <Dialog open={openCreateBox} onClose={() => setOpenCreateBox(false)} fullScreen>
+  <Dialog open={openCreateBox} onClose={handleCloseCreateBox} fullScreen>
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          Create New Box
-          <IconButton onClick={() => setOpenCreateBox(false)}>
+          {replaceMode ? `Replace Box: ${boxToReplace?.boxName || 'Unknown'}` : 'Create New Box'}
+          <IconButton onClick={handleCloseCreateBox}>
             <CloseIcon />
           </IconButton>
         </DialogTitle>
@@ -610,8 +645,10 @@ export const Play: React.FC = () => {
           {selectedLocationObj && (
             <CreateBoxForm
               location={selectedLocationObj}
-              onClose={() => setOpenCreateBox(false)}
+              onClose={handleCloseCreateBox}
               onBoxCreated={() => { void refreshBoxes(); }}
+              replaceMode={replaceMode}
+              boxToReplace={boxToReplace}
             />
           )}
         </DialogContent>
@@ -645,8 +682,8 @@ export const Play: React.FC = () => {
               value={boxView}
               onChange={(newView) => setBoxView(newView as 'my' | 'group')}
               options={[
-                { value: 'my', label: `MY BOXES (${myBoxes.length})` },
-                { value: 'group', label: `GROUP BOXES (${groupBoxes.length})` }
+                { value: 'my', label: `MY BOXES` },
+                { value: 'group', label: `GROUP BOXES` }
               ]}
             />
           </Box>
@@ -735,16 +772,24 @@ export const Play: React.FC = () => {
                 display: 'grid', 
                 gridTemplateColumns: {
                   xs: '1fr',
-                  sm: 'repeat(auto-fill, minmax(180px, 1fr))',
-                  md: 'repeat(auto-fill, minmax(200px, 1fr))',
-                  lg: 'repeat(auto-fill, minmax(220px, 1fr))',
                 },
                 gap: 1.5,
                 mb: 2
               }}>
                 {wallBoxes.map((box) => {
               const pricePerTicket = parseFloat(box.pricePerTicket);
-              const estimatedTickets = box.estimatedRemainingTickets || 0;
+              
+              // Calculate estimated tickets from either format
+              let estimatedTickets = box.estimatedRemainingTickets || 0;
+              
+              // If no top-level estimatedRemainingTickets, try to calculate from rows
+              if (estimatedTickets === 0 && (box as any).rows && Array.isArray((box as any).rows)) {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+                estimatedTickets = (box as any).rows.reduce((total: number, row: any) => {
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                  return total + (Number(row.estimatedTicketsRemaining) || 0);
+                }, 0);
+              }
               
               // Calculate EV and metrics
               let evColor = statusColors.poor; // Default to poor
@@ -876,6 +921,17 @@ export const Play: React.FC = () => {
                                   size="small"
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    handleReplaceBox(box);
+                                  }}
+                                  sx={theme.neon.effects.interactiveIcon()}
+                                  title="Replace Box"
+                                >
+                                  <AutorenewIcon fontSize="small" />
+                                </IconButton>
+                                <IconButton
+                                  size="small"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     setEditFormBox(box);
                                   }}
                                   sx={theme.neon.effects.interactiveIcon()}
@@ -941,16 +997,24 @@ export const Play: React.FC = () => {
                 display: 'grid', 
                 gridTemplateColumns: {
                   xs: '1fr',
-                  sm: 'repeat(auto-fill, minmax(180px, 1fr))',
-                  md: 'repeat(auto-fill, minmax(200px, 1fr))',
-                  lg: 'repeat(auto-fill, minmax(220px, 1fr))',
                 },
                 gap: 1.5,
                 mb: 2
               }}>
                 {barBoxes.map((box) => {
                   const pricePerTicket = parseFloat(box.pricePerTicket);
-                  const estimatedTickets = box.estimatedRemainingTickets || 0;
+                  
+                  // Calculate estimated tickets from either format
+                  let estimatedTickets = box.estimatedRemainingTickets || 0;
+                  
+                  // If no top-level estimatedRemainingTickets, try to calculate from rows
+                  if (estimatedTickets === 0 && (box as any).rows && Array.isArray((box as any).rows)) {
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+                    estimatedTickets = (box as any).rows.reduce((total: number, row: any) => {
+                      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                      return total + (Number(row.estimatedTicketsRemaining) || 0);
+                    }, 0);
+                  }
                   
                   // Calculate EV and metrics
                   let evColor = statusColors.poor; // Default to poor
@@ -1078,6 +1142,17 @@ export const Play: React.FC = () => {
                                 )}
                                 {boxView === 'my' && (
                                   <Box sx={{ display: 'flex', gap: 0.5 }}>
+                                    <IconButton
+                                      size="small"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleReplaceBox(box);
+                                      }}
+                                      sx={theme.neon.effects.interactiveIcon()}
+                                      title="Replace Box"
+                                    >
+                                      <AutorenewIcon fontSize="small" />
+                                    </IconButton>
                                     <IconButton
                                       size="small"
                                       onClick={(e) => {
@@ -1213,6 +1288,29 @@ export const Play: React.FC = () => {
           existingShares={shareBoxData?.shares || []}
         />
       )}
+
+      {/* Replace Box Confirmation Dialog */}
+      <Dialog
+        open={replaceConfirmOpen}
+        onClose={handleCancelReplace}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Replace Box</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to replace &ldquo;{boxToReplace?.boxName}&rdquo;? This action cannot be undone and will permanently delete the current box data.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelReplace} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleConfirmReplace} color="error" variant="contained">
+            Replace Box
+          </Button>
+        </DialogActions>
+      </Dialog>
       </Box>
     </Box>
   );
