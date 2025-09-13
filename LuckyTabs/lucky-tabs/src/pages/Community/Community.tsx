@@ -26,6 +26,7 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  Menu,
 } from '@mui/material';
 import {
   Favorite,
@@ -38,6 +39,9 @@ import {
   Groups as GroupsIcon,
   Image as ImageIcon,
   Close as CloseIcon,
+  MoreVert,
+  Edit,
+  Delete,
 } from '@mui/icons-material';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../../firebase';
@@ -65,6 +69,9 @@ interface PostCardProps {
   post: Post;
   onLike: (postId: string) => void;
   onComment: (postId: string, comment: string) => void;
+  onEdit?: (postId: string, newContent: string) => void;
+  onDelete?: (postId: string) => void;
+  setDeleteConfirmation?: (state: { open: boolean; postId: string | null }) => void;
   currentUserId?: string;
   currentUserName?: string;
   currentUserAvatar?: string;
@@ -75,6 +82,9 @@ function PostCard({
   post,
   onLike,
   onComment,
+  onEdit,
+  onDelete,
+  setDeleteConfirmation,
   currentUserId,
   currentUserName,
   currentUserAvatar,
@@ -85,6 +95,9 @@ function PostCard({
   const [comments, setComments] = useState<Comment[]>([]);
   const [loadingComments, setLoadingComments] = useState(false);
   const [commentCount, setCommentCount] = useState<number>(0);
+  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(post.content);
 
   // Image modal state
   const [imageModalOpen, setImageModalOpen] = React.useState<boolean>(false);
@@ -222,16 +235,92 @@ function PostCard({
               />
             </Box>
           </Box>
-          {/* <IconButton size="small" sx={{ color: 'text.secondary' }}>
-            <MoreVert />
-          </IconButton> */}
+          {/* Three dots menu - only show for posts by current user */}
+          {currentUserId === post.authorId && (
+            <>
+              <IconButton 
+                size="small" 
+                sx={{ color: 'text.secondary' }}
+                onClick={(e) => setMenuAnchor(e.currentTarget)}
+              >
+                <MoreVert />
+              </IconButton>
+              <Menu
+                anchorEl={menuAnchor}
+                open={Boolean(menuAnchor)}
+                onClose={() => setMenuAnchor(null)}
+                PaperProps={{
+                  sx: { bgcolor: 'background.paper', color: 'text.primary' }
+                }}
+              >
+                <MenuItem onClick={() => {
+                  setIsEditing(true);
+                  setMenuAnchor(null);
+                }}>
+                  <Edit sx={{ mr: 1, fontSize: 20 }} />
+                  Edit Post
+                </MenuItem>
+                <MenuItem 
+                  onClick={() => {
+                    if (onDelete && setDeleteConfirmation) {
+                      setDeleteConfirmation({ open: true, postId: post.id });
+                    }
+                    setMenuAnchor(null);
+                  }}
+                  sx={{ color: 'error.main' }}
+                >
+                  <Delete sx={{ mr: 1, fontSize: 20 }} />
+                  Delete Post
+                </MenuItem>
+              </Menu>
+            </>
+          )}
         </Box>
 
         {/* Post Text */}
         {post.content && (
-          <Typography variant="body1" sx={{ mb: post.media?.length ? 1 : 2, whiteSpace: 'pre-wrap', color: 'text.primary' }}>
-            {post.content}
-          </Typography>
+          <>
+            {isEditing ? (
+              <Box sx={{ mb: 2 }}>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={3}
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  variant="outlined"
+                  sx={{ mb: 1 }}
+                />
+                <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                  <Button 
+                    size="small" 
+                    onClick={() => {
+                      setIsEditing(false);
+                      setEditContent(post.content);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    size="small" 
+                    variant="contained"
+                    onClick={() => {
+                      if (onEdit && editContent.trim()) {
+                        onEdit(post.id, editContent.trim());
+                        setIsEditing(false);
+                      }
+                    }}
+                  >
+                    Save
+                  </Button>
+                </Box>
+              </Box>
+            ) : (
+              <Typography variant="body1" sx={{ mb: post.media?.length ? 1 : 2, whiteSpace: 'pre-wrap', color: 'text.primary' }}>
+                {post.content}
+              </Typography>
+            )}
+          </>
         )}
 
         {/* Post Images */}
@@ -461,6 +550,10 @@ export const Community: React.FC = () => {
     message: '',
     severity: 'success',
   });
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ open: boolean; postId: string | null }>({
+    open: false,
+    postId: null,
+  });
 
   // Handle URL parameter changes for tab switching
   useEffect(() => {
@@ -595,6 +688,44 @@ export const Community: React.FC = () => {
     }
   };
 
+  const handleEdit = async (postId: string, newContent: string): Promise<void> => {
+    if (!user) return;
+    try {
+      await communityService.updatePost(postId, newContent);
+      // Refresh all states to ensure consistency
+      const [updatedPublicPosts, updatedGroupPosts, updatedAllGroupPosts] = await Promise.all([
+        communityService.getPosts('public'),
+        selectedGroupId ? communityService.getPosts('group', selectedGroupId) : Promise.resolve([]),
+        communityService.getPosts('group') // All group posts for My Groups tab
+      ]);
+      setPublicPosts(updatedPublicPosts);
+      setGroupPosts(updatedGroupPosts);
+      setAllGroupPosts(updatedAllGroupPosts);
+      setSnackbar({ open: true, message: 'Post updated successfully!', severity: 'success' });
+    } catch {
+      setSnackbar({ open: true, message: 'Failed to update post', severity: 'error' });
+    }
+  };
+
+  const handleDelete = async (postId: string) => {
+    if (!user) return;
+    try {
+      await communityService.deletePost(postId);
+      // Refresh all states to ensure consistency
+      const [updatedPublicPosts, updatedGroupPosts, updatedAllGroupPosts] = await Promise.all([
+        communityService.getPosts('public'),
+        selectedGroupId ? communityService.getPosts('group', selectedGroupId) : Promise.resolve([]),
+        communityService.getPosts('group') // All group posts for My Groups tab
+      ]);
+      setPublicPosts(updatedPublicPosts);
+      setGroupPosts(updatedGroupPosts);
+      setAllGroupPosts(updatedAllGroupPosts);
+      setSnackbar({ open: true, message: 'Post deleted successfully!', severity: 'success' });
+    } catch {
+      setSnackbar({ open: true, message: 'Failed to delete post', severity: 'error' });
+    }
+  };
+
   const handleComment = async (postId: string, commentContent: string) => {
     if (!user) return;
     try {
@@ -691,16 +822,7 @@ export const Community: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="md" sx={{ py: 2, bgcolor: 'background.default', minHeight: '100vh' }}>
-      <Paper
-        sx={{
-          mb: 2,
-          bgcolor: 'background.paper',
-          border: '1px solid',
-          borderColor: 'divider',
-          boxShadow: (theme) => (theme.palette.mode === 'dark' ? 'none' : 1),
-        }}
-      >
+    <Container maxWidth="md" sx={{ py: 0, px: 0, bgcolor: 'background.default', minHeight: '100vh' }}>
         <Tabs
           value={activeTab}
           onChange={handleTabChange}
@@ -752,6 +874,13 @@ export const Community: React.FC = () => {
                 onComment={(postId, content) => {
                   void handleComment(postId, content);
                 }}
+                onEdit={(postId, newContent) => {
+                  void handleEdit(postId, newContent);
+                }}
+                onDelete={(postId) => {
+                  void handleDelete(postId);
+                }}
+                setDeleteConfirmation={setDeleteConfirmation}
                 currentUserId={user?.uid}
                 currentUserName={currentUserProfile?.displayName || user?.displayName || undefined}
                 currentUserAvatar={currentUserProfile?.avatar || user?.photoURL || undefined}
@@ -826,6 +955,13 @@ export const Community: React.FC = () => {
                   onComment={(postId, content) => {
                     void handleComment(postId, content);
                   }}
+                  onEdit={(postId, newContent) => {
+                    void handleEdit(postId, newContent);
+                  }}
+                  onDelete={(postId) => {
+                    void handleDelete(postId);
+                  }}
+                  setDeleteConfirmation={setDeleteConfirmation}
                   currentUserId={user?.uid}
                   currentUserName={currentUserProfile?.displayName || user?.displayName || undefined}
                   currentUserAvatar={currentUserProfile?.avatar || user?.photoURL || undefined}
@@ -840,8 +976,6 @@ export const Community: React.FC = () => {
         <TabPanel value={activeTab} index={2}>
           <GroupsManager currentUserId={user.uid} currentUserName={currentUserProfile?.displayName || user?.displayName || undefined} />
         </TabPanel>
-      </Paper>
-
       {/* New Post Dialog (with images) */}
       <Dialog
         open={newPostDialog}
@@ -952,6 +1086,43 @@ export const Community: React.FC = () => {
           </Button>
           <Button onClick={() => void handleCreatePost()} variant="contained" disabled={uploading || (!newPostContent.trim() && files.length === 0)}>
             {uploading ? 'Posting…' : 'Post'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteConfirmation.open}
+        onClose={() => setDeleteConfirmation({ open: false, postId: null })}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Delete Post
+        </DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete this post? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setDeleteConfirmation({ open: false, postId: null })}
+            sx={{ color: 'text.secondary' }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              if (deleteConfirmation.postId) {
+                void handleDelete(deleteConfirmation.postId);
+              }
+              setDeleteConfirmation({ open: false, postId: null });
+            }}
+            variant="contained"
+            color="error"
+          >
+            Delete
           </Button>
         </DialogActions>
       </Dialog>

@@ -139,7 +139,7 @@ async createPost(
       ...(data.groupId && { groupId: data.groupId  }),
       ...(data.edited && { edited: data.edited as boolean }),
       ...(data.editedAt && { editedAt: (data.editedAt ).toDate() }),
-      media: (data.media as any[]) || [],             // ← add this line
+      media: (data.media as Array<{ url: string; width?: number; height?: number; contentType?: string }>) || [],
     } as Post;
   });
 }
@@ -158,6 +158,15 @@ async createPost(
         likes: isLiked ? arrayRemove(userId) : arrayUnion(userId)
       });
     }
+  }
+
+  async updatePost(postId: string, content: string): Promise<void> {
+    const postRef = doc(db, 'posts', postId);
+    await updateDoc(postRef, {
+      content,
+      edited: true,
+      editedAt: Timestamp.fromDate(new Date())
+    });
   }
 
   async deletePost(postId: string): Promise<void> {
@@ -331,7 +340,7 @@ async createPost(
         ...(data.groupId && { groupId: data.groupId  }),
         ...(data.edited && { edited: data.edited as boolean }),
         ...(data.editedAt && { editedAt: (data.editedAt ).toDate() }),
-        media: (data.media as any[]) || [],           // ← add this line
+        media: (data.media as Array<{ url: string; width?: number; height?: number; contentType?: string }>) || [],
       } as Post;
     });
     callback(posts);
