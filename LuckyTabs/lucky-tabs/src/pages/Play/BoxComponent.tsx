@@ -223,8 +223,23 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
           const newValues = { ...prev };
           boxes.forEach(box => {
             // Only initialize if we don't already have a value for this box
-            if (!prev[box.id] && box.estimatedRemainingTickets !== undefined && box.estimatedRemainingTickets !== null) {
-              newValues[box.id] = box.estimatedRemainingTickets.toString();
+            if (!prev[box.id]) {
+              let estimatedTickets = box.estimatedRemainingTickets;
+              
+              // If no top-level estimatedRemainingTickets, try to calculate from rows
+              if ((estimatedTickets === undefined || estimatedTickets === null) && box.rows && Array.isArray(box.rows)) {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+                estimatedTickets = (box.rows as { rowNumber: number; estimatedTicketsRemaining: number }[]).reduce(
+                  (total: number, row: { rowNumber: number; estimatedTicketsRemaining: number }) => {
+                    return total + (Number(row.estimatedTicketsRemaining) || 0);
+                  },
+                  0
+                );
+              }
+              
+              if (estimatedTickets !== undefined && estimatedTickets !== null && estimatedTickets > 0) {
+                newValues[box.id] = estimatedTickets.toString();
+              }
             }
           });
           return newValues;
@@ -666,7 +681,18 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
       <Box sx={{ mt: marginTop }}>
         {boxes.map((box) => {
           const pricePerTicket = parseFloat(box.pricePerTicket);
-          const estimatedTickets = Number(remainingTicketsInput[box.id]) || box.estimatedRemainingTickets || 0;
+          
+          // Calculate estimated tickets from either format
+          let estimatedTickets = Number(remainingTicketsInput[box.id]) || box.estimatedRemainingTickets || 0;
+          
+          // If no value found and box has rows, calculate from rows
+          if (estimatedTickets === 0 && box.rows && Array.isArray(box.rows)) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+            estimatedTickets = (box.rows as any[]).reduce((total: number, row: any) => {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              return total + (Number(row.estimatedTicketsRemaining) || 0);
+            }, 0);
+          }
           
           // Calculate EV data using effective winning tickets (with optimistic updates)
           let evData: number | null = null;

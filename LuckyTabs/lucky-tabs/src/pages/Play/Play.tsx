@@ -795,11 +795,13 @@ export const Play: React.FC = () => {
               let evColor = statusColors.poor; // Default to poor
               let evStatus = 'No Data';
               
-              if (estimatedTickets > 0 && box.winningTickets) {
-                const prizes = box.winningTickets.map((ticket: WinningTicket) => ({
-                  value: Number(ticket.prize),
-                  remaining: Number(ticket.totalPrizes) - Number(ticket.claimedTotal)
-                }));
+              if (estimatedTickets > 0 && box.winningTickets && Array.isArray(box.winningTickets) && box.winningTickets.length > 0) {
+                const prizes = box.winningTickets
+                  .filter((ticket: WinningTicket) => ticket.prize && ticket.prize.trim() !== '' && Number(ticket.totalPrizes) > 0)
+                  .map((ticket: WinningTicket) => ({
+                    value: Number(ticket.prize),
+                    remaining: Number(ticket.totalPrizes) - Number(ticket.claimedTotal)
+                  }));
                 
                 // Calculate remaining prize value
                 const totalRemainingValue = prizes.reduce((sum: number, prize) => sum + (prize.value * prize.remaining), 0);
@@ -889,7 +891,7 @@ export const Play: React.FC = () => {
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                           <Box sx={{ flex: 1 }}>
                             <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.primary', fontSize: '1rem' }}>
-                              {`#${box.boxNumber} - ${box.boxName}`}
+                              {box.boxNumber ? `#${box.boxNumber} - ${box.boxName}` : box.boxName}
                             </Typography>
                             <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.9rem', mt: 0.5 }}>
                               {boxView === 'group' && box.ownerName && (
@@ -898,12 +900,14 @@ export const Play: React.FC = () => {
                             </Typography>
                           </Box>
                           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 70 }}>
-                            <NeonStatusPill
-                              status={evStatus === 'Excellent' ? 'excellent' : evStatus === 'Decent' ? 'decent' : 'poor'}
-                              label={evStatus}
-                              size="small"
-                              sx={{ mb: 0.5 }}
-                            />
+                            {evStatus !== 'No Data' && (
+                              <NeonStatusPill
+                                status={evStatus === 'Excellent' ? 'excellent' : evStatus === 'Decent' ? 'decent' : 'poor'}
+                                label={evStatus}
+                                size="small"
+                                sx={{ mb: 0.5 }}
+                              />
+                            )}
                           </Box>
                         </Box>
                         
@@ -1020,7 +1024,7 @@ export const Play: React.FC = () => {
                   let evColor = statusColors.poor; // Default to poor
                   let evStatus = 'No Data';
                   
-                  if (estimatedTickets > 0 && box.winningTickets) {
+                  if (estimatedTickets > 0 && box.winningTickets && Array.isArray(box.winningTickets) && box.winningTickets.length > 0) {
                     const prizes = box.winningTickets.map((ticket: WinningTicket) => ({
                       value: Number(ticket.prize),
                       remaining: Number(ticket.totalPrizes) - Number(ticket.claimedTotal)
@@ -1114,7 +1118,7 @@ export const Play: React.FC = () => {
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                               <Box sx={{ flex: 1 }}>
                                 <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.primary', fontSize: '1rem' }}>
-                                  Box #{box.boxNumber} - {box.boxName}
+                                  {box.boxNumber ? `Box #${box.boxNumber} - ${box.boxName}` : box.boxName}
                                 </Typography>
                                 <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.9rem', mt: 0.5 }}>
                                   {boxView === 'group' && box.ownerName && (
