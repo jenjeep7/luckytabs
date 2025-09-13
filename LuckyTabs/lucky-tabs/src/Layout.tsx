@@ -17,18 +17,21 @@ import AutoGraph from '@mui/icons-material/AutoGraph';
 import GroupIcon from '@mui/icons-material/Group';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import PersonIcon from '@mui/icons-material/Person';
-import { useMemo } from 'react';
+import FeedbackIcon from '@mui/icons-material/Feedback';
+import { useMemo, useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { auth } from './firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { Footer } from './components/Footer';
 import { useLocation as useLocationContext } from './hooks/useLocation';
+import { FeedbackDialog } from './components/FeedbackDialog';
 
 type NavItem = {
   label: string;
   icon: React.ReactElement;
   route?: string;
   email?: string;
+  action?: 'feedback';
 };
 
 const navItems: NavItem[] = [
@@ -36,6 +39,7 @@ const navItems: NavItem[] = [
   { label: 'Predict', route: '/play', icon: <AutoGraph /> },
   { label: 'Tracking', route: '/tracking', icon: <ListAltIcon /> },
   { label: 'Social', route: '/community', icon: <GroupIcon /> },
+  { label: 'Feedback', action: 'feedback', icon: <FeedbackIcon /> },
 ];
 
 interface LayoutProps {
@@ -46,6 +50,7 @@ interface LayoutProps {
 function Layout({ children, title }: LayoutProps) {
   const [user] = useAuthState(auth);
   const { selectedLocationObj } = useLocationContext();
+  const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
 
   const theme = useTheme();
   const isMdUp = useMediaQuery(theme.breakpoints.up('md'));
@@ -76,7 +81,9 @@ function Layout({ children, title }: LayoutProps) {
   const handleLogout = async () => await auth.signOut();
 
   const handleNavItemClick = (item: typeof navItems[number]) => {
-    if (item.route) {
+    if (item.action === 'feedback') {
+      setFeedbackDialogOpen(true);
+    } else if (item.route) {
       // Clear search parameters when navigating to main tabs to prevent tab conflicts
       if (item.route === '/community') {
         void navigate(item.route, { replace: true });
@@ -189,6 +196,12 @@ function Layout({ children, title }: LayoutProps) {
       )}
 
       <Footer />
+      
+      {/* Feedback Dialog */}
+      <FeedbackDialog 
+        open={feedbackDialogOpen}
+        onClose={() => setFeedbackDialogOpen(false)}
+      />
     </Box>
   );
 }
