@@ -772,9 +772,6 @@ export const Play: React.FC = () => {
                 display: 'grid', 
                 gridTemplateColumns: {
                   xs: '1fr',
-                  sm: 'repeat(auto-fill, minmax(180px, 1fr))',
-                  md: 'repeat(auto-fill, minmax(200px, 1fr))',
-                  lg: 'repeat(auto-fill, minmax(220px, 1fr))',
                 },
                 gap: 1.5,
                 mb: 2
@@ -1000,9 +997,6 @@ export const Play: React.FC = () => {
                 display: 'grid', 
                 gridTemplateColumns: {
                   xs: '1fr',
-                  sm: 'repeat(auto-fill, minmax(180px, 1fr))',
-                  md: 'repeat(auto-fill, minmax(200px, 1fr))',
-                  lg: 'repeat(auto-fill, minmax(220px, 1fr))',
                 },
                 gap: 1.5,
                 mb: 2
