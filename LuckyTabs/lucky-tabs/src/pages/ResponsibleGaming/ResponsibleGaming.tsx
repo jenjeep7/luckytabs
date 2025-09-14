@@ -148,7 +148,7 @@ const ResponsibleGaming: React.FC = () => {
           👉 MN Gambling Help Page
         </Link>
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, fontStyle: 'italic' }}>
-          <b>From MN.gov:</b> "Problem gambling DHS pays for inpatient and outpatient problem gambling treatment for residents who qualify for help as well as a statewide, toll-free, confidential 24-hour helpline. For more information about problem gambling, call 800-333-HOPE or visit GetGamblingHelp.com. To participate in a motivational text messaging program, text EncourageMeMN (English) or AnimameMN (Spanish) to 53342 ..."
+          {`From MN.gov: "Problem gambling DHS pays for inpatient and outpatient problem gambling treatment for residents who qualify for help as well as a statewide, toll-free, confidential 24-hour helpline. For more information about problem gambling, call 800-333-HOPE or visit GetGamblingHelp.com. To participate in a motivational text messaging program, text EncourageMeMN (English) or AnimameMN (Spanish) to 53342 ..."`}
         </Typography>
       </Paper>
 

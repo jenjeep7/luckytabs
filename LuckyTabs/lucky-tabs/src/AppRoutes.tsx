@@ -24,6 +24,7 @@ import {
 import { sendEmailVerification, signOut } from 'firebase/auth';
 import { LogoutOutlined } from '@mui/icons-material';
 import ResponsibleGaming from './pages/ResponsibleGaming/ResponsibleGaming';
+import PrivacyPolicy from './pages/PrivacyPolicy/PrivacyPolicy';
 
 // Email Verification Guard Component
 const EmailVerificationGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -133,7 +134,6 @@ function AppRoutes() {
           <Route path="/tabsy" element={<LandingPage />} />
           <Route path="/responsible-gaming" element={<ResponsibleGaming />} />
         </Route>
-        {/* Login/Signup redirect to /play if logged in */}
         <Route path="/login" element={user ? <Navigate to="/profile" /> : (
           <Layout>
             <Login />
@@ -147,6 +147,12 @@ function AppRoutes() {
         <Route path="/features" element={
           <Layout>
             <Features />
+          </Layout>
+        } />
+        {/* Public Privacy Policy route, always accessible */}
+        <Route path="/privacy-policy" element={
+          <Layout>
+            <PrivacyPolicy />
           </Layout>
         } />
         <Route path="*" element={<Navigate to={user ? "/profile" : "/home"} />} />

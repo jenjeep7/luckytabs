@@ -122,7 +122,7 @@ export const Footer = () => {
             {`© 2025 Tabsy's Community. All rights reserved. For entertainment purposes only. Please play responsibly.`}
           </Typography>
           <Button 
-            href="#privacy-policy" 
+            href="/privacy-policy" 
             sx={{ 
               color: theme.neon.colors.text.secondary, 
               textTransform: 'none',
