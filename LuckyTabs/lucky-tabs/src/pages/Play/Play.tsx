@@ -468,8 +468,44 @@ export const Play: React.FC = () => {
 
   // Get current boxes to display based on toggle
   const currentBoxes = boxView === 'my' ? myBoxes : groupBoxes;
-  const wallBoxes = currentBoxes.filter((box) => box.type === "wall");
-  const barBoxes = currentBoxes.filter((box) => box.type === "bar box");
+
+  // Helper to calculate RTP percent for a box
+  function getBoxRTP(box: BoxItem): number {
+    const pricePerTicket = parseFloat(box.pricePerTicket);
+    let estimatedTickets = box.estimatedRemainingTickets || 0;
+    // Check for rows array safely
+    const rows = (box as unknown as { rows?: unknown }).rows;
+    if (estimatedTickets === 0 && Array.isArray(rows)) {
+      estimatedTickets = rows.reduce((total: number, row) => {
+        if (row && typeof row === 'object' && 'estimatedTicketsRemaining' in row) {
+          return total + (Number((row as { estimatedTicketsRemaining?: number }).estimatedTicketsRemaining) || 0);
+        }
+        return total;
+      }, 0);
+    }
+    if (estimatedTickets > 0 && Array.isArray(box.winningTickets) && box.winningTickets.length > 0) {
+      const prizes = box.winningTickets
+        .filter((ticket) =>
+          ticket && typeof ticket === 'object' &&
+          'prize' in ticket && typeof ticket.prize === 'string' && ticket.prize.trim() !== '' &&
+          'totalPrizes' in ticket && Number(ticket.totalPrizes) > 0
+        )
+        .map((ticket) => ({
+          value: Number(ticket.prize),
+          remaining: Number(ticket.totalPrizes) - Number(ticket.claimedTotal)
+        }));
+      const totalRemainingValue = prizes.reduce((sum: number, prize) => sum + (prize.value * prize.remaining), 0);
+      const costToCloseOut = pricePerTicket * estimatedTickets;
+      if (costToCloseOut > 0) {
+        return (totalRemainingValue / costToCloseOut) * 100;
+      }
+    }
+    return 0;
+  }
+
+  // Sort wallBoxes and barBoxes by RTP percent (highest to lowest)
+  const wallBoxes = [...currentBoxes.filter((box) => box.type === "wall")].sort((a, b) => getBoxRTP(b) - getBoxRTP(a));
+  const barBoxes = [...currentBoxes.filter((box) => box.type === "bar box")].sort((a, b) => getBoxRTP(b) - getBoxRTP(a));
 
   // Share box handlers
   const handleShareBox = (boxId: string, boxName: string) => {

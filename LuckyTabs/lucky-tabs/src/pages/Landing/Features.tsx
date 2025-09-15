@@ -14,44 +14,66 @@ const Features: React.FC = () => {
   const isDarkMode = theme.palette.mode === 'dark';
 
   return (
-    <Box sx={{ 
-      width: '100%', 
+    <Box sx={{
+      width: '100%',
       minHeight: '100vh',
       position: 'relative',
       zIndex: 1,
-      overflow: 'hidden'
+      overflow: 'hidden',
+      ...theme.neon.effects.gamingBackground(0.98),
     }}>
+      {/* Sparkle effect for flair */}
+      <Box sx={{
+        pointerEvents: 'none',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        zIndex: 0,
+        background: `repeating-radial-gradient(circle at 80% 20%, rgba(125,249,255,0.08) 0, rgba(255,60,172,0.04) 40px, transparent 80px)`,
+        opacity: 0.7,
+        animation: 'tabsySparkle 8s linear infinite',
+        '@keyframes tabsySparkle': {
+          '0%': { backgroundPosition: '0% 0%' },
+          '100%': { backgroundPosition: '100% 100%' },
+        },
+      }} />
       {/* Hero Section */}
-      <Box sx={{ 
-        py: { xs: 4, md: 6 }, 
-        bgcolor: isDarkMode ? 'background.default' : 'grey.100',
-        width: '100%'
+      <Box sx={{
+        pt: { xs: 4, md: 6 },
+        width: '100%',
+        position: 'relative',
+        bgcolor: 'background.paper',
       }}>
         <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
-          <Typography 
-            variant="h3" 
-            align="center" 
-            fontWeight="bold" 
-            gutterBottom 
-            color="text.primary"
+          <Typography
+            variant="h3"
+            align="center"
+            fontWeight="bold"
+            gutterBottom
             sx={{
               fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
-              mb: { xs: 2, md: 3 }
+              mb: { xs: 2, md: 3 },
+              color: theme.neon.colors.cyan,
+              ...theme.neon.effects.textGlow(theme.neon.colors.cyan, 0.7),
+              letterSpacing: '.01em',
             }}
           >
             Welcome to Tabsy Wins!
           </Typography>
-          <Typography 
-            variant="h5" 
-            align="center" 
-            maxWidth={800} 
-            mx="auto" 
-            mb={4} 
-            color="text.secondary"
+          <Typography
+            variant="h5"
+            align="center"
+            maxWidth={800}
+            mx="auto"
+            mb={4}
             sx={{
               fontSize: { xs: '1.1rem', sm: '1.25rem', md: '1.5rem' },
               px: { xs: 1, sm: 2 },
-              lineHeight: { xs: 1.5, md: 1.6 }
+              lineHeight: { xs: 1.5, md: 1.6 },
+              color: theme.neon.colors.text.secondary,
+              ...theme.neon.effects.textGlow(theme.neon.colors.pink, 0.3),
             }}
           >
             The smarter way to play, track, and win—powered by magic, data, and community.
@@ -60,27 +82,35 @@ const Features: React.FC = () => {
       </Box>
 
       {/* Why Tabsy Wins Section */}
-      <Box sx={{ 
-        py: { xs: 4, md: 6 }, 
-        bgcolor: isDarkMode ? 'background.paper' : 'white',
-        width: '100%'
+      <Box sx={{
+        py: { xs: 2 },
+        bgcolor: 'background.paper',
+        width: '100%',
       }}>
         <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
-          <Typography 
-            variant="h4" 
-            align="center" 
-            fontWeight="bold" 
-            gutterBottom 
-            color="text.primary"
+          <Typography
+            variant="h4"
+            align="center"
+            fontWeight="bold"
+            gutterBottom
             sx={{
               fontSize: { xs: '1.75rem', sm: '2rem', md: '2.5rem' },
-              mb: { xs: 3, md: 4 }
+              mb: { xs: 3, md: 4 },
+              color: theme.neon.colors.pink,
+              ...theme.neon.effects.textGlow(theme.neon.colors.pink, 0.6),
             }}
           >
             Why Tabsy Wins?
           </Typography>
           
-          <Paper elevation={3} sx={{ p: { xs: 3, md: 4 }, mb: 4 }}>
+          <Paper elevation={3} sx={{
+            p: { xs: 3, md: 4 },
+            mb: 4,
+            border: `1.5px solid ${theme.neon.colors.cyan}`,
+            background: 'rgba(18,20,24,0.92)',
+            boxShadow: theme.neon.effects.boxGlow(theme.neon.colors.cyan, 0.13).boxShadow,
+            borderRadius: 1,
+          }}>
             <Typography 
               variant="body1" 
               color="text.secondary"
@@ -109,21 +139,22 @@ const Features: React.FC = () => {
       </Box>
 
       {/* What Tabsy Can Do Section */}
-      <Box sx={{ 
-        py: { xs: 4, md: 6 }, 
-        bgcolor: isDarkMode ? 'background.default' : 'grey.50',
-        width: '100%'
+      <Box sx={{
+        py: { xs: 2 },
+        bgcolor: 'background.default',
+        width: '100%',
       }}>
         <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3 } }}>
-          <Typography 
-            variant="h4" 
-            align="center" 
-            fontWeight="bold" 
-            gutterBottom 
-            color="text.primary"
+          <Typography
+            variant="h4"
+            align="center"
+            fontWeight="bold"
+            gutterBottom
             sx={{
               fontSize: { xs: '1.75rem', sm: '2rem', md: '2.5rem' },
-              mb: { xs: 4, md: 5 }
+              mb: { xs: 4, md: 5 },
+              color: theme.neon.colors.green,
+              ...theme.neon.effects.textGlow(theme.neon.colors.green, 0.5),
             }}
           >
             What Tabsy Can Do?
@@ -132,7 +163,14 @@ const Features: React.FC = () => {
           <Grid container spacing={{ xs: 3, md: 4 }}>
             {/* Pull Tab Map & Venue Explorer */}
             <Grid size={{ xs: 12, lg: 6 }}>
-              <Paper elevation={3} sx={{ p: { xs: 3, md: 4 }, height: '100%' }}>
+              <Paper elevation={3} sx={{
+                p: { xs: 3, md: 4 },
+                height: '100%',
+                border: `1.5px solid ${theme.neon.colors.cyan}`,
+                background: 'rgba(18,20,24,0.92)',
+                boxShadow: theme.neon.effects.boxGlow(theme.neon.colors.cyan, 0.13).boxShadow,
+                borderRadius: 1,
+              }}>
                 <Typography 
                   variant="h5" 
                   fontWeight="bold" 
@@ -193,7 +231,14 @@ const Features: React.FC = () => {
 
             {/* Budgeting & Mindful Play */}
             <Grid size={{ xs: 12, lg: 6 }}>
-              <Paper elevation={3} sx={{ p: { xs: 3, md: 4 }, height: '100%' }}>
+              <Paper elevation={3} sx={{
+                p: { xs: 3, md: 4 },
+                height: '100%',
+                border: `1.5px solid ${theme.neon.colors.pink}`,
+                background: 'rgba(18,20,24,0.92)',
+                boxShadow: theme.neon.effects.boxGlow(theme.neon.colors.pink, 0.13).boxShadow,
+                borderRadius: 1,
+              }}>
                 <Typography 
                   variant="h5" 
                   fontWeight="bold" 
@@ -239,7 +284,14 @@ const Features: React.FC = () => {
 
             {/* Smart Predictions */}
             <Grid size={{ xs: 12, lg: 6 }}>
-              <Paper elevation={3} sx={{ p: { xs: 3, md: 4 }, height: '100%' }}>
+              <Paper elevation={3} sx={{
+                p: { xs: 3, md: 4 },
+                height: '100%',
+                border: `1.5px solid ${theme.neon.colors.green}`,
+                background: 'rgba(18,20,24,0.92)',
+                boxShadow: theme.neon.effects.boxGlow(theme.neon.colors.green, 0.13).boxShadow,
+                borderRadius: 1,
+              }}>
                 <Typography 
                   variant="h5" 
                   fontWeight="bold" 
@@ -277,7 +329,14 @@ const Features: React.FC = () => {
 
             {/* Box Tracking & Insights */}
             <Grid size={{ xs: 12, lg: 6 }}>
-              <Paper elevation={3} sx={{ p: { xs: 3, md: 4 }, height: '100%' }}>
+              <Paper elevation={3} sx={{
+                p: { xs: 3, md: 4 },
+                height: '100%',
+                border: `1.5px solid ${theme.neon.colors.amber}`,
+                background: 'rgba(18,20,24,0.92)',
+                boxShadow: theme.neon.effects.boxGlow(theme.neon.colors.amber, 0.13).boxShadow,
+                borderRadius: 1,
+              }}>
                 <Typography 
                   variant="h5" 
                   fontWeight="bold" 
@@ -315,7 +374,13 @@ const Features: React.FC = () => {
 
             {/* Community Magic */}
             <Grid size={{ xs: 12 }}>
-              <Paper elevation={3} sx={{ p: { xs: 3, md: 4 } }}>
+              <Paper elevation={3} sx={{
+                p: { xs: 3, md: 4 },
+                border: `1.5px solid ${theme.neon.colors.cyan}`,
+                background: 'rgba(18,20,24,0.92)',
+                boxShadow: theme.neon.effects.boxGlow(theme.neon.colors.cyan, 0.13).boxShadow,
+                borderRadius: 1,
+              }}>
                 <Typography 
                   variant="h5" 
                   fontWeight="bold" 
@@ -360,20 +425,22 @@ const Features: React.FC = () => {
       {/* Final Call to Action Section */}
       <Box
         sx={{
-          bgcolor: isDarkMode ? 'background.paper' : 'primary.main',
-          color: isDarkMode ? 'text.primary' : 'white',
+          bgcolor: 'transparent',
           py: { xs: 4, md: 6 },
           textAlign: 'center',
+          position: 'relative',
         }}
       >
         <Container maxWidth="md">
-          <Typography 
-            variant="h4" 
-            fontWeight="bold" 
+          <Typography
+            variant="h4"
+            fontWeight="bold"
             gutterBottom
             sx={{
               fontSize: { xs: '1.75rem', sm: '2rem', md: '2.5rem' },
-              mb: 3
+              mb: 3,
+              color: theme.neon.colors.cyan,
+              ...theme.neon.effects.textGlow(theme.neon.colors.cyan, 0.7),
             }}
           >
             Ready to Join Tabsy&apos;s Community?
@@ -395,13 +462,20 @@ const Features: React.FC = () => {
             href="/signup"
             size="large"
             sx={{
-              bgcolor: 'secondary.main',
-              color: isDarkMode ? 'text.primary' : 'white',
+              background: `linear-gradient(90deg, ${theme.neon.colors.cyan}, ${theme.neon.colors.pink})`,
+              color: theme.neon.colors.text.dark,
+              fontWeight: 800,
               fontSize: '1.1rem',
               px: 4,
               py: 1.5,
+              borderRadius: 2,
+              boxShadow: theme.neon.effects.boxGlow(theme.neon.colors.cyan, 0.25).boxShadow,
+              textTransform: 'none',
+              letterSpacing: '.01em',
               '&:hover': {
-                bgcolor: isDarkMode ? 'secondary.dark' : 'secondary.light',
+                background: `linear-gradient(90deg, ${theme.neon.colors.pink}, ${theme.neon.colors.cyan})`,
+                color: theme.neon.colors.text.primary,
+                ...theme.neon.effects.textGlow(theme.neon.colors.cyan, 0.7),
               },
             }}
           >
