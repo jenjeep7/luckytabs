@@ -542,15 +542,12 @@ export const Play: React.FC = () => {
   return (
     <Box sx={{ 
       width: '100%', 
-      minHeight: 'calc(100vh - 64px)', // Account for AppBar height
+      minHeight: 'calc(100vh - 64px)',
       overflow: 'visible',
       '@media (max-width: 600px)': {
-        minHeight: 'calc(100vh - 56px)', // Smaller AppBar on mobile
+        minHeight: 'calc(100vh - 56px)',
       }
-    }}>
-      {/* Neon Gaming Header */}
-      {/* <NeonHeader /> */}
-      
+    }}>      
       <Box sx={{ 
         p: 3,
         '@media (max-width: 600px)': {
@@ -847,12 +844,12 @@ export const Play: React.FC = () => {
                 const evData = (totalRemainingValue - costToCloseOut) / estimatedTickets;
                 const rtpData = (totalRemainingValue / costToCloseOut) * 100;
                 
-                // Color coding based on EV and RTP using neon colors
-                if (evData >= 0) {
-                  evColor = statusColors.excellent; // Neon green for positive EV
-                  evStatus = 'Excellent';
-                } else if (rtpData >= 80) {
-                  evColor = statusColors.decent; // Neon amber for decent RTP
+                // Color coding based on EV and RTP using neon colors (custom thresholds)
+                if (evData >= 0 || rtpData > 85) {
+                  evColor = statusColors.good; // Neon green for positive EV or RTP > 85
+                  evStatus = 'Good';
+                } else if (rtpData >= 75) {
+                  evColor = statusColors.decent; // Neon amber for RTP 75-85
                   evStatus = 'Decent';
                 } else {
                   evColor = statusColors.poor; // Neon red for poor
@@ -938,7 +935,7 @@ export const Play: React.FC = () => {
                           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 70 }}>
                             {evStatus !== 'No Data' && (
                               <NeonStatusPill
-                                status={evStatus === 'Excellent' ? 'excellent' : evStatus === 'Decent' ? 'decent' : 'poor'}
+                                status={evStatus === 'Good' ? 'good' : evStatus === 'Decent' ? 'decent' : 'poor'}
                                 label={evStatus}
                                 size="small"
                                 sx={{ mb: 0.5 }}
@@ -1061,28 +1058,30 @@ export const Play: React.FC = () => {
                   let evStatus = 'No Data';
                   
                   if (estimatedTickets > 0 && box.winningTickets && Array.isArray(box.winningTickets) && box.winningTickets.length > 0) {
-                    const prizes = box.winningTickets.map((ticket: WinningTicket) => ({
-                      value: Number(ticket.prize),
-                      remaining: Number(ticket.totalPrizes) - Number(ticket.claimedTotal)
-                    }));
-                    
+                    const prizes = box.winningTickets
+                      .filter((ticket: WinningTicket) => ticket.prize && ticket.prize.toString().trim() !== '' && Number(ticket.totalPrizes) > 0)
+                      .map((ticket: WinningTicket) => ({
+                        value: Number(ticket.prize),
+                        remaining: Number(ticket.totalPrizes) - Number(ticket.claimedTotal)
+                      }));
+
                     // Calculate remaining prize value
                     const totalRemainingValue = prizes.reduce((sum: number, prize) => sum + (prize.value * prize.remaining), 0);
-                    
+
                     // EV calculation: (total remaining prize value - cost to buy all tickets) / tickets
                     const costToCloseOut = pricePerTicket * estimatedTickets;
                     const evData = (totalRemainingValue - costToCloseOut) / estimatedTickets;
                     const rtpData = (totalRemainingValue / costToCloseOut) * 100;
-                    
-                    // Color coding based on EV and RTP using neon colors
-                    if (evData >= 0) {
-                      evColor = statusColors.excellent; // Neon green for positive EV
-                      evStatus = 'Excellent';
-                    } else if (rtpData >= 80) {
-                      evColor = statusColors.decent; // Neon amber for decent RTP
+
+                    // Color coding based on EV and RTP using neon colors (custom thresholds)
+                    if (evData >= 0 || rtpData > 85) {
+                      evColor = statusColors.good; // Neon green for positive EV or RTP > 85
+                      evStatus = 'Good';
+                    } else if (rtpData >= 75) {
+                      evColor = statusColors.decent; // Neon amber for RTP 75-85
                       evStatus = 'Decent';
                     } else {
-                      evColor = statusColors.poor; // Neon red for poor
+                      evColor = statusColors.poor; // Neon pink for poor
                       evStatus = 'Poor';
                     }
                   }
@@ -1164,7 +1163,7 @@ export const Play: React.FC = () => {
                               </Box>
                               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 70 }}>
                                 <NeonStatusPill
-                                  status={evStatus === 'Excellent' ? 'excellent' : evStatus === 'Decent' ? 'decent' : 'poor'}
+                                  status={evStatus === 'Good' ? 'good' : evStatus === 'Decent' ? 'decent' : 'poor'}
                                   label={evStatus}
                                   size="small"
                                   sx={{ mb: 0.5 }}
