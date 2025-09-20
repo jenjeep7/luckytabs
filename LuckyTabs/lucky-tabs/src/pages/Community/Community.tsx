@@ -3,7 +3,6 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Box,
   Container,
-  Paper,
   Tab,
   Tabs,
   Typography,
@@ -76,6 +75,7 @@ interface PostCardProps {
   currentUserName?: string;
   currentUserAvatar?: string;
   authorProfile?: UserData;
+  userProfiles?: Map<string, UserData>;
 }
 
 function PostCard({
@@ -89,6 +89,7 @@ function PostCard({
   currentUserName,
   currentUserAvatar,
   authorProfile,
+  userProfiles,
 }: PostCardProps) {
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState('');
@@ -153,7 +154,36 @@ function PostCard({
 
   const getDisplayName = (authorId: string) => {
     if (authorId === currentUserId) return currentUserName || 'You';
-    if (authorProfile && authorProfile.uid === authorId) return authorProfile.displayName;
+    
+    // First check the specific authorProfile prop
+    if (authorProfile && authorProfile.uid === authorId) {
+      // Use displayName if available, otherwise fallback to firstName + lastName
+      if (authorProfile.displayName && authorProfile.displayName.trim()) {
+        return authorProfile.displayName;
+      }
+      if (authorProfile.firstName && authorProfile.lastName) {
+        return `${authorProfile.firstName} ${authorProfile.lastName}`;
+      }
+      if (authorProfile.firstName) {
+        return authorProfile.firstName;
+      }
+    }
+    
+    // Then check the userProfiles Map for any loaded user profile
+    const userProfile = userProfiles?.get(authorId);
+    if (userProfile) {
+      if (userProfile.displayName && userProfile.displayName.trim()) {
+        return userProfile.displayName;
+      }
+      if (userProfile.firstName && userProfile.lastName) {
+        return `${userProfile.firstName} ${userProfile.lastName}`;
+      }
+      if (userProfile.firstName) {
+        return userProfile.firstName;
+      }
+    }
+    
+    // Fallback to a cleaner user ID display
     return `User ${authorId.slice(0, 8)}`;
   };
 
@@ -166,23 +196,49 @@ function PostCard({
         .toUpperCase()
         .slice(0, 2);
     }
+    
+    // First check the specific authorProfile prop
     if (authorProfile && authorProfile.uid === authorId) {
       if (authorProfile.firstName && authorProfile.lastName) {
         return (authorProfile.firstName[0] + authorProfile.lastName[0]).toUpperCase();
       }
-      return authorProfile.displayName
-        .split(' ')
-        .map((n) => n[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2);
+      if (authorProfile.displayName) {
+        return authorProfile.displayName
+          .split(' ')
+          .map((n) => n[0])
+          .join('')
+          .toUpperCase()
+          .slice(0, 2);
+      }
     }
+    
+    // Then check the userProfiles Map
+    const userProfile = userProfiles?.get(authorId);
+    if (userProfile) {
+      if (userProfile.firstName && userProfile.lastName) {
+        return (userProfile.firstName[0] + userProfile.lastName[0]).toUpperCase();
+      }
+      if (userProfile.displayName) {
+        return userProfile.displayName
+          .split(' ')
+          .map((n) => n[0])
+          .join('')
+          .toUpperCase()
+          .slice(0, 2);
+      }
+    }
+    
     return authorId.slice(0, 2).toUpperCase();
   };
 
   const getAvatarUrl = (authorId: string) => {
     if (authorId === currentUserId) return currentUserAvatar;
     if (authorProfile && authorProfile.uid === authorId) return authorProfile.avatar;
+    
+    // Check the userProfiles Map
+    const userProfile = userProfiles?.get(authorId);
+    if (userProfile) return userProfile.avatar;
+    
     return undefined;
   };
 
@@ -607,18 +663,21 @@ export const Community: React.FC = () => {
 
         // Load author profiles
         const authorIds = Array.from(new Set(fetchedPosts.map((p) => p.authorId)));
-        const profiles = new Map<string, UserData>();
+        // Merge new profiles into the existing userProfiles Map
+        const newProfiles = new Map(userProfiles);
         await Promise.all(
           authorIds.map(async (authorId) => {
-            try {
-              const profile = await userService.getUserProfile(authorId);
-              if (profile) profiles.set(authorId, profile);
-            } catch (e) {
-              console.error(`Error loading profile for ${authorId}:`, e);
+            if (!newProfiles.has(authorId)) {
+              try {
+                const profile = await userService.getUserProfile(authorId);
+                if (profile) newProfiles.set(authorId, profile);
+              } catch (e) {
+                console.error(`Error loading profile for ${authorId}:`, e);
+              }
             }
           }),
         );
-        setUserProfiles(profiles);
+        setUserProfiles(newProfiles);
 
         if (!currentUserProfile) {
           try {
@@ -885,6 +944,7 @@ export const Community: React.FC = () => {
                 currentUserName={currentUserProfile?.displayName || user?.displayName || undefined}
                 currentUserAvatar={currentUserProfile?.avatar || user?.photoURL || undefined}
                 authorProfile={userProfiles.get(post.authorId)}
+                userProfiles={userProfiles}
               />
             ))
           )}
@@ -966,6 +1026,7 @@ export const Community: React.FC = () => {
                   currentUserName={currentUserProfile?.displayName || user?.displayName || undefined}
                   currentUserAvatar={currentUserProfile?.avatar || user?.photoURL || undefined}
                   authorProfile={userProfiles.get(post.authorId)}
+                  userProfiles={userProfiles}
                 />
               ))}
             </>

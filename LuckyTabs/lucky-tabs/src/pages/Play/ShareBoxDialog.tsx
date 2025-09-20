@@ -204,7 +204,7 @@ const ShareBoxDialog: React.FC<ShareBoxDialogProps> = ({
                     </ListItemAvatar>
                     <ListItemText
                       primary={group.name}
-                      secondary={group.description || `${group.members.length} members`}
+                      secondary={`${group.members.length} members`}
                     />
                   </ListItem>
                 );
