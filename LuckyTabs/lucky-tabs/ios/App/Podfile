@@ -1,0 +1,29 @@
+require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
+
+platform :ios, '14.0'
+
+# Use static frameworks so Firebase plays nicely with Capacitor/CocoaPods
+use_frameworks! :linkage => :static
+
+# Avoid Xcode caching of Pods after plugin changes
+install! 'cocoapods', :disable_input_output_paths => true
+
+def capacitor_pods
+  pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
+  pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
+  pod 'CapacitorFirebaseAnalytics', :path => '../../node_modules/@capacitor-firebase/analytics'
+  
+  # ---- Firebase iOS SDK ----
+  # Choose ONE of these lines:
+  pod 'Firebase/Analytics' # includes FirebaseCore + FirebaseAnalytics (+ deps)
+  # pod 'Firebase/AnalyticsWithoutAdIdSupport' # if you want no IDFA collection
+end
+
+target 'App' do
+  capacitor_pods
+  # Add your Pods here if needed
+end
+
+post_install do |installer|
+  assertDeploymentTarget(installer)
+end
