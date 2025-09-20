@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>769021961982-gl4g6nu0kfud8ve2hnot7u5qjqgrbdgj.apps.googleusercontent.com</string>
+	<string>769021961982-d3qctmumu75mkcfv1hbg633fm0lj8rsq.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.769021961982-gl4g6nu0kfud8ve2hnot7u5qjqgrbdgj</string>
+	<string>com.googleusercontent.apps.769021961982-d3qctmumu75mkcfv1hbg633fm0lj8rsq</string>
 	<key>API_KEY</key>
 	<string>AIzaSyD7ZaZ9JiXedGD4N969UboDDZhdxMHevnY</string>
 	<key>GCM_SENDER_ID</key>
@@ -13,7 +13,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.tabsywins.app</string>
+	<string>com.tabsy.app</string>
 	<key>PROJECT_ID</key>
 	<string>pull-tabs</string>
 	<key>STORAGE_BUCKET</key>
@@ -29,7 +29,7 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:769021961982:ios:b4753f04b5aca12a3067af</string>
+	<string>1:769021961982:ios:ba808adb9efd4ce23067af</string>
 	<key>DATABASE_URL</key>
 	<string>https://pull-tabs-default-rtdb.firebaseio.com</string>
 </dict>

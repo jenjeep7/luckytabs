@@ -1,6 +1,6 @@
 /* App.tsx */
 import { useMemo } from 'react';
-import { BrowserRouter } from 'react-router-dom';
+// import { BrowserRouter } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline, useMediaQuery } from '@mui/material';
 import { getDesignTokens } from './theme';
 import AppRoutes from './AppRoutes';
@@ -23,10 +23,8 @@ function App() {
       <AppBackground />
       <UserProfileProvider>
         <LocationProvider>
-          <BrowserRouter>
-            <AppRoutes />
-            <VersionChecker />
-          </BrowserRouter>
+          <AppRoutes />
+          <VersionChecker />
         </LocationProvider>
       </UserProfileProvider>
     </ThemeProvider>

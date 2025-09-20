@@ -4,7 +4,6 @@
   "private": true,
   "dependencies": {
     "@capacitor-firebase/analytics": "^7.3.1",
-    "@capacitor/cli": "^7.4.3",
     "@capacitor/core": "^7.4.3",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
@@ -61,6 +60,7 @@
   "devDependencies": {
     "@capacitor/android": "^7.4.3",
     "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^7.4.3",
     "@capacitor/ios": "^7.4.3",
     "@craco/craco": "^7.1.0",
     "@types/react": "^19.1.11",
