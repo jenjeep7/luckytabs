@@ -1,9 +1,15 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import {
+  initializeAuth,
+  indexedDBLocalPersistence,
+  browserLocalPersistence,
+  browserPopupRedirectResolver,
+} from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getFunctions } from 'firebase/functions';
-import { getAnalytics } from "firebase/analytics";
+import { getAnalytics, Analytics } from "firebase/analytics";
+import { Capacitor } from '@capacitor/core';
 
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY || "AIzaSyBn9ZEOC5RqOoeHMPBgaL42Y98fK9UNh4w",
@@ -15,12 +21,23 @@ const firebaseConfig = {
   measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID || "G-90K1GE6Y03"
 };
 
+
 const app = initializeApp(firebaseConfig);
+console.log('[firebase.ts] Firebase app initialized:', app.name);
 
-// Initialize analytics
-const analytics = getAnalytics(app);
+// Only initialize analytics on web (not native/Capacitor)
+let analytics: Analytics | undefined;
+if (!Capacitor.isNativePlatform()) {
+  analytics = getAnalytics(app);
+}
 
-export const auth = getAuth(app);
+// Use initializeAuth for hybrid (Capacitor) compatibility
+export const auth = initializeAuth(app, {
+  persistence: [indexedDBLocalPersistence, browserLocalPersistence],
+  popupRedirectResolver: browserPopupRedirectResolver,
+});
+console.log('[firebase.ts] Auth instance created:', auth);
+
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const functions = getFunctions(app, 'us-central1'); // Specify region

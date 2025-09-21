@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { auth } from '../firebase';
+import { signInWithEmailPasswordCompat, signInWithGoogleCompat } from '../services/authService';
+import type { User as FirebaseUser } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { trackUserLogin } from '../utils/analytics';
 import {
@@ -27,17 +27,16 @@ const Login: React.FC = () => {
 
   const onSubmit = async (data: LoginFormInputs) => {
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
-      // Force reload user to get latest emailVerified status
-      await userCredential.user.reload();
-      if (!userCredential.user.emailVerified) {
-        setError('Please verify your email address before logging in.');
-        return;
+      const user = await signInWithEmailPasswordCompat(data.email, data.password);
+      // Type guard for FirebaseUser
+      if (user && typeof (user as FirebaseUser).reload === 'function') {
+        await (user as FirebaseUser).reload();
+        if (!(user as FirebaseUser).emailVerified) {
+          setError('Please verify your email address before logging in.');
+          return;
+        }
       }
-      
-      // Track successful login
       trackUserLogin('email');
-      
       setError('');
       void navigate('/');
     } catch (err: unknown) {
@@ -51,12 +50,9 @@ const Login: React.FC = () => {
 
   const signInWithGoogle = async () => {
     try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      
+      await signInWithGoogleCompat();
       // Track successful Google login
       trackUserLogin('google');
-      
       setError('');
       void navigate('/');
     } catch (err: unknown) {

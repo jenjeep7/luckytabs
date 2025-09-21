@@ -7,7 +7,9 @@ import {
   Typography,
   Paper,
   useTheme,
+  Link as MuiLink
 } from '@mui/material';
+import { Link as RouterLink } from 'react-router-dom';
 
 const Features: React.FC = () => {
   const theme = useTheme();
@@ -193,7 +195,8 @@ const Features: React.FC = () => {
           </Typography>
           <Button
             variant="contained"
-            href="/signup"
+            component={RouterLink}
+            to="/signup"
             sx={{
               bgcolor: 'secondary.main',
               color: 'white',

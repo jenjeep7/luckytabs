@@ -20,11 +20,15 @@ import PersonIcon from '@mui/icons-material/Person';
 import FeedbackIcon from '@mui/icons-material/Feedback';
 import { useMemo, useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { auth } from './firebase';
-import { useAuthState } from 'react-firebase-hooks/auth';
+import { signOutCompat } from './services/authService';
 import { Footer } from './components/Footer';
 import { useLocation as useLocationContext } from './hooks/useLocation';
 import { FeedbackDialog } from './components/FeedbackDialog';
+
+
+
+import { useAuthStateCompat } from './services/useAuthStateCompat';
+
 
 type NavItem = {
   label: string;
@@ -42,13 +46,8 @@ const navItems: NavItem[] = [
   { label: 'Feedback', action: 'feedback', icon: <FeedbackIcon /> },
 ];
 
-interface LayoutProps {
-  children?: React.ReactNode;
-  title?: string;
-}
-
-function Layout({ children, title }: LayoutProps) {
-  const [user] = useAuthState(auth);
+function Layout() {
+  const [user] = useAuthStateCompat();
   const { selectedLocationObj } = useLocationContext();
   const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
 
@@ -60,8 +59,6 @@ function Layout({ children, title }: LayoutProps) {
 
   // Determine page title based on current route
   const getPageTitle = () => {
-    if (title) return title; // Use provided title if available
-    
     const path = location.pathname;
     switch (true) {
       case path.startsWith('/play'):
@@ -78,7 +75,7 @@ function Layout({ children, title }: LayoutProps) {
     }
   };
 
-  const handleLogout = async () => await auth.signOut();
+  const handleLogout = async () => await signOutCompat();
 
   const handleNavItemClick = (item: typeof navItems[number]) => {
     if (item.action === 'feedback') {
@@ -157,8 +154,8 @@ function Layout({ children, title }: LayoutProps) {
           pb: user ? { xs: 'calc(env(safe-area-inset-bottom) + 64px)', md: 0 } : 0,
         }}
       >
-        {user && isMdUp && <Toolbar sx={{ display: 'none' } /* already accounted with pt */} />}
-        {children ? children : <Outlet />}
+  {user && isMdUp && <Toolbar sx={{ display: 'none' } /* already accounted with pt */} />}
+  <Outlet />
       </Box>
 
       {/* Bottom Navigation (mobile only, when logged-in) */}

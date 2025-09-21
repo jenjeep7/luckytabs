@@ -59,14 +59,16 @@ export const trackBoxCreated = (boxData: {
   userPlan: string;
   startingTickets?: number;
 }) => {
-  logEvent(analytics, AnalyticsEvents.BOX_CREATED, {
-    box_type: boxData.type,
-    price_per_ticket: boxData.pricePerTicket,
-    user_plan: boxData.userPlan,
-    starting_tickets: boxData.startingTickets || null,
-    device_type: getDeviceType(),
-    timestamp: Date.now()
-  });
+  if (analytics) {
+    logEvent(analytics, AnalyticsEvents.BOX_CREATED, {
+      box_type: boxData.type,
+      price_per_ticket: boxData.pricePerTicket,
+      user_plan: boxData.userPlan,
+      starting_tickets: boxData.startingTickets || null,
+      device_type: getDeviceType(),
+      timestamp: Date.now()
+    });
+  }
 };
 
 export const trackBoxEdited = (boxData: {
@@ -75,13 +77,15 @@ export const trackBoxEdited = (boxData: {
   changesMade: string[];
   userPlan: string;
 }) => {
-  logEvent(analytics, AnalyticsEvents.BOX_EDITED, {
-    box_id: boxData.boxId,
-    box_type: boxData.boxType,
-    changes_made: boxData.changesMade.join(','),
-    user_plan: boxData.userPlan,
-    device_type: getDeviceType()
-  });
+  if (analytics) {
+    logEvent(analytics, AnalyticsEvents.BOX_EDITED, {
+      box_id: boxData.boxId,
+      box_type: boxData.boxType,
+      changes_made: boxData.changesMade.join(','),
+      user_plan: boxData.userPlan,
+      device_type: getDeviceType()
+    });
+  }
 };
 
 export const trackBoxRemoved = (boxData: {
@@ -89,12 +93,14 @@ export const trackBoxRemoved = (boxData: {
   boxType: 'wall' | 'bar box';
   userPlan: string;
 }) => {
-  logEvent(analytics, AnalyticsEvents.BOX_REMOVED, {
-    box_id: boxData.boxId,
-    box_type: boxData.boxType,
-    user_plan: boxData.userPlan,
-    device_type: getDeviceType()
-  });
+  if (analytics) {
+    logEvent(analytics, AnalyticsEvents.BOX_REMOVED, {
+      box_id: boxData.boxId,
+      box_type: boxData.boxType,
+      user_plan: boxData.userPlan,
+      device_type: getDeviceType()
+    });
+  }
 };
 
 export const trackTicketsEstimated = (data: {
@@ -104,14 +110,16 @@ export const trackTicketsEstimated = (data: {
   userPlan: string;
   estimationMethod: 'manual' | 'row_by_row';
 }) => {
-  logEvent(analytics, AnalyticsEvents.TICKETS_ESTIMATED, {
-    box_id: data.boxId,
-    box_type: data.boxType,
-    estimated_tickets: data.estimatedTickets,
-    user_plan: data.userPlan,
-    estimation_method: data.estimationMethod,
-    device_type: getDeviceType()
-  });
+  if (analytics) {
+    logEvent(analytics, AnalyticsEvents.TICKETS_ESTIMATED, {
+      box_id: data.boxId,
+      box_type: data.boxType,
+      estimated_tickets: data.estimatedTickets,
+      user_plan: data.userPlan,
+      estimation_method: data.estimationMethod,
+      device_type: getDeviceType()
+    });
+  }
 };
 
 export const trackPrizeClaimed = (data: {
@@ -122,13 +130,15 @@ export const trackPrizeClaimed = (data: {
   action: 'claimed' | 'unclaimed';
 }) => {
   const eventName = data.action === 'claimed' ? AnalyticsEvents.PRIZE_CLAIMED : AnalyticsEvents.PRIZE_UNCLAIMED;
-  logEvent(analytics, eventName, {
-    box_id: data.boxId,
-    box_type: data.boxType,
-    prize_value: data.prizeValue,
-    user_plan: data.userPlan,
-    device_type: getDeviceType()
-  });
+  if (analytics) {
+    logEvent(analytics, eventName, {
+      box_id: data.boxId,
+      box_type: data.boxType,
+      prize_value: data.prizeValue,
+      user_plan: data.userPlan,
+      device_type: getDeviceType()
+    });
+  }
 };
 
 export const trackAdvancedAnalyticsViewed = (data: {
@@ -137,36 +147,44 @@ export const trackAdvancedAnalyticsViewed = (data: {
   userPlan: string;
   accessGranted: boolean;
 }) => {
-  logEvent(analytics, AnalyticsEvents.ADVANCED_ANALYTICS_VIEWED, {
-    box_id: data.boxId,
-    box_type: data.boxType,
-    user_plan: data.userPlan,
-    access_granted: data.accessGranted,
-    feature_gate: data.accessGranted ? 'allowed' : 'restricted',
-    device_type: getDeviceType()
-  });
+  if (analytics) {
+    logEvent(analytics, AnalyticsEvents.ADVANCED_ANALYTICS_VIEWED, {
+      box_id: data.boxId,
+      box_type: data.boxType,
+      user_plan: data.userPlan,
+      access_granted: data.accessGranted,
+      feature_gate: data.accessGranted ? 'allowed' : 'restricted',
+      device_type: getDeviceType()
+    });
+  }
 };
 
 export const trackProFeatureAttemptByFreeUser = (feature: string) => {
-  logEvent(analytics, AnalyticsEvents.PRO_FEATURE_ATTEMPTED_BY_FREE_USER, {
-    feature_name: feature,
-    device_type: getDeviceType(),
-    conversion_opportunity: true
-  });
+  if (analytics) {
+    logEvent(analytics, AnalyticsEvents.PRO_FEATURE_ATTEMPTED_BY_FREE_USER, {
+      feature_name: feature,
+      device_type: getDeviceType(),
+      conversion_opportunity: true
+    });
+  }
 };
 
 export const trackUserLogin = (method: string) => {
-  logEvent(analytics, AnalyticsEvents.LOGIN, {
-    method: method,
-    device_type: getDeviceType()
-  });
+  if (analytics) {
+    logEvent(analytics, AnalyticsEvents.LOGIN, {
+      method: method,
+      device_type: getDeviceType()
+    });
+  }
 };
 
 export const trackUserSignup = (method: string) => {
-  logEvent(analytics, AnalyticsEvents.SIGNUP, {
-    method: method,
-    device_type: getDeviceType()
-  });
+  if (analytics) {
+    logEvent(analytics, AnalyticsEvents.SIGNUP, {
+      method: method,
+      device_type: getDeviceType()
+    });
+  }
 };
 
 export const trackFlareSheetUploaded = (data: {
@@ -174,12 +192,14 @@ export const trackFlareSheetUploaded = (data: {
   boxType: 'wall' | 'bar box';
   userPlan: string;
 }) => {
-  logEvent(analytics, AnalyticsEvents.FLARE_SHEET_UPLOADED, {
-    box_id: data.boxId,
-    box_type: data.boxType,
-    user_plan: data.userPlan,
-    device_type: getDeviceType()
-  });
+  if (analytics) {
+    logEvent(analytics, AnalyticsEvents.FLARE_SHEET_UPLOADED, {
+      box_id: data.boxId,
+      box_type: data.boxType,
+      user_plan: data.userPlan,
+      device_type: getDeviceType()
+    });
+  }
 };
 
 // Set user properties for segmentation
@@ -190,50 +210,60 @@ export const setUserAnalyticsProperties = (userData: {
   signupDate?: string;
   preferredBoxType?: 'wall' | 'bar box';
 }) => {
-  setUserProperties(analytics, {
-    user_id: userData.userId,
-    subscription_plan: userData.plan,
-    total_boxes_created: userData.totalBoxesCreated || 0,
-    user_since: userData.signupDate || '',
-    preferred_box_type: userData.preferredBoxType || 'unknown',
-    device_type: getDeviceType()
-  });
+  if (analytics) {
+    setUserProperties(analytics, {
+      user_id: userData.userId,
+      subscription_plan: userData.plan,
+      total_boxes_created: userData.totalBoxesCreated || 0,
+      user_since: userData.signupDate || '',
+      preferred_box_type: userData.preferredBoxType || 'unknown',
+      device_type: getDeviceType()
+    });
+  }
 };
 
 // Generic event tracking for custom events
 export const trackCustomEvent = (eventName: string, parameters: Record<string, string | number | boolean>) => {
-  logEvent(analytics, eventName, {
-    ...parameters,
-    device_type: getDeviceType(),
-    timestamp: Date.now()
-  });
+  if (analytics) {
+    logEvent(analytics, eventName, {
+      ...parameters,
+      device_type: getDeviceType(),
+      timestamp: Date.now()
+    });
+  }
 };
 
 // Page view tracking
 export const trackPageView = (pageName: string, additionalParams?: Record<string, string | number | boolean>) => {
-  logEvent(analytics, AnalyticsEvents.PAGE_VIEW, {
-    page_name: pageName,
-    device_type: getDeviceType(),
-    timestamp: Date.now(),
-    ...additionalParams
-  });
+  if (analytics) {
+    logEvent(analytics, AnalyticsEvents.PAGE_VIEW, {
+      page_name: pageName,
+      device_type: getDeviceType(),
+      timestamp: Date.now(),
+      ...additionalParams
+    });
+  }
 };
 
 export const trackHomePageVisit = (userStatus: 'logged_in' | 'logged_out' = 'logged_out') => {
-  logEvent(analytics, AnalyticsEvents.HOME_PAGE_VISITED, {
-    user_status: userStatus,
-    device_type: getDeviceType(),
-    timestamp: Date.now(),
-    page_name: 'home'
-  });
+  if (analytics) {
+    logEvent(analytics, AnalyticsEvents.HOME_PAGE_VISITED, {
+      user_status: userStatus,
+      device_type: getDeviceType(),
+      timestamp: Date.now(),
+      page_name: 'home'
+    });
+  }
 };
 
 export const trackLandingPageVisit = (source?: string, medium?: string) => {
-  logEvent(analytics, AnalyticsEvents.LANDING_PAGE_VISITED, {
-    traffic_source: source || 'direct',
-    traffic_medium: medium || 'none',
-    device_type: getDeviceType(),
-    timestamp: Date.now(),
-    page_name: 'landing'
-  });
+  if (analytics) {
+    logEvent(analytics, AnalyticsEvents.LANDING_PAGE_VISITED, {
+      traffic_source: source || 'direct',
+      traffic_medium: medium || 'none',
+      device_type: getDeviceType(),
+      timestamp: Date.now(),
+      page_name: 'landing'
+    });
+  }
 };

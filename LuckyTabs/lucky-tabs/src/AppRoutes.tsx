@@ -1,7 +1,9 @@
+import { Capacitor } from '@capacitor/core';
 /* AppRoutes.tsx */
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuthState } from 'react-firebase-hooks/auth';
+import { useAuthStateCompat } from './services/useAuthStateCompat';
 import { auth } from './firebase';
+import type { User, UserInfo } from 'firebase/auth';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import { LandingPage } from './pages/Landing/LandingPage';
@@ -21,16 +23,17 @@ import {
   Container,
   IconButton
 } from '@mui/material';
-import { sendEmailVerification, signOut } from 'firebase/auth';
+import { sendEmailVerification } from 'firebase/auth';
+import { signOutCompat } from './services/authService';
 import { LogoutOutlined } from '@mui/icons-material';
 
 // Email Verification Guard Component
 const EmailVerificationGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user] = useAuthState(auth);
+  const [user] = useAuthStateCompat();
   const [checkingVerification, setCheckingVerification] = React.useState(false);
 
   // If user is not authenticated or email is verified, render children
-  if (!user || user.emailVerified || !user.providerData.some(p => p.providerId === "password")) {
+  if (!user || (user ).emailVerified || ((user ).providerData && (user ).providerData.some((p: UserInfo) => p.providerId === "password") === false)) {
     return <>{children}</>;
   }
 
@@ -48,7 +51,7 @@ const EmailVerificationGuard: React.FC<{ children: React.ReactNode }> = ({ child
           {/* Logout button in top right */}
           <IconButton
             onClick={() => {
-              void signOut(auth);
+              void signOutCompat();
             }}
             sx={{
               position: 'absolute',
@@ -75,9 +78,9 @@ const EmailVerificationGuard: React.FC<{ children: React.ReactNode }> = ({ child
             onClick={() => {
               void (async () => {
                 setCheckingVerification(true);
-                await user?.reload();
+                await (user )?.reload();
                 setCheckingVerification(false);
-                if (user?.emailVerified) {
+                if ((user )?.emailVerified) {
                   window.location.reload();
                 }
               })();
@@ -93,7 +96,7 @@ const EmailVerificationGuard: React.FC<{ children: React.ReactNode }> = ({ child
             onClick={() => {
               void (async () => {
                 if (user) {
-                  await sendEmailVerification(user);
+                  await sendEmailVerification(user );
                   alert(`Verification email sent! Please check your inbox.`);
                 }
               })();
@@ -107,55 +110,48 @@ const EmailVerificationGuard: React.FC<{ children: React.ReactNode }> = ({ child
   );
 };
 
-function AppRoutes() {
-  const [user, loading] = useAuthState(auth);
 
-  if (loading) return null;
 
-  return (
-    <EmailVerificationGuard>
+
+
+export default function AppRoutes() {
+  // Always call the hook (React rule)
+  const [user] = useAuthStateCompat();
+
+  // ⛳ iOS TEMP: bypass auth and render routes directly
+  if (Capacitor.isNativePlatform()) {
+    return (
       <Routes>
-        {/* Redirect / to /play if logged in, else /home */}
-        <Route path="/" element={<Navigate to={user ? "/profile" : "/home"} />} />
-        {/* /home is only for logged out users, logged in users go to /play */}
-        <Route path="/home" element={user ? <Navigate to="/profile" /> : (
-          <Layout>
-            <LandingPage />
-          </Layout>
-        )} />
-        {/* Protected routes only accessible if logged in */}
-        <Route element={user ? <Layout /> : <Navigate to="/home" />}> 
-          <Route path="/play" element={<Play />} />
-          <Route path="/tracking" element={<Tracking />} />
-          <Route path="/community" element={<Community />} />
-          <Route path="/profile" element={<UserProfile />} />
-          <Route path="/tabsy" element={<LandingPage />} />
+        <Route element={<Layout />}>
+          <Route path="/home" element={<LandingPage />} />
+          <Route path="/features" element={<Features />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="*" element={<Navigate to="/home" replace />} />
         </Route>
-        {/* Login/Signup redirect to /play if logged in */}
-        <Route path="/login" element={user ? <Navigate to="/profile" /> : (
-          <Layout>
-            <Login />
-          </Layout>
-        )} />
-        <Route path="/signup" element={user ? <Navigate to="/profile" /> : (
-          <Layout>
-            <Signup />
-          </Layout>
-        )} />
-        <Route path="/features" element={
-          <Layout>
-            <Features />
-          </Layout>
-        } />
-        <Route path="*" element={<Navigate to={user ? "/profile" : "/home"} />} />
-        <Route path="/support-circle" element={
-          <Layout>
-            <SupportCircle />
-          </Layout>
-        } />
       </Routes>
-    </EmailVerificationGuard>
+    );
+  }
+
+  // Web: normal flow (user only)
+  return (
+    <Routes>
+      <Route element={<Layout />}>
+        <Route index element={<Navigate to={user ? '/profile' : '/home'} replace />} />
+        {/* Public */}
+        <Route path="home" element={<LandingPage />} />
+        <Route path="login" element={user ? <Navigate to="/profile" replace /> : <Login />} />
+        <Route path="signup" element={user ? <Navigate to="/profile" replace /> : <Signup />} />
+        <Route path="features" element={<Features />} />
+        <Route path="support-circle" element={<SupportCircle />} />
+        {/* Protected */}
+        <Route path="play" element={user ? <Play /> : <Navigate to="/home" replace />} />
+        <Route path="tracking" element={user ? <Tracking /> : <Navigate to="/home" replace />} />
+        <Route path="community" element={user ? <Community /> : <Navigate to="/home" replace />} />
+        <Route path="profile" element={user ? <UserProfile /> : <Navigate to="/home" replace />} />
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to={user ? '/profile' : '/home'} replace />} />
+      </Route>
+    </Routes>
   );
 }
-
-export default AppRoutes;

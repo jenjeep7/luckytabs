@@ -8,6 +8,7 @@ import { UserProfileProvider } from './context/UserProfileContext';
 import { LocationProvider } from './context/LocationContext';
 import { VersionChecker } from './components/VersionChecker';
 import AppBackground from './components/AppBackground';
+import { auth } from "./firebase";
 
 function App() {
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
@@ -16,11 +17,13 @@ function App() {
     () => createTheme(getDesignTokens(prefersDarkMode ? 'dark' : 'light')),
     [prefersDarkMode]
   );
-
+  console.log('[App.tsx] app loaded');
+  console.log('[App.tsx] Firebase Auth currentUser:', auth.currentUser);
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AppBackground />
+      {/* TEMP: Show direct auth state for debugging */}
       <UserProfileProvider>
         <LocationProvider>
           <AppRoutes />

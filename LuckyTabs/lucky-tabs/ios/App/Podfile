@@ -4,17 +4,19 @@ platform :ios, '14.0'
 use_frameworks! :linkage => :static
 install! 'cocoapods', :disable_input_output_paths => true
 
-def capacitor_pods
+
+# 👉 use our own function name to avoid any override
+def my_capacitor_pods
   pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
   pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
-  # ⬇️ use LOCAL copy, not node_modules
+  # IMPORTANT: point to your local, version-controlled copy
   pod 'CapacitorFirebaseAnalytics', :path => '../LocalPods/CapacitorFirebaseAnalytics'
+  pod 'CapacitorFirebaseAuthentication', :path => '../../node_modules/@capacitor-firebase/authentication'
 end
 
 target 'App' do
-  capacitor_pods
-  pod 'Firebase/Analytics'    # ← MUST be present so FirebaseCore exists
-  pod 'FirebaseCore'          # ← extra belt-and-suspenders for this plugin
+  my_capacitor_pods
+  pod 'Firebase/Analytics'     # keep Firebase available in the app target too
 end
 
 post_install do |installer|

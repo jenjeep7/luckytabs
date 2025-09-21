@@ -21,6 +21,8 @@ Pod::Spec.new do |s|
 
   s.subspec 'Lite' do |lite|
     # Default subspec that does not contain optional third party dependencies.
+    lite.dependency 'Firebase/Analytics'
+    lite.dependency 'FirebaseCore'
   end
 
   s.subspec 'Analytics' do |analytics|

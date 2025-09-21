@@ -25,16 +25,17 @@ import {
   Edit,
   Logout
 } from '@mui/icons-material';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '../../firebase';
+import { signOutCompat } from '../../services/authService';
+import { useAuthStateCompat } from '../../services/useAuthStateCompat';
 import { userService, UserData, GroupMember } from '../../services/userService';
 import EditProfileDialog from './EditProfileDialog';
 import { getVersionInfo } from '../../utils/version';
 import { ProfileFlare } from './ProfileFlare';
 import { AchievementBanner } from './AchievementBanner';
 
+
 export const UserProfile: React.FC = () => {
-  const [user] = useAuthState(auth);
+  const [user] = useAuthStateCompat();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [editDialog, setEditDialog] = useState(false);
   const [addUserDialog, setAddUserDialog] = useState(false);
@@ -467,7 +468,7 @@ export const UserProfile: React.FC = () => {
           variant="outlined"
           color="primary"
           startIcon={<Logout />}
-          onClick={() => void auth.signOut()}
+          onClick={() => void signOutCompat()}
           sx={{
             minWidth: 200,
             borderWidth: 2,

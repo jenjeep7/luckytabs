@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 /* eslint-disable @typescript-eslint/no-floating-promises */
 import React, { useEffect } from 'react';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '../../firebase';
 import { trackLandingPageVisit } from '../../utils/analytics';
+import { Capacitor } from '@capacitor/core';
 import {
   Box,
   Button,
@@ -11,10 +10,9 @@ import {
   Typography,
   Stack,
 } from '@mui/material';
+import { Link as RouterLink } from 'react-router-dom';
 
 export const LandingPage: React.FC = () => {
-  const [user] = useAuthState(auth);
-
   // Track landing page visit when component mounts
   useEffect(() => {
     // Get referrer information for traffic source tracking
@@ -38,7 +36,9 @@ export const LandingPage: React.FC = () => {
       }
     }
 
-    trackLandingPageVisit(source, medium);
+    if (!Capacitor.isNativePlatform()) {
+      trackLandingPageVisit(source, medium);
+    }
   }, []);
 
   return (
@@ -67,8 +67,8 @@ export const LandingPage: React.FC = () => {
             mb: { xs: 4 }
           }}>
             <img
-              src="/Tabsy New Logo.png"
-              alt={`Tabsy Wins Logo`}
+              src={`${process.env.PUBLIC_URL}/tabsy-logo.png`}
+              alt="Tabsy Logo"
               style={{ 
                 height: 'auto',
                 width: '100%',
@@ -128,29 +128,29 @@ export const LandingPage: React.FC = () => {
               alignItems="center"
               sx={{ width: '100%' }}
             >
-              {!user && (
-                <Button
-                  href="/signup"
-                  size="medium"
-                  variant="contained"
-                  color="success"
-                  sx={{
-                    px: { xs: 2, sm: 2.5 },
-                    py: { xs: 2, sm: 1 },
-                    fontWeight: 800,
-                    textTransform: 'none',
-                    fontSize: { xs: '0.85rem', sm: '1rem' },
-                    minWidth: { xs: '80px', sm: '100px' },
-                    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
-                    height: { xs: '48px' }
-                  }}
-                >
-                  {`Join Tabsy's Crew`}
-                </Button>
-              )}
+              <Button
+                component={RouterLink}
+                to="/signup"
+                size="medium"
+                variant="contained"
+                color="success"
+                sx={{
+                  px: { xs: 2, sm: 2.5 },
+                  py: { xs: 2, sm: 1 },
+                  fontWeight: 800,
+                  textTransform: 'none',
+                  fontSize: { xs: '0.85rem', sm: '1rem' },
+                  minWidth: { xs: '80px', sm: '100px' },
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
+                  height: { xs: '48px' }
+                }}
+              >
+                {`Join Tabsy's Crew`}
+              </Button>
 
               <Button
-                href="/features"
+                component={RouterLink}
+                to="/features"
                 size="medium"
                 variant="contained"
                 color="secondary"
