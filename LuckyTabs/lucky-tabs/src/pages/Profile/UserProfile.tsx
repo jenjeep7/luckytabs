@@ -32,7 +32,16 @@ import EditProfileDialog from './EditProfileDialog';
 import { getVersionInfo } from '../../utils/version';
 import { ProfileFlare } from './ProfileFlare';
 import { AchievementBanner } from './AchievementBanner';
+import type { User } from 'firebase/auth';
 
+// Type guard to check if user has required properties (works for both web and native)
+function isValidUser(u: unknown): u is User {
+  console.log('[UserProfile] Type guard checking user:', u);
+  const hasUid = !!u && typeof u === 'object' && 'uid' in u && typeof (u as { uid?: unknown }).uid === 'string';
+  const uid = hasUid ? (u as { uid: string }).uid : 'no uid';
+  console.log('[UserProfile] User has UID:', hasUid, uid);
+  return hasUid;
+}
 
 export const UserProfile: React.FC = () => {
   const [user] = useAuthStateCompat();
@@ -64,7 +73,7 @@ export const UserProfile: React.FC = () => {
 
   // Load user data when component mounts
   const loadUserData = useCallback(async () => {
-    if (!user) return;
+    if (!isValidUser(user)) return;
     setLoading(true);
     try {
       // Load user profile from Firebase
@@ -80,12 +89,14 @@ export const UserProfile: React.FC = () => {
         });
       } else {
         // Create new user profile if it doesn't exist
+        const displayName = user.displayName || 'Anonymous User';
+        const displayNameParts = typeof user.displayName === 'string' ? user.displayName.split(' ') : ['Anonymous', 'User'];
         await userService.createUserProfile(
           user.uid,
           user.email || '',
-          user.displayName || 'Anonymous User',
-          user.displayName?.split(' ')[0] || '',
-          user.displayName?.split(' ')[1] || ''
+          displayName,
+          displayNameParts[0] || '',
+          displayNameParts[1] || ''
         );
         
         // Load the newly created profile
@@ -119,7 +130,7 @@ export const UserProfile: React.FC = () => {
   // Load group members when userData is available
   useEffect(() => {
     const loadData = async () => {
-      if (userData && user) {
+      if (userData && isValidUser(user)) {
         try {
           // Load user's friends as group members
           const friends = await userService.getUserFriends(user.uid);
@@ -146,7 +157,7 @@ export const UserProfile: React.FC = () => {
   };
 
   const handleSaveProfile = async () => {
-    if (!user || !userData) return;
+    if (!isValidUser(user) || !userData) return;
 
     setSaving(true);
     try {
@@ -197,7 +208,7 @@ export const UserProfile: React.FC = () => {
     setSearchingUsers(true);
     try {
       // Search users using Firebase service
-      const excludeIds = user ? [user.uid, ...groupMembers.map(m => m.uid)] : [];
+      const excludeIds = isValidUser(user) ? [user.uid, ...groupMembers.map(m => m.uid)] : [];
       const results = await userService.searchUsers(searchTerm, excludeIds);
       setSearchResults(results);
     } catch (error) {
@@ -213,7 +224,7 @@ export const UserProfile: React.FC = () => {
   };
 
   const handleAddUserToGroup = async (selectedUser: GroupMember) => {
-    if (!user) return;
+    if (!isValidUser(user)) return;
     
     try {
       // Add user as a friend
@@ -266,7 +277,7 @@ export const UserProfile: React.FC = () => {
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && user) {
+    if (file && isValidUser(user)) {
       try {
         // Upload to Firebase Storage and get URL
         const avatarUrl = await userService.uploadAvatar(user.uid, file);

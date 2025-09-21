@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '../firebase';
+import { useAuthStateCompat } from '../services/useAuthStateCompat';
 import { userService } from '../services/userService';
 import { setUserAnalyticsProperties } from '../utils/analytics';
 
@@ -18,7 +17,7 @@ interface UserProfileContextType {
 const UserProfileContext = createContext<UserProfileContextType | undefined>(undefined);
 
 export const UserProfileProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [firebaseUser] = useAuthState(auth);
+  const [firebaseUser] = useAuthStateCompat();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(false);
 

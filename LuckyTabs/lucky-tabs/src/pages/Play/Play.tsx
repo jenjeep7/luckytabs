@@ -42,8 +42,7 @@ import { boxService, BoxItem } from "../../services/boxService";
 import { userService, UserData } from "../../services/userService";
 import { groupService, GroupData } from "../../services/groupService";
 import ShareBoxDialog from "./ShareBoxDialog";
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '../../firebase';
+import { useAuthStateCompat } from '../../services/useAuthStateCompat';
 import { statusColors, getNeonHeaderStyle } from '../../utils/neonUtils';
 import { useTheme } from '@mui/material/styles';
 
@@ -78,7 +77,7 @@ export const Play: React.FC = () => {
   } = useLocation();
 
   // Auth and user state
-  const [user] = useAuthState(auth);
+  const [user] = useAuthStateCompat();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [userGroups, setUserGroups] = useState<GroupData[]>([]);
 

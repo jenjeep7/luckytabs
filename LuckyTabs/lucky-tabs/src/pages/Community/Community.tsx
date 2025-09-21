@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useAuthStateCompat } from '../../services/useAuthStateCompat';
 import {
   Box,
   Container,
-  Paper,
   Tab,
   Tabs,
   Typography,
@@ -43,8 +43,7 @@ import {
   Edit,
   Delete,
 } from '@mui/icons-material';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '../../firebase';
+//
 import { communityService, Post, Comment } from '../../services/communityService';
 import { userService, UserData } from '../../services/userService';
 import { groupService, GroupData } from '../../services/groupService';
@@ -512,7 +511,7 @@ function PostCard({
 }
 
 export const Community: React.FC = () => {
-  const [user] = useAuthState(auth);
+  const [user] = useAuthStateCompat();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   
@@ -622,7 +621,8 @@ export const Community: React.FC = () => {
 
         if (!currentUserProfile) {
           try {
-            const up = await userService.getUserProfile(user.uid);
+            if (!user || typeof user !== 'object' || !('uid' in user)) return;
+            const up = await userService.getUserProfile((user as { uid: string }).uid);
             setCurrentUserProfile(up);
           } catch (e) {
             console.error('Error loading current user profile:', e);
@@ -643,7 +643,8 @@ export const Community: React.FC = () => {
     const loadUserGroups = async () => {
       if (!user) return;
       try {
-        const groups = await groupService.getUserGroups(user.uid);
+  if (!user || typeof user !== 'object' || !('uid' in user)) return;
+  const groups = await groupService.getUserGroups((user as { uid: string }).uid);
         // Filter out the "Public" group from group selection
         const filteredGroups = groups.filter(group => group.name.toLowerCase() !== 'public');
         setUserGroups(filteredGroups);
@@ -675,7 +676,8 @@ export const Community: React.FC = () => {
   const handleLike = async (postId: string) => {
     if (!user) return;
     try {
-      await communityService.likePost(postId, user.uid);
+  if (!user || typeof user !== 'object' || !('uid' in user)) return;
+  await communityService.likePost(postId, (user as { uid: string }).uid);
       // Refresh both states to ensure consistency
       const [updatedPublicPosts, updatedGroupPosts] = await Promise.all([
         communityService.getPosts('public'),
@@ -729,7 +731,8 @@ export const Community: React.FC = () => {
   const handleComment = async (postId: string, commentContent: string) => {
     if (!user) return;
     try {
-      await communityService.createComment(postId, user.uid, commentContent);
+  if (!user || typeof user !== 'object' || !('uid' in user)) return;
+  await communityService.createComment(postId, (user as { uid: string }).uid, commentContent);
       setSnackbar({ open: true, message: 'Comment added successfully!', severity: 'success' });
     } catch {
       setSnackbar({ open: true, message: 'Failed to add comment', severity: 'error' });
@@ -766,22 +769,22 @@ export const Community: React.FC = () => {
       const groupId = activeTab === 1 ? selectedGroupId : undefined;
 
       // Upload images in parallel and collect media descriptors
-      const media =
-        files.length > 0
-          ? await Promise.all(
-              files.map((f, idx) =>
-                uploadPostImage(user.uid, /* postId path key */ crypto.randomUUID(), f, (pct) => {
-                  setUploadProgress((prev) => {
-                    const next = [...prev];
-                    next[idx] = pct;
-                    return next;
-                  });
-                }),
-              ),
-            )
-          : [];
-
-      await communityService.createPost(user.uid, newPostContent, feedType, groupId, media);
+      let media: { url: string; width?: number; height?: number; contentType?: string }[] = [];
+      if (!user || typeof user !== 'object' || !('uid' in user)) return;
+      if (files.length > 0) {
+        media = await Promise.all(
+          files.map((f, idx) =>
+            uploadPostImage((user as { uid: string }).uid, /* postId path key */ crypto.randomUUID(), f, (pct) => {
+              setUploadProgress((prev) => {
+                const next = [...prev];
+                next[idx] = pct;
+                return next;
+              });
+            })
+          )
+        );
+      }
+      await communityService.createPost((user as { uid: string }).uid, newPostContent, feedType, groupId, media);
 
       clearComposer();
       setNewPostDialog(false);
@@ -881,9 +884,9 @@ export const Community: React.FC = () => {
                   void handleDelete(postId);
                 }}
                 setDeleteConfirmation={setDeleteConfirmation}
-                currentUserId={user?.uid}
-                currentUserName={currentUserProfile?.displayName || user?.displayName || undefined}
-                currentUserAvatar={currentUserProfile?.avatar || user?.photoURL || undefined}
+                currentUserId={user && typeof user === 'object' && 'uid' in user ? (user as { uid: string }).uid : undefined}
+                currentUserName={currentUserProfile?.displayName || (user && typeof user === 'object' && 'displayName' in user ? (user as { displayName?: string }).displayName : undefined)}
+                currentUserAvatar={currentUserProfile?.avatar || (user && typeof user === 'object' && 'photoURL' in user ? (user as { photoURL?: string }).photoURL : undefined)}
                 authorProfile={userProfiles.get(post.authorId)}
               />
             ))
@@ -974,7 +977,10 @@ export const Community: React.FC = () => {
 
         {/* GROUPS MANAGEMENT */}
         <TabPanel value={activeTab} index={2}>
-          <GroupsManager currentUserId={user.uid} currentUserName={currentUserProfile?.displayName || user?.displayName || undefined} />
+          <GroupsManager
+            currentUserId={user && typeof user === 'object' && 'uid' in user ? (user as { uid: string }).uid : ''}
+            currentUserName={currentUserProfile?.displayName || (user && typeof user === 'object' && 'displayName' in user ? (user as { displayName?: string }).displayName : undefined)}
+          />
         </TabPanel>
       {/* New Post Dialog (with images) */}
       <Dialog

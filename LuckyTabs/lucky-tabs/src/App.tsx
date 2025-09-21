@@ -2,23 +2,26 @@
 import { useMemo } from 'react';
 // import { BrowserRouter } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline, useMediaQuery } from '@mui/material';
+import { User } from 'firebase/auth';
 import { getDesignTokens } from './theme';
 import AppRoutes from './AppRoutes';
 import { UserProfileProvider } from './context/UserProfileContext';
 import { LocationProvider } from './context/LocationContext';
 import { VersionChecker } from './components/VersionChecker';
 import AppBackground from './components/AppBackground';
-import { auth } from "./firebase";
+import { useAuthStateCompat } from './services/useAuthStateCompat';
 
 function App() {
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
+  const [user, loading, error] = useAuthStateCompat();
 
   const theme = useMemo(
     () => createTheme(getDesignTokens(prefersDarkMode ? 'dark' : 'light')),
     [prefersDarkMode]
   );
-  console.log('[App.tsx] app loaded');
-  console.log('[App.tsx] Firebase Auth currentUser:', auth.currentUser);
+  
+  console.log('[App.tsx] app loaded - FIXED VERSION');
+  console.log('[App.tsx] Auth state - user:', user?.uid || 'no user', 'loading:', loading, 'error:', error);
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />

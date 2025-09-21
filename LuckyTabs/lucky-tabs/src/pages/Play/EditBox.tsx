@@ -19,10 +19,14 @@ import { doc, setDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "../../firebase";
 import { useState, useRef, useEffect } from "react";
-import { useAuthState } from "react-firebase-hooks/auth";
-import { auth } from "../../firebase";
+import { useAuthStateCompat } from "../../services/useAuthStateCompat";
 import heic2any from "heic2any";
 import { userService, UserData } from "../../services/userService";
+
+// Type guard for Firebase User
+function isFirebaseUser(u: unknown): u is { uid: string } {
+  return !!u && typeof u === 'object' && 'uid' in u && typeof (u as { uid?: unknown }).uid === 'string';
+}
 
 type WinningTicket = {
   prize: string;
@@ -43,7 +47,7 @@ type BoxType = {
 };
 
 export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onClose: () => void; onBoxUpdated?: () => void }) => {
-  const [user] = useAuthState(auth);
+  const [user] = useAuthStateCompat();
   const [userProfile, setUserProfile] = useState<UserData | null>(null);
   
   // Existing state
@@ -68,10 +72,10 @@ export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onCl
 
   // Check if user has pro plan
   useEffect(() => {
-    if (user?.uid) {
+    if (isFirebaseUser(user)) {
       userService.getUserProfile(user.uid).then(setUserProfile).catch(console.error);
     }
-  }, [user?.uid]);
+  }, [user]);
 
   const isProUser = userProfile?.plan === "pro";
 

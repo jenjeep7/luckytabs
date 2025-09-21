@@ -10,8 +10,8 @@ import {
 } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { db, auth } from '../../firebase';
+import { db } from '../../firebase';
+import { useAuthStateCompat } from '../../services/useAuthStateCompat';
 import { ConfirmRemoveDialog, EstimateRemainingDialog, ClaimedPrize } from './BoxDialogs';
 import { formatCurrency } from '../../utils/formatters';
 import { AdvancedAnalytics } from './AdvancedAnalytics';
@@ -90,7 +90,7 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
   refreshBoxes,
   userGroups = []
 }) => {
-  const [firebaseUser] = useAuthState(auth);
+  const [firebaseUser] = useAuthStateCompat();
   const { userProfile } = useUserProfile();
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';

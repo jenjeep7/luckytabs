@@ -1,8 +1,7 @@
-import { Capacitor } from '@capacitor/core';
-/* AppRoutes.tsx */
+
+import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStateCompat } from './services/useAuthStateCompat';
-import { auth } from './firebase';
 import type { User, UserInfo } from 'firebase/auth';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -14,7 +13,6 @@ import { Tracking } from './pages/Tracking/Tracking';
 import { Community } from './pages/Community/Community';
 import { UserProfile } from './pages/Profile/UserProfile';
 import Features from './pages/Landing/Features';
-import React from 'react';
 import { 
   Box, 
   Paper, 
@@ -27,13 +25,24 @@ import { sendEmailVerification } from 'firebase/auth';
 import { signOutCompat } from './services/authService';
 import { LogoutOutlined } from '@mui/icons-material';
 
+// Type guard to check if user is a Firebase User
+function isFirebaseUser(u: unknown): u is User {
+  return !!u && typeof u === 'object' && 'providerData' in u && Array.isArray((u as { providerData?: unknown }).providerData);
+}
+
 // Email Verification Guard Component
 const EmailVerificationGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user] = useAuthStateCompat();
   const [checkingVerification, setCheckingVerification] = React.useState(false);
 
   // If user is not authenticated or email is verified, render children
-  if (!user || (user ).emailVerified || ((user ).providerData && (user ).providerData.some((p: UserInfo) => p.providerId === "password") === false)) {
+  if (
+    !user ||
+    (isFirebaseUser(user) && (
+      user.emailVerified ||
+      (user.providerData && user.providerData.some((p: UserInfo) => p.providerId === "password") === false)
+    ))
+  ) {
     return <>{children}</>;
   }
 
@@ -78,9 +87,11 @@ const EmailVerificationGuard: React.FC<{ children: React.ReactNode }> = ({ child
             onClick={() => {
               void (async () => {
                 setCheckingVerification(true);
-                await (user )?.reload();
+                if (isFirebaseUser(user)) {
+                  await user.reload();
+                }
                 setCheckingVerification(false);
-                if ((user )?.emailVerified) {
+                if (isFirebaseUser(user) && user.emailVerified) {
                   window.location.reload();
                 }
               })();
@@ -95,8 +106,8 @@ const EmailVerificationGuard: React.FC<{ children: React.ReactNode }> = ({ child
             sx={{ mt: 2 }}
             onClick={() => {
               void (async () => {
-                if (user) {
-                  await sendEmailVerification(user );
+                if (isFirebaseUser(user)) {
+                  await sendEmailVerification(user);
                   alert(`Verification email sent! Please check your inbox.`);
                 }
               })();
@@ -116,42 +127,52 @@ const EmailVerificationGuard: React.FC<{ children: React.ReactNode }> = ({ child
 
 export default function AppRoutes() {
   // Always call the hook (React rule)
-  const [user] = useAuthStateCompat();
+  const [user, loading, error] = useAuthStateCompat();
 
-  // ⛳ iOS TEMP: bypass auth and render routes directly
-  if (Capacitor.isNativePlatform()) {
+  // Debug logging
+  console.log('[AppRoutes] Auth state:', { 
+    user: user ? { uid: user.uid, email: user.email } : null, 
+    loading, 
+    error,
+    userExists: !!user 
+  });
+
+  // Show loading while auth state is being determined
+  if (loading) {
+    console.log('[AppRoutes] Still loading auth state...');
     return (
-      <Routes>
-        <Route element={<Layout />}>
-          <Route path="/home" element={<LandingPage />} />
-          <Route path="/features" element={<Features />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="*" element={<Navigate to="/home" replace />} />
-        </Route>
-      </Routes>
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '100vh' 
+      }}>
+        <Typography>Loading...</Typography>
+      </Box>
     );
   }
 
-  // Web: normal flow (user only)
+  // Normal flow for all platforms - authentication is now working correctly
   return (
-    <Routes>
-      <Route element={<Layout />}>
-        <Route index element={<Navigate to={user ? '/profile' : '/home'} replace />} />
-        {/* Public */}
-        <Route path="home" element={<LandingPage />} />
-        <Route path="login" element={user ? <Navigate to="/profile" replace /> : <Login />} />
-        <Route path="signup" element={user ? <Navigate to="/profile" replace /> : <Signup />} />
-        <Route path="features" element={<Features />} />
-        <Route path="support-circle" element={<SupportCircle />} />
-        {/* Protected */}
-        <Route path="play" element={user ? <Play /> : <Navigate to="/home" replace />} />
-        <Route path="tracking" element={user ? <Tracking /> : <Navigate to="/home" replace />} />
-        <Route path="community" element={user ? <Community /> : <Navigate to="/home" replace />} />
-        <Route path="profile" element={user ? <UserProfile /> : <Navigate to="/home" replace />} />
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to={user ? '/profile' : '/home'} replace />} />
-      </Route>
-    </Routes>
+    <EmailVerificationGuard>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route index element={<Navigate to={user ? '/profile' : '/home'} replace />} />
+          {/* Public */}
+          <Route path="home" element={<LandingPage />} />
+          <Route path="login" element={user ? <Navigate to="/profile" replace /> : <Login />} />
+          <Route path="signup" element={user ? <Navigate to="/profile" replace /> : <Signup />} />
+          <Route path="features" element={<Features />} />
+          <Route path="support-circle" element={<SupportCircle />} />
+          {/* Protected */}
+          <Route path="play" element={user ? <Play /> : <Navigate to="/home" replace />} />
+          <Route path="tracking" element={user ? <Tracking /> : <Navigate to="/home" replace />} />
+          <Route path="community" element={user ? <Community /> : <Navigate to="/home" replace />} />
+          <Route path="profile" element={user ? <UserProfile /> : <Navigate to="/home" replace />} />
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to={user ? '/profile' : '/home'} replace />} />
+        </Route>
+      </Routes>
+    </EmailVerificationGuard>
   );
 }

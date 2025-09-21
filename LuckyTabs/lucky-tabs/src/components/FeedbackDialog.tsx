@@ -18,8 +18,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { Feedback, Send } from '@mui/icons-material';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '../firebase';
+import { useAuthStateCompat } from '../services/useAuthStateCompat';
 import { feedbackService } from '../services/feedbackService';
 
 interface FeedbackDialogProps {
@@ -28,7 +27,7 @@ interface FeedbackDialogProps {
 }
 
 export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose }) => {
-  const [user] = useAuthState(auth);
+  const [user] = useAuthStateCompat();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 

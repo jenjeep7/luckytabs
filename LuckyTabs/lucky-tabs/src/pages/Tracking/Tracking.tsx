@@ -15,8 +15,7 @@ import {
   Add as AddIcon,
   Edit as EditIcon,
 } from '@mui/icons-material';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '../../firebase';
+import { useAuthStateCompat } from '../../services/useAuthStateCompat';
 import { BudgetManager } from './BudgetManager';
 import { TransactionManager } from './TransactionManager';
 import { WeeklyOverview } from './WeeklyOverview';
@@ -51,7 +50,7 @@ function TabPanel(props: TabPanelProps) {
 }
 
 export const Tracking: React.FC = () => {
-  const [user, loading] = useAuthState(auth);
+  const [user, loading] = useAuthStateCompat();
   const [tabValue, setTabValue] = useState(0);
   const [budgetManagerOpen, setBudgetManagerOpen] = useState(false);
   const [transactionManagerOpen, setTransactionManagerOpen] = useState(false);

@@ -29,6 +29,10 @@ interface SignupFormInputs {
 
 const waitForAuth = (): Promise<User> =>
   new Promise((resolve, reject) => {
+    if (!auth) {
+      reject(new Error('Firebase Auth is not initialized on web'));
+      return;
+    }
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         unsubscribe();
@@ -49,6 +53,7 @@ const Signup: React.FC = () => {
 
   const onSubmit = async (data: SignupFormInputs) => {
     try {
+      if (!auth) throw new Error('Firebase Auth is not initialized on web');
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         data.email,

@@ -29,8 +29,7 @@ import { LocationOn as LocationIcon } from '@mui/icons-material';
 import { getGoogleMapsLoader } from '../../utils/googleMapsLoader';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '../../firebase';
+import { useAuthStateCompat } from '../../services/useAuthStateCompat';
 
 interface Location {
   id: string;
@@ -71,7 +70,7 @@ export const LocationManager: React.FC<LocationManagerProps> = ({
   const [predictions, setPredictions] = useState<any[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [user] = useAuthState(auth);
+  const [user] = useAuthStateCompat();
 
   // Helper function to check if a place is already in the locations list
   const isDuplicateLocation = (place: any): boolean => {
