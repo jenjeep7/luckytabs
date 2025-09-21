@@ -1,10 +1,10 @@
 
-export type StatusType = 'poor' | 'decent' | 'excellent';
+export type StatusType = 'poor' | 'decent' | 'good';
 
 export const statusColors = {
   poor: '#FF3CAC',      // Hot pink/magenta to match your design
   decent: '#FFC107',    // Amber/orange
-  excellent: '#00E676'  // Neon green
+  good: '#00E676'  // Neon green
 };
 
 // Safe gradient text utility that always ensures text is visible
@@ -59,6 +59,6 @@ export const getCardGlowStyles = (status: StatusType) => ({
   }
 });
 
-export const getEvTone = (status: StatusType): 'excellent' | 'decent' | 'poor' => {
+export const getEvTone = (status: StatusType): 'good' | 'decent' | 'poor' => {
   return status;
 };

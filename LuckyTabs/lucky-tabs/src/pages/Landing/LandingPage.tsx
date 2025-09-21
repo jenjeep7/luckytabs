@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/no-misused-promises */
-/* eslint-disable @typescript-eslint/no-floating-promises */
-import React, { useEffect } from 'react';
+// Move ScreenshotCarousel to the very top of the file
+import React, { useEffect, useState } from 'react';
 import { trackLandingPageVisit } from '../../utils/analytics';
 import { Capacitor } from '@capacitor/core';
 import {
@@ -11,6 +10,70 @@ import {
   Stack,
 } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
+
+const ScreenshotCarousel: React.FC = () => {
+  const screenshots = [
+    '/screenshots/Profile.png',
+    '/screenshots/boxes.png',
+    '/screenshots/box.png',
+    '/screenshots/Community.png',
+  ];
+  const titles = [
+    'Profile Page',
+    'Track Your Boxes',
+    'Box Details',
+    'Community Page',
+  ];
+  const [index, setIndex] = useState(0);
+  const total = screenshots.length;
+
+  const prev = () => setIndex((i) => (i - 1 + total) % total);
+  const next = () => setIndex((i) => (i + 1) % total);
+
+  return (
+    <Box sx={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      mb: { xs: 2, sm: 3 },
+      width: '90%',
+      maxWidth: 500,
+      mx: 'auto',
+      position: 'relative',
+    }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'center' }}>
+        <Button onClick={prev} size="small" sx={{ minWidth: 0, px: 1 }} aria-label="Previous screenshot">&#8592;</Button>
+        <Box sx={{
+          width: { xs: 150 },
+          height: { xs: 170 },
+          overflow: 'hidden',
+          mx: 1,
+          boxShadow: 2,
+          background: '#181a20',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <img
+            src={screenshots[index]}
+            alt={titles[index]}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              display: 'block',
+            }}
+          />
+        </Box>
+        <Button onClick={next} size="small" sx={{ minWidth: 0, px: 1 }} aria-label="Next screenshot">&#8594;</Button>
+      </Box>
+      <Typography variant="subtitle1" align="center" sx={{ mt: 1, fontWeight: 600, color: '#fff' }}>
+        {titles[index]}
+      </Typography>
+    </Box>
+  );
+};
 
 export const LandingPage: React.FC = () => {
   // Track landing page visit when component mounts
@@ -60,21 +123,21 @@ export const LandingPage: React.FC = () => {
           }}
         >
           {/* Logo at the top */}
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
+          <Box sx={{
+            display: 'flex',
+            justifyContent: 'center',
             alignItems: 'center',
-            mb: { xs: 4 }
+            mb: { xs: 3 },
           }}>
             <img
-              src={`${process.env.PUBLIC_URL}/tabsy-logo.png`}
-              alt="Tabsy Logo"
-              style={{ 
+              src="/Tabsy New Logo.png"
+              alt="Tabsy Wins Logo"
+              style={{
                 height: 'auto',
                 width: '100%',
-                maxHeight: '200px',
-                maxWidth: '300px',
-                objectFit: 'contain'
+                maxHeight: '110px',
+                maxWidth: '180px',
+                objectFit: 'contain',
               }}
             />
           </Box>
@@ -95,7 +158,10 @@ export const LandingPage: React.FC = () => {
             >
               {`Welcome to Tabsy's Community of Pull Tab Enthusiasts!`}
             </Typography>
-            
+
+            {/* Screenshot Carousel */}
+            <ScreenshotCarousel />
+
             <Typography 
               variant="body1" 
               fontWeight="bold" 
@@ -114,6 +180,7 @@ export const LandingPage: React.FC = () => {
               {`Tabsy Wins isn’t just another app—it’s a magical toolkit for pull tab players. Log your sessions, scan boxes, predict smarter outcomes, and connect with a crew of streak-chasers who play with heart. Whether you're a casual ripper or a strategic player, Tabsy helps you stay sharp, stay social, and stay in the game.`}
             </Typography>
           </Box>
+
           <Box sx={{ 
             my: { xs: 4}, 
             display: 'flex', 

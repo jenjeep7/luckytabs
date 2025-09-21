@@ -24,6 +24,8 @@ import {
 import { sendEmailVerification } from 'firebase/auth';
 import { signOutCompat } from './services/authService';
 import { LogoutOutlined } from '@mui/icons-material';
+import ResponsibleGaming from './pages/ResponsibleGaming/ResponsibleGaming';
+import PrivacyPolicy from './pages/PrivacyPolicy/PrivacyPolicy';
 
 // Type guard to check if user is a Firebase User
 function isFirebaseUser(u: unknown): u is User {
@@ -164,11 +166,14 @@ export default function AppRoutes() {
           <Route path="signup" element={user ? <Navigate to="/profile" replace /> : <Signup />} />
           <Route path="features" element={<Features />} />
           <Route path="support-circle" element={<SupportCircle />} />
+          <Route path="privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="responsible-gaming" element={<ResponsibleGaming />} />
           {/* Protected */}
           <Route path="play" element={user ? <Play /> : <Navigate to="/home" replace />} />
           <Route path="tracking" element={user ? <Tracking /> : <Navigate to="/home" replace />} />
           <Route path="community" element={user ? <Community /> : <Navigate to="/home" replace />} />
           <Route path="profile" element={user ? <UserProfile /> : <Navigate to="/home" replace />} />
+          <Route path="tabsy" element={user ? <LandingPage /> : <Navigate to="/home" replace />} />
           {/* Fallback */}
           <Route path="*" element={<Navigate to={user ? '/profile' : '/home'} replace />} />
         </Route>

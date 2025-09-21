@@ -467,8 +467,44 @@ export const Play: React.FC = () => {
 
   // Get current boxes to display based on toggle
   const currentBoxes = boxView === 'my' ? myBoxes : groupBoxes;
-  const wallBoxes = currentBoxes.filter((box) => box.type === "wall");
-  const barBoxes = currentBoxes.filter((box) => box.type === "bar box");
+
+  // Helper to calculate RTP percent for a box
+  function getBoxRTP(box: BoxItem): number {
+    const pricePerTicket = parseFloat(box.pricePerTicket);
+    let estimatedTickets = box.estimatedRemainingTickets || 0;
+    // Check for rows array safely
+    const rows = (box as unknown as { rows?: unknown }).rows;
+    if (estimatedTickets === 0 && Array.isArray(rows)) {
+      estimatedTickets = rows.reduce((total: number, row) => {
+        if (row && typeof row === 'object' && 'estimatedTicketsRemaining' in row) {
+          return total + (Number((row as { estimatedTicketsRemaining?: number }).estimatedTicketsRemaining) || 0);
+        }
+        return total;
+      }, 0);
+    }
+    if (estimatedTickets > 0 && Array.isArray(box.winningTickets) && box.winningTickets.length > 0) {
+      const prizes = box.winningTickets
+        .filter((ticket) =>
+          ticket && typeof ticket === 'object' &&
+          'prize' in ticket && typeof ticket.prize === 'string' && ticket.prize.trim() !== '' &&
+          'totalPrizes' in ticket && Number(ticket.totalPrizes) > 0
+        )
+        .map((ticket) => ({
+          value: Number(ticket.prize),
+          remaining: Number(ticket.totalPrizes) - Number(ticket.claimedTotal)
+        }));
+      const totalRemainingValue = prizes.reduce((sum: number, prize) => sum + (prize.value * prize.remaining), 0);
+      const costToCloseOut = pricePerTicket * estimatedTickets;
+      if (costToCloseOut > 0) {
+        return (totalRemainingValue / costToCloseOut) * 100;
+      }
+    }
+    return 0;
+  }
+
+  // Sort wallBoxes and barBoxes by RTP percent (highest to lowest)
+  const wallBoxes = [...currentBoxes.filter((box) => box.type === "wall")].sort((a, b) => getBoxRTP(b) - getBoxRTP(a));
+  const barBoxes = [...currentBoxes.filter((box) => box.type === "bar box")].sort((a, b) => getBoxRTP(b) - getBoxRTP(a));
 
   // Share box handlers
   const handleShareBox = (boxId: string, boxName: string) => {
@@ -505,15 +541,12 @@ export const Play: React.FC = () => {
   return (
     <Box sx={{ 
       width: '100%', 
-      minHeight: 'calc(100vh - 64px)', // Account for AppBar height
+      minHeight: 'calc(100vh - 64px)',
       overflow: 'visible',
       '@media (max-width: 600px)': {
-        minHeight: 'calc(100vh - 56px)', // Smaller AppBar on mobile
+        minHeight: 'calc(100vh - 56px)',
       }
-    }}>
-      {/* Neon Gaming Header */}
-      {/* <NeonHeader /> */}
-      
+    }}>      
       <Box sx={{ 
         p: 3,
         '@media (max-width: 600px)': {
@@ -794,11 +827,13 @@ export const Play: React.FC = () => {
               let evColor = statusColors.poor; // Default to poor
               let evStatus = 'No Data';
               
-              if (estimatedTickets > 0 && box.winningTickets) {
-                const prizes = box.winningTickets.map((ticket: WinningTicket) => ({
-                  value: Number(ticket.prize),
-                  remaining: Number(ticket.totalPrizes) - Number(ticket.claimedTotal)
-                }));
+              if (estimatedTickets > 0 && box.winningTickets && Array.isArray(box.winningTickets) && box.winningTickets.length > 0) {
+                const prizes = box.winningTickets
+                  .filter((ticket: WinningTicket) => ticket.prize && ticket.prize.trim() !== '' && Number(ticket.totalPrizes) > 0)
+                  .map((ticket: WinningTicket) => ({
+                    value: Number(ticket.prize),
+                    remaining: Number(ticket.totalPrizes) - Number(ticket.claimedTotal)
+                  }));
                 
                 // Calculate remaining prize value
                 const totalRemainingValue = prizes.reduce((sum: number, prize) => sum + (prize.value * prize.remaining), 0);
@@ -808,12 +843,12 @@ export const Play: React.FC = () => {
                 const evData = (totalRemainingValue - costToCloseOut) / estimatedTickets;
                 const rtpData = (totalRemainingValue / costToCloseOut) * 100;
                 
-                // Color coding based on EV and RTP using neon colors
-                if (evData >= 0) {
-                  evColor = statusColors.excellent; // Neon green for positive EV
-                  evStatus = 'Excellent';
-                } else if (rtpData >= 80) {
-                  evColor = statusColors.decent; // Neon amber for decent RTP
+                // Color coding based on EV and RTP using neon colors (custom thresholds)
+                if (evData >= 0 || rtpData > 85) {
+                  evColor = statusColors.good; // Neon green for positive EV or RTP > 85
+                  evStatus = 'Good';
+                } else if (rtpData >= 75) {
+                  evColor = statusColors.decent; // Neon amber for RTP 75-85
                   evStatus = 'Decent';
                 } else {
                   evColor = statusColors.poor; // Neon red for poor
@@ -888,7 +923,7 @@ export const Play: React.FC = () => {
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                           <Box sx={{ flex: 1 }}>
                             <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.primary', fontSize: '1rem' }}>
-                              {`#${box.boxNumber} - ${box.boxName}`}
+                              {box.boxNumber ? `#${box.boxNumber} - ${box.boxName}` : box.boxName}
                             </Typography>
                             <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.9rem', mt: 0.5 }}>
                               {boxView === 'group' && box.ownerName && (
@@ -897,12 +932,14 @@ export const Play: React.FC = () => {
                             </Typography>
                           </Box>
                           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 70 }}>
-                            <NeonStatusPill
-                              status={evStatus === 'Excellent' ? 'excellent' : evStatus === 'Decent' ? 'decent' : 'poor'}
-                              label={evStatus}
-                              size="small"
-                              sx={{ mb: 0.5 }}
-                            />
+                            {evStatus !== 'No Data' && (
+                              <NeonStatusPill
+                                status={evStatus === 'Good' ? 'good' : evStatus === 'Decent' ? 'decent' : 'poor'}
+                                label={evStatus}
+                                size="small"
+                                sx={{ mb: 0.5 }}
+                              />
+                            )}
                           </Box>
                         </Box>
                         
@@ -1019,29 +1056,31 @@ export const Play: React.FC = () => {
                   let evColor = statusColors.poor; // Default to poor
                   let evStatus = 'No Data';
                   
-                  if (estimatedTickets > 0 && box.winningTickets) {
-                    const prizes = box.winningTickets.map((ticket: WinningTicket) => ({
-                      value: Number(ticket.prize),
-                      remaining: Number(ticket.totalPrizes) - Number(ticket.claimedTotal)
-                    }));
-                    
+                  if (estimatedTickets > 0 && box.winningTickets && Array.isArray(box.winningTickets) && box.winningTickets.length > 0) {
+                    const prizes = box.winningTickets
+                      .filter((ticket: WinningTicket) => ticket.prize && ticket.prize.toString().trim() !== '' && Number(ticket.totalPrizes) > 0)
+                      .map((ticket: WinningTicket) => ({
+                        value: Number(ticket.prize),
+                        remaining: Number(ticket.totalPrizes) - Number(ticket.claimedTotal)
+                      }));
+
                     // Calculate remaining prize value
                     const totalRemainingValue = prizes.reduce((sum: number, prize) => sum + (prize.value * prize.remaining), 0);
-                    
+
                     // EV calculation: (total remaining prize value - cost to buy all tickets) / tickets
                     const costToCloseOut = pricePerTicket * estimatedTickets;
                     const evData = (totalRemainingValue - costToCloseOut) / estimatedTickets;
                     const rtpData = (totalRemainingValue / costToCloseOut) * 100;
-                    
-                    // Color coding based on EV and RTP using neon colors
-                    if (evData >= 0) {
-                      evColor = statusColors.excellent; // Neon green for positive EV
-                      evStatus = 'Excellent';
-                    } else if (rtpData >= 80) {
-                      evColor = statusColors.decent; // Neon amber for decent RTP
+
+                    // Color coding based on EV and RTP using neon colors (custom thresholds)
+                    if (evData >= 0 || rtpData > 85) {
+                      evColor = statusColors.good; // Neon green for positive EV or RTP > 85
+                      evStatus = 'Good';
+                    } else if (rtpData >= 75) {
+                      evColor = statusColors.decent; // Neon amber for RTP 75-85
                       evStatus = 'Decent';
                     } else {
-                      evColor = statusColors.poor; // Neon red for poor
+                      evColor = statusColors.poor; // Neon pink for poor
                       evStatus = 'Poor';
                     }
                   }
@@ -1113,7 +1152,7 @@ export const Play: React.FC = () => {
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                               <Box sx={{ flex: 1 }}>
                                 <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.primary', fontSize: '1rem' }}>
-                                  Box #{box.boxNumber} - {box.boxName}
+                                  {box.boxNumber ? `Box #${box.boxNumber} - ${box.boxName}` : box.boxName}
                                 </Typography>
                                 <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.9rem', mt: 0.5 }}>
                                   {boxView === 'group' && box.ownerName && (
@@ -1123,7 +1162,7 @@ export const Play: React.FC = () => {
                               </Box>
                               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 70 }}>
                                 <NeonStatusPill
-                                  status={evStatus === 'Excellent' ? 'excellent' : evStatus === 'Decent' ? 'decent' : 'poor'}
+                                  status={evStatus === 'Good' ? 'good' : evStatus === 'Decent' ? 'decent' : 'poor'}
                                   label={evStatus}
                                   size="small"
                                   sx={{ mb: 0.5 }}

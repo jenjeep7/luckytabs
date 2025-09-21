@@ -144,29 +144,29 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
   }, [localClaimedPrizes, boxes]);
 
   // Helper function to determine EV color based on neon theme system
-  // Cyan: RTP >= 100% (Excellent)
-  // Amber: RTP >= 80% and < 100% (Decent)
-  // Pink: RTP < 80% (Poor)
+  // Cyan: RTP > 85 (Excellent)
+  // Amber: RTP >= 75 and <= 85 (Decent)
+  // Pink: RTP < 75 (Poor)
   const getEvColor = (_evValue: number, rtpValue: number, isPercentage = true): string => {
-    const rtpExcellent = isPercentage ? 100 : 1.0;
-    const rtpDecent = isPercentage ? 80 : 0.80;
-    if (rtpValue >= rtpExcellent) {
-      return theme.neon.colors.cyan; // Cyan for RTP >= 100%
+    const rtpExcellent = isPercentage ? 85 : 0.85;
+    const rtpDecent = isPercentage ? 75 : 0.75;
+    if (rtpValue > rtpExcellent) {
+      return theme.neon.colors.cyan; // Cyan for RTP > 85
     } else if (rtpValue >= rtpDecent) {
-      return theme.neon.colors.amber; // Amber for RTP >= 80%
+      return theme.neon.colors.amber; // Amber for RTP >= 75 and <= 85
     } else {
-      return theme.neon.colors.pink; // Pink for RTP < 80%
+      return theme.neon.colors.pink; // Pink for RTP < 75
     }
   };
 
   // Helper function to get EV status text based on neon theme
   const getEvStatus = (evValue: number, rtpValue: number): StatusType => {
-    if (evValue >= 0) {
-      return 'excellent'; // Positive EV = excellent (cyan)
-    } else if (rtpValue >= 80) {
-      return 'decent'; // Negative EV but decent RTP = decent (amber)
+    if (evValue >= 0 || rtpValue > 85) {
+      return 'good'; // Positive EV or RTP > 85 = excellent (cyan)
+    } else if (rtpValue >= 75) {
+      return 'decent'; // RTP 75-85 = decent (amber)
     } else {
-      return 'poor'; // Low RTP = poor (pink)
+      return 'poor'; // RTP < 75 = poor (pink)
     }
   };
 
@@ -182,9 +182,9 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
           label={`${statusText} - ${rtpData.toFixed(1)}%`}
           tone={status}
         />
-        <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
+        {/* <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
           Expected Value: {evData >= 0 ? '+' : ''}{formatCurrency(Math.abs(evData))}
-        </Typography>
+        </Typography> */}
       </Box>
     );
   };
@@ -223,8 +223,23 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
           const newValues = { ...prev };
           boxes.forEach(box => {
             // Only initialize if we don't already have a value for this box
-            if (!prev[box.id] && box.estimatedRemainingTickets !== undefined && box.estimatedRemainingTickets !== null) {
-              newValues[box.id] = box.estimatedRemainingTickets.toString();
+            if (!prev[box.id]) {
+              let estimatedTickets = box.estimatedRemainingTickets;
+              
+              // If no top-level estimatedRemainingTickets, try to calculate from rows
+              if ((estimatedTickets === undefined || estimatedTickets === null) && box.rows && Array.isArray(box.rows)) {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+                estimatedTickets = (box.rows as { rowNumber: number; estimatedTicketsRemaining: number }[]).reduce(
+                  (total: number, row: { rowNumber: number; estimatedTicketsRemaining: number }) => {
+                    return total + (Number(row.estimatedTicketsRemaining) || 0);
+                  },
+                  0
+                );
+              }
+              
+              if (estimatedTickets !== undefined && estimatedTickets !== null && estimatedTickets > 0) {
+                newValues[box.id] = estimatedTickets.toString();
+              }
             }
           });
           return newValues;
@@ -666,7 +681,18 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
       <Box sx={{ mt: marginTop }}>
         {boxes.map((box) => {
           const pricePerTicket = parseFloat(box.pricePerTicket);
-          const estimatedTickets = Number(remainingTicketsInput[box.id]) || box.estimatedRemainingTickets || 0;
+          
+          // Calculate estimated tickets from either format
+          let estimatedTickets = Number(remainingTicketsInput[box.id]) || box.estimatedRemainingTickets || 0;
+          
+          // If no value found and box has rows, calculate from rows
+          if (estimatedTickets === 0 && box.rows && Array.isArray(box.rows)) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+            estimatedTickets = (box.rows as any[]).reduce((total: number, row: any) => {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              return total + (Number(row.estimatedTicketsRemaining) || 0);
+            }, 0);
+          }
           
           // Calculate EV data using effective winning tickets (with optimistic updates)
           let evData: number | null = null;
@@ -708,11 +734,6 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
                   {typeof evData === 'number' && typeof rtpData === 'number' && (
                     <EvBadge evData={evData} rtpData={rtpData} />
                   )}
-
-               
-                  <Typography>
-                    <strong>{box.type === 'wall' ? 'Wall Box' : 'Bar Box'} #</strong> {box.boxNumber}
-                  </Typography>
                   <Typography><strong>Price per Ticket:</strong> {formatCurrency(parseFloat(box.pricePerTicket))}</Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 0 }}>
                       {renderPrizeButtons(box)}

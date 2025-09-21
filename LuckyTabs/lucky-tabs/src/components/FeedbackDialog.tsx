@@ -63,12 +63,12 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose })
       setSuccess(true);
       setFeedbackText('');
       setCategory('general');
-      
-      // Close dialog after 2 seconds
+
+      // Close dialog after 1 seconds
       setTimeout(() => {
         setSuccess(false);
         onClose();
-      }, 2000);
+      }, 1000);
     } catch (err) {
       console.error('Error submitting feedback:', err);
       setError('Failed to submit feedback. Please try again.');
@@ -170,14 +170,6 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose })
               }}
               helperText={`${feedbackText.length}/2000 characters`}
             />
-
-            {user && (
-              <Box sx={{ bgcolor: 'background.default', borderRadius: 1, p: 2 }}>
-                <Typography variant="caption" color="text.secondary">
-                  Submitting as: {user.displayName || user.email}
-                </Typography>
-              </Box>
-            )}
           </>
         )}
       </DialogContent>

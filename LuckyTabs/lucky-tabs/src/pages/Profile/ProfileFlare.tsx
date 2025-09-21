@@ -20,7 +20,7 @@ const flareButtons = [
   { text: 'Get App', onClick: 'getApp' },
   { text: 'Support', onClick: 'mailto:TabsyWins@gmail.com' },
   { text: 'Wins/Losses', onClick: '/tracking' },
-  { text: 'Responsible Playing', onClick: '/features#responsible-playing' },
+  { text: 'Responsible Playing', onClick: '/responsible-gaming' },
   { text: 'Go Pro', onClick: null },
   { text: 'Coming Soon', onClick: null },
   { text: 'Coming Soon', onClick: null },

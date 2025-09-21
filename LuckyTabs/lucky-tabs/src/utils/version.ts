@@ -1,13 +1,10 @@
 // App version management
-export const APP_VERSION = '1.1.9'; // Update this with each significant deploy
+export const APP_VERSION = '1.1.11'; // Update this with each significant deploy
 
 // Check if user has the latest version
 export const checkVersion = () => {
   const storedVersion = localStorage.getItem('app_version');
-  const isNewVersion = storedVersion !== APP_VERSION;
-  
-  // Don't update localStorage here - let forceRefresh handle it
-  
+  const isNewVersion = storedVersion !== APP_VERSION;  
   return {
     isNewVersion,
     currentVersion: APP_VERSION,
