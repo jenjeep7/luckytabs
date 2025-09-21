@@ -40,7 +40,7 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { label: 'Profile', route: '/profile', icon: <PersonIcon /> },
-  { label: 'Predict', route: '/play', icon: <AutoGraph /> },
+  { label: 'Log a Box', route: '/play', icon: <AutoGraph /> },
   { label: 'Tracking', route: '/tracking', icon: <ListAltIcon /> },
   { label: 'Social', route: '/community', icon: <GroupIcon /> },
   { label: 'Feedback', action: 'feedback', icon: <FeedbackIcon /> },
@@ -71,7 +71,7 @@ function Layout() {
       // case path.startsWith('/profile'):
       //   return 'User Profile';
       default:
-        return `User Profile`;
+        return `Member Profile`;
     }
   };
 

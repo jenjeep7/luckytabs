@@ -34,7 +34,8 @@ const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
       <Box sx={{ mt: 2 }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
           <Avatar src={editForm.avatar} sx={{ width: 100, height: 100, mb: 2 }}>
-            {editForm.firstName[0]}{editForm.lastName[0]}
+            {(editForm.firstName?.[0] || editForm.displayName?.[0] || '?').toUpperCase()}
+            {(editForm.lastName?.[0] || editForm.displayName?.[1] || '').toUpperCase()}
           </Avatar>
           <input
             accept="image/*"
@@ -50,12 +51,27 @@ const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
           </label>
         </Box>
         <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+          <TextField
+            fullWidth
+            label="First Name"
+            value={editForm.firstName}
+            onChange={(e) => setEditForm((prev) => ({ ...prev, firstName: e.target.value }))}
+          />
+          <TextField
+            fullWidth
+            label="Last Name"
+            value={editForm.lastName}
+            onChange={(e) => setEditForm((prev) => ({ ...prev, lastName: e.target.value }))}
+          />
         </Box>
         <TextField
           fullWidth
           label="Display Name"
           value={editForm.displayName}
           onChange={(e) => setEditForm((prev) => ({ ...prev, displayName: e.target.value }))}
+          required
+          error={!editForm.displayName.trim()}
+          helperText={!editForm.displayName.trim() ? 'Display name is required' : ''}
         />
       </Box>
     </DialogContent>
@@ -64,7 +80,7 @@ const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
       <Button
         onClick={onSave}
         variant="contained"
-        disabled={saving}
+        disabled={saving || !editForm.displayName.trim()}
         startIcon={saving ? <CircularProgress size={16} /> : <Save />}
       >
         {saving ? 'Saving...' : 'Save Changes'}

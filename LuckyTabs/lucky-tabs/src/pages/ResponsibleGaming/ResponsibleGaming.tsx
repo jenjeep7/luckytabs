@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Paper, List, ListItem, ListItemIcon, ListItemText, Link, Divider } from '@mui/material';
+import { Box, Typography, Paper, List, ListItem, ListItemIcon, ListItemText, Link, Divider, IconButton } from '@mui/material';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import LightbulbIcon from '@mui/icons-material/Lightbulb';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -10,10 +10,13 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import GroupIcon from '@mui/icons-material/Group';
 import HelpIcon from '@mui/icons-material/Help';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useTheme } from '@mui/material/styles';
+import { useNavigate } from 'react-router-dom';
 
 const ResponsibleGaming: React.FC = () => {
   const theme = useTheme();
+  const navigate = useNavigate();
 
   return (
     <Box sx={{
@@ -23,6 +26,22 @@ const ResponsibleGaming: React.FC = () => {
       p: { xs: 2, md: 4 },
       bgcolor: 'background.paper',
     }}>
+      {/* Back Button */}
+      <Box sx={{ mb: 2 }}>
+        <IconButton 
+          onClick={() => void navigate(-1)}
+          size="small"
+          sx={{ 
+            color: theme.neon.colors.cyan,
+            '&:hover': {
+              backgroundColor: 'rgba(0, 255, 255, 0.1)',
+            }
+          }}
+        >
+          <ArrowBackIcon />
+        </IconButton>
+      </Box>
+      
       <Typography variant="h5" sx={{
         fontWeight: 900,
         color: theme.neon.colors.cyan,

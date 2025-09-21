@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Box, Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { GetAppDialog } from '../../components/GetAppDialog';
+import { FeedbackDialog } from '../../components/FeedbackDialog';
 
 // Shared button styling
 const flareButtonStyle = {
@@ -14,21 +15,22 @@ const flareButtonStyle = {
 
 // Button configuration data
 const flareButtons = [
-  { text: 'Predict Boxes', onClick: '/play' },
-  { text: 'Community', onClick: '/community' },
-  { text: 'Crews', onClick: '/community?tab=2' },
-  { text: 'Get App', onClick: 'getApp' },
-  { text: 'Support', onClick: 'mailto:TabsyWins@gmail.com' },
+  { text: 'Log a Box', onClick: '/play' },
+  { text: 'Social', onClick: '/community' },
+  { text: 'My Crews', onClick: '/community?tab=2' },
+  { text: 'Add To Phone', onClick: 'getApp' },
+  { text: 'Feedback', onClick: 'feedback' },
   { text: 'Wins/Losses', onClick: '/tracking' },
   { text: 'Responsible Playing', onClick: '/responsible-gaming' },
   { text: 'Go Pro', onClick: null },
-  { text: 'Coming Soon', onClick: null },
-  { text: 'Coming Soon', onClick: null },
+  { text: 'Local Non-Profits', onClick: null },
+  { text: 'Gaming Commissions', onClick: null },
 ];
 
 export const ProfileFlare: React.FC = () => {
   const navigate = useNavigate();
   const [getAppDialogOpen, setGetAppDialogOpen] = useState(false);
+  const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
   
   const handleButtonClick = (onClick: string | null) => {
     if (!onClick) return;
@@ -36,6 +38,9 @@ export const ProfileFlare: React.FC = () => {
     if (onClick === 'getApp') {
       // Handle Get App dialog
       setGetAppDialogOpen(true);
+    } else if (onClick === 'feedback') {
+      // Handle Feedback dialog
+      setFeedbackDialogOpen(true);
     } else if (onClick.startsWith('mailto:')) {
       // Handle email links
       window.location.href = onClick;
@@ -79,6 +84,11 @@ export const ProfileFlare: React.FC = () => {
       <GetAppDialog 
         open={getAppDialogOpen} 
         onClose={() => setGetAppDialogOpen(false)} 
+      />
+      
+      <FeedbackDialog 
+        open={feedbackDialogOpen} 
+        onClose={() => setFeedbackDialogOpen(false)} 
       />
     </>
   );
