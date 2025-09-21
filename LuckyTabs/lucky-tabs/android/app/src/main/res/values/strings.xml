@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Tabsy</string>
+    <string name="title_activity_main">Tabsy</string>
+    <string name="package_name">com.tabsy.app</string>
+    <string name="custom_url_scheme">com.tabsy.app</string>
+</resources>

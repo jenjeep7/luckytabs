@@ -1,8 +1,13 @@
 {
+  "homepage": ".",
   "name": "lucky-tabs",
   "version": "1.1.0",
   "private": true,
   "dependencies": {
+    "@capacitor-firebase/analytics": "^7.3.1",
+    "@capacitor-firebase/authentication": "^7.3.1",
+    "@capacitor/app": "^7.1.0",
+    "@capacitor/core": "^7.4.3",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@googlemaps/js-api-loader": "^1.16.10",
@@ -18,7 +23,7 @@
     "@types/node": "^16.18.126",
     "@types/react-dom": "^19.1.7",
     "autoprefixer": "^10.4.21",
-    "firebase": "^12.0.0",
+    "firebase": "^11.10.0",
     "heic2any": "^0.0.4",
     "postcss": "^8.5.6",
     "react": "^19.1.1",
@@ -56,6 +61,10 @@
     ]
   },
   "devDependencies": {
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^7.4.3",
+    "@capacitor/ios": "^7.4.3",
     "@craco/craco": "^7.1.0",
     "@types/react": "^19.1.11",
     "@types/trusted-types": "^2.0.7",

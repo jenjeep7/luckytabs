@@ -47,6 +47,10 @@ Thumbs.db
 # COMMUNITY_AVATAR_UPDATE.md
 # firestore-rules-updated.rules
 
+# Ruby/Bundle
+vendor/bundle
+.bundle
+
 # IDE files
 .vscode/launch.json
 .idea/

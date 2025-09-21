@@ -19,8 +19,8 @@ import {
 import { PhotoCamera, Delete, Upload } from "@mui/icons-material";
 import { collection, addDoc, serverTimestamp, doc, updateDoc, onSnapshot } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { auth, db, storage } from "../../firebase";
-import { useAuthState } from "react-firebase-hooks/auth";
+import { db, storage } from "../../firebase";
+import { useAuthStateCompat } from '../../services/useAuthStateCompat';
 import { userService, UserData } from "../../services/userService";
 import { trackBoxCreated, trackFlareSheetUploaded } from "../../utils/analytics";
 import { EstimateRemainingDialog } from "./BoxDialogs";
@@ -45,7 +45,7 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
   const [boxNumber, setBoxNumber] = useState("");
   const [pricePerTicket, setPricePerTicket] = useState("");
   const [startingTickets, setStartingTickets] = useState("3000");
-  const [user] = useAuthState(auth);
+  const [user] = useAuthStateCompat();
   const [userProfile, setUserProfile] = useState<UserData | null>(null);
   const [winningTickets, setWinningTickets] = useState<Prize[]>([
     { prize: "", totalPrizes: 0, claimedTotal: 0 },

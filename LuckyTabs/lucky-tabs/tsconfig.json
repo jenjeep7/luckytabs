@@ -24,7 +24,8 @@
   "include": [
     "src/**/*",
     "src/**/*.ts",
-    "src/**/*.tsx"
+    "src/**/*.tsx",
+    "capacitor.config.ts"
   ],
   "exclude": [
     "node_modules",

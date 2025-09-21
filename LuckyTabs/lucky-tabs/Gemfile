@@ -1,0 +1,6 @@
+source "https://rubygems.org"
+ruby "3.4.6"
+
+# Pin to master to support Xcode 16 object version 70
+gem "cocoapods", github: "CocoaPods/CocoaPods", branch: "master"
+gem "xcodeproj", github: "CocoaPods/Xcodeproj", branch: "master"
