@@ -65,8 +65,6 @@ export const UserProfile: React.FC = () => {
 
   // Form state for editing
   const [editForm, setEditForm] = useState({
-    firstName: '',
-    lastName: '',
     displayName: '',
     avatar: ''
   });
@@ -82,8 +80,6 @@ export const UserProfile: React.FC = () => {
       if (userProfile) {
         setUserData(userProfile);
         setEditForm({
-          firstName: userProfile.firstName,
-          lastName: userProfile.lastName,
           displayName: userProfile.displayName,
           avatar: userProfile.avatar || ''
         });
@@ -104,8 +100,6 @@ export const UserProfile: React.FC = () => {
         if (newProfile) {
           setUserData(newProfile);
           setEditForm({
-            firstName: newProfile.firstName,
-            lastName: newProfile.lastName,
             displayName: newProfile.displayName,
             avatar: newProfile.avatar || ''
           });
@@ -147,8 +141,6 @@ export const UserProfile: React.FC = () => {
   const handleEditClick = () => {
     if (userData) {
       setEditForm({
-        firstName: userData.firstName,
-        lastName: userData.lastName,
         displayName: userData.displayName,
         avatar: userData.avatar || ''
       });
@@ -161,19 +153,22 @@ export const UserProfile: React.FC = () => {
 
     setSaving(true);
     try {
-      // Update user profile in Firebase
-      await userService.updateUserProfile(user.uid, {
-        firstName: editForm.firstName,
-        lastName: editForm.lastName,
+      // Prepare update data, excluding undefined values
+      const updateData: { displayName: string; avatar?: string } = {
         displayName: editForm.displayName,
-        avatar: editForm.avatar || undefined
-      });
+      };
+      
+      // Only include avatar if it has a value
+      if (editForm.avatar && editForm.avatar.trim()) {
+        updateData.avatar = editForm.avatar;
+      }
+
+      // Update user profile in Firebase
+      await userService.updateUserProfile(user.uid, updateData);
 
       // Update local state
       const updatedUserData: UserData = {
         ...userData,
-        firstName: editForm.firstName,
-        lastName: editForm.lastName,
         displayName: editForm.displayName,
         avatar: editForm.avatar || undefined,
         updatedAt: new Date()

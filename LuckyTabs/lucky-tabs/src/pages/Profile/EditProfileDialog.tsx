@@ -3,8 +3,6 @@ import { Dialog, DialogTitle, DialogContent, DialogActions, Button, CircularProg
 import { PhotoCamera, Save, Cancel } from '@mui/icons-material';
 
 export interface ProfileForm {
-  firstName: string;
-  lastName: string;
   displayName: string;
   avatar: string;
 }
@@ -34,8 +32,8 @@ const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
       <Box sx={{ mt: 2 }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
           <Avatar src={editForm.avatar} sx={{ width: 100, height: 100, mb: 2 }}>
-            {(editForm.firstName?.[0] || editForm.displayName?.[0] || '?').toUpperCase()}
-            {(editForm.lastName?.[0] || editForm.displayName?.[1] || '').toUpperCase()}
+            {(editForm.displayName?.[0] || '?').toUpperCase()}
+            {(editForm.displayName?.[1] || '').toUpperCase()}
           </Avatar>
           <input
             accept="image/*"
@@ -49,20 +47,6 @@ const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
               Change Avatar
             </Button>
           </label>
-        </Box>
-        <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-          <TextField
-            fullWidth
-            label="First Name"
-            value={editForm.firstName}
-            onChange={(e) => setEditForm((prev) => ({ ...prev, firstName: e.target.value }))}
-          />
-          <TextField
-            fullWidth
-            label="Last Name"
-            value={editForm.lastName}
-            onChange={(e) => setEditForm((prev) => ({ ...prev, lastName: e.target.value }))}
-          />
         </Box>
         <TextField
           fullWidth

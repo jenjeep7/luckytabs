@@ -73,8 +73,8 @@ export const LandingPage: React.FC = () => {
               style={{
                 height: 'auto',
                 width: '100%',
-                maxHeight: '200px',
-                maxWidth: '200px',
+                maxHeight: '280px',
+                maxWidth: '280px',
                 objectFit: 'contain',
               }}
             />
@@ -94,7 +94,7 @@ export const LandingPage: React.FC = () => {
                 mb: { xs: 2, sm: 3 }
               }}
             >
-              {`Welcome to Tabsy's Community of Pull Tab Enthusiasts!`}
+              Smarter Pull Tab Play Starts Here
             </Typography>
 
             <Typography 
@@ -112,7 +112,7 @@ export const LandingPage: React.FC = () => {
                 whiteSpace: 'pre-line'
               }}
             >
-              {`Tabsy Wins isn’t just another app—it’s a magical toolkit for pull tab players. Log your sessions, scan boxes, predict smarter outcomes, and connect with a crew of streak-chasers who play with heart. Whether you're a casual ripper or a strategic player, Tabsy helps you stay sharp, stay social, and stay in the game.`}
+              {`Tabsy helps you track wins, scan Flare, set budgets, and spot hot boxes—so you can rip with confidence, not guesswork. Built for players. Powered by data. Backed by community.`}
             </Typography>
           </Box>
 
@@ -126,26 +126,26 @@ export const LandingPage: React.FC = () => {
             {/* First row: Join and Features buttons side by side */}
             <Stack
               direction="row"
-              spacing={{ xs: 2, sm: 2 }}
+              spacing={{ xs: 1, sm: 2 }}
               justifyContent="center"
               alignItems="center"
-              sx={{ flexWrap: 'wrap', gap: { xs: 2 } }}
+              sx={{ flexWrap: 'wrap', gap: { xs: 1, sm: 2 } }}
             >
               <Button
                 component={RouterLink}
                 to="/signup"
-                size="medium"
+                size="small"
                 variant="contained"
                 color="success"
                 sx={{
-                  px: { xs: 2, sm: 2.5 },
-                  py: { xs: 2, sm: 1 },
+                  px: { xs: 1.5, sm: 2.5 },
+                  py: { xs: 1, sm: 1 },
                   fontWeight: 800,
                   textTransform: 'none',
-                  fontSize: { xs: '0.85rem', sm: '1rem' },
-                  minWidth: { xs: '140px', sm: '100px' },
+                  fontSize: { xs: '0.75rem', sm: '1rem' },
+                  minWidth: { xs: '110px', sm: '120px' },
                   boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
-                  height: { xs: '48px' }
+                  height: { xs: '42px', sm: '48px' }
                 }}
               >
                 {`Join Tabsy's Crew`}
@@ -154,28 +154,28 @@ export const LandingPage: React.FC = () => {
               <Button
                 component={RouterLink}
                 to="/features"
-                size="medium"
+                size="small"
                 variant="contained"
                 color="secondary"
                 sx={{
-                  px: { xs: 2, sm: 2.5 },
+                  px: { xs: 1.5, sm: 2.5 },
                   py: { xs: 1, sm: 1 },
                   fontWeight: 800,
                   textTransform: 'none',
-                  fontSize: { xs: '0.85rem', sm: '1rem' },
-                  minWidth: { xs: '140px', sm: '120px' },
+                  fontSize: { xs: '0.75rem', sm: '1rem' },
+                  minWidth: { xs: '110px', sm: '120px' },
                   boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
-                  height: { xs: '48px' }
+                  height: { xs: '42px', sm: '48px' }
                 }}
               >
-                {`Tabsy's Crystal Ball`}
+                {`Behind the Magic`}
               </Button>
             </Stack>
 
             {/* Second row: Preview App button centered */}
             <Button
               onClick={() => setPreviewOpen(true)}
-              size="medium"
+              size="small"
               variant="outlined"
               sx={{
                 px: { xs: 2, sm: 2.5 },
