@@ -133,7 +133,7 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
+      <DialogTitle sx={{ textAlign: 'center' }}>
         Track Gambling Result
       </DialogTitle>
       <DialogContent>
@@ -152,27 +152,28 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
                 disableRipple
                 sx={{
                   flex: 1,
-                  color: resultType === 'win' ? '#fff !important' : '#00C853 !important',
-                  backgroundColor: resultType === 'win' ? '#00C853 !important' : 'transparent !important',
-                  border: '2px solid #00C853 !important',
-                  fontWeight: 600,
+                  color: '#00C853 !important',
+                  backgroundColor: resultType === 'win' ? 'rgba(0, 200, 83, 0.15) !important' : 'transparent !important',
+                  border: resultType === 'win' ? '3px solid #00C853 !important' : '2px solid #00C853 !important',
+                  fontWeight: resultType === 'win' ? 800 : 600,
                   textTransform: 'none',
+                  boxShadow: resultType === 'win' ? '0 0 0 1px rgba(0, 200, 83, 0.3)' : 'none',
                   '&:hover': {
-                    backgroundColor: resultType === 'win' ? '#00A843 !important' : 'rgba(0, 200, 83, 0.08) !important',
+                    backgroundColor: 'rgba(0, 200, 83, 0.08) !important',
                     border: '2px solid #00C853 !important',
                   },
                   '&:active': {
-                    backgroundColor: resultType === 'win' ? '#00A843 !important' : 'rgba(0, 200, 83, 0.12) !important',
+                    backgroundColor: 'rgba(0, 200, 83, 0.12) !important',
                   },
                   '&:focus': {
-                    backgroundColor: resultType === 'win' ? '#00C853 !important' : 'transparent !important',
+                    backgroundColor: resultType === 'win' ? 'rgba(0, 200, 83, 0.15) !important' : 'transparent !important',
                   },
                   // Override all possible Material-UI states
                   '&.Mui-focusVisible': {
-                    backgroundColor: resultType === 'win' ? '#00C853 !important' : 'transparent !important',
+                    backgroundColor: resultType === 'win' ? 'rgba(0, 200, 83, 0.15) !important' : 'transparent !important',
                   },
                   '&.MuiButton-root': {
-                    backgroundColor: resultType === 'win' ? '#00C853 !important' : 'transparent !important',
+                    backgroundColor: resultType === 'win' ? 'rgba(0, 200, 83, 0.15) !important' : 'transparent !important',
                   }
                 }}
               >
@@ -185,27 +186,28 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
                 disableRipple
                 sx={{
                   flex: 1,
-                  color: resultType === 'loss' ? '#fff !important' : '#F44336 !important',
-                  backgroundColor: resultType === 'loss' ? '#F44336 !important' : 'transparent !important',
-                  border: '2px solid #F44336 !important',
-                  fontWeight: 600,
+                  color: '#F44336 !important',
+                  backgroundColor: resultType === 'loss' ? 'rgba(244, 67, 54, 0.15) !important' : 'transparent !important',
+                  border: resultType === 'loss' ? '3px solid #F44336 !important' : '2px solid #F44336 !important',
+                  fontWeight: resultType === 'loss' ? 800 : 600,
                   textTransform: 'none',
+                  boxShadow: resultType === 'loss' ? '0 0 0 1px rgba(244, 67, 54, 0.3)' : 'none',
                   '&:hover': {
-                    backgroundColor: resultType === 'loss' ? '#D32F2F !important' : 'rgba(244, 67, 54, 0.08) !important',
+                    backgroundColor: 'rgba(244, 67, 54, 0.08) !important',
                     border: '2px solid #F44336 !important',
                   },
                   '&:active': {
-                    backgroundColor: resultType === 'loss' ? '#D32F2F !important' : 'rgba(244, 67, 54, 0.12) !important',
+                    backgroundColor: 'rgba(244, 67, 54, 0.12) !important',
                   },
                   '&:focus': {
-                    backgroundColor: resultType === 'loss' ? '#F44336 !important' : 'transparent !important',
+                    backgroundColor: resultType === 'loss' ? 'rgba(244, 67, 54, 0.15) !important' : 'transparent !important',
                   },
                   // Override all possible Material-UI states
                   '&.Mui-focusVisible': {
-                    backgroundColor: resultType === 'loss' ? '#F44336 !important' : 'transparent !important',
+                    backgroundColor: resultType === 'loss' ? 'rgba(244, 67, 54, 0.15) !important' : 'transparent !important',
                   },
                   '&.MuiButton-root': {
-                    backgroundColor: resultType === 'loss' ? '#F44336 !important' : 'transparent !important',
+                    backgroundColor: resultType === 'loss' ? 'rgba(244, 67, 54, 0.15) !important' : 'transparent !important',
                   }
                 }}
               >
@@ -258,10 +260,10 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
           {amount && (
             <Box sx={{ 
               p: 2, 
-              bgcolor: resultType === 'win' ? 'success.light' : 'error.light', 
+              backgroundColor: 'transparent',
               borderRadius: 1, 
               mb: 3,
-              border: 1,
+              border: 2,
               borderColor: resultType === 'win' ? 'success.main' : 'error.main'
             }}>
               <Typography variant="body2" sx={{ color: resultType === 'win' ? 'success.dark' : 'error.dark' }}>
