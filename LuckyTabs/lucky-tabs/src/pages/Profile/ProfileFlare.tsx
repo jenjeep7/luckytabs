@@ -20,7 +20,7 @@ const flareButtons = [
   { text: 'My Crews', onClick: '/community?tab=2' },
   { text: 'Add To Phone', onClick: 'getApp' },
   { text: 'Feedback', onClick: 'feedback' },
-  { text: 'Wins/Losses', onClick: '/tracking' },
+  { text: 'Profit/Loss', onClick: '/tracking' },
   { text: 'Responsible Playing', onClick: '/responsible-gaming' },
   { text: 'Go Pro', onClick: null },
   { text: 'Local Non-Profits', onClick: null },

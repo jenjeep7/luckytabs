@@ -41,7 +41,7 @@ type NavItem = {
 const navItems: NavItem[] = [
   { label: 'Profile', route: '/profile', icon: <PersonIcon /> },
   { label: 'Log a Box', route: '/play', icon: <AutoGraph /> },
-  { label: 'Tracking', route: '/tracking', icon: <ListAltIcon /> },
+  { label: 'Profit/Loss', route: '/tracking', icon: <ListAltIcon /> },
   { label: 'Social', route: '/community', icon: <GroupIcon /> },
   { label: 'Feedback', action: 'feedback', icon: <FeedbackIcon /> },
 ];
@@ -65,7 +65,7 @@ function Layout() {
         // Show location name if available, otherwise default title
         return selectedLocationObj?.name || 'Box Dashboard';
       case path.startsWith('/tracking'):
-        return 'Budget Tracking';
+        return 'Profit/Loss';
       case path.startsWith('/community'):
         return 'Social';
       // case path.startsWith('/profile'):

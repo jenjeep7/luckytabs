@@ -943,7 +943,7 @@ export const Community: React.FC = () => {
           }}
         >
           <Tab icon={<Public />} label="Public Feed" iconPosition="start" />
-          <Tab icon={<Group />} label="Group Feed" iconPosition="start" />
+          <Tab icon={<Group />} label="Crew Feed" iconPosition="start" />
           <Tab icon={<GroupsIcon />} label="My Crews" iconPosition="start" />
         </Tabs>
 
