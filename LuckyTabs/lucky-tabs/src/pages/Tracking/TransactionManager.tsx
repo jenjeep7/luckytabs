@@ -11,8 +11,14 @@ import {
   Alert,
   InputAdornment,
   Autocomplete,
+  Chip,
 } from '@mui/material';
-import { AttachMoney as MoneyIcon, Place as PlaceIcon } from '@mui/icons-material';
+import { 
+  AttachMoney as MoneyIcon, 
+  Place as PlaceIcon,
+  TrendingUp as WinIcon,
+  TrendingDown as LossIcon
+} from '@mui/icons-material';
 import { collection, addDoc, serverTimestamp, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase';
 
@@ -47,8 +53,8 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
   onTransactionAdded,
   userId,
 }) => {
-  const [betAmount, setBetAmount] = useState<string>('');
-  const [winAmount, setWinAmount] = useState<string>('');
+  const [resultType, setResultType] = useState<'win' | 'loss'>('win');
+  const [amount, setAmount] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
@@ -75,16 +81,10 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
   }, [open]);
 
   const handleSave = async () => {
-    const betValue = parseFloat(betAmount);
-    const winValue = winAmount ? parseFloat(winAmount) : 0;
+    const amountValue = parseFloat(amount);
     
-    if (isNaN(betValue) || betValue <= 0) {
-      setError('Please enter a valid bet amount greater than $0');
-      return;
-    }
-
-    if (winAmount && (isNaN(winValue) || winValue < 0)) {
-      setError('Win amount must be $0 or greater');
+    if (isNaN(amountValue) || amountValue <= 0) {
+      setError('Please enter a valid amount greater than $0');
       return;
     }
 
@@ -96,31 +96,21 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
       const weekStart = getStartOfWeek(now);
       const activityDescription = description.trim() || 'Gambling activity';
       
-      // Always create a bet transaction
+      // Calculate the net result (negative for loss, positive for win)
+      const netAmount = resultType === 'win' ? amountValue : -amountValue;
+      
+      // Create a single transaction with the net result
       await addDoc(collection(db, 'transactions'), {
         userId,
-        type: 'bet',
-        amount: betValue,
+        type: resultType,
+        amount: amountValue, // Store the absolute amount
+        netAmount: netAmount, // Store the net result
         description: activityDescription,
         location: selectedLocation?.name || '',
         locationId: selectedLocation?.id || '',
         createdAt: serverTimestamp(),
         weekStart: weekStart.toISOString(),
       });
-
-      // Create a win transaction if win amount is provided and > 0
-      if (winValue > 0) {
-        await addDoc(collection(db, 'transactions'), {
-          userId,
-          type: 'win',
-          amount: winValue,
-          description: `Win from: ${activityDescription}`,
-          location: selectedLocation?.name || '',
-          locationId: selectedLocation?.id || '',
-          createdAt: serverTimestamp(),
-          weekStart: weekStart.toISOString(),
-        });
-      }
 
       onTransactionAdded();
       handleClose();
@@ -133,36 +123,105 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
   };
 
   const handleClose = () => {
-    setBetAmount('');
-    setWinAmount('');
+    setAmount('');
     setDescription('');
     setSelectedLocation(null);
+    setResultType('win');
     setError('');
     onClose();
   };
 
-  const netResult = () => {
-    const bet = parseFloat(betAmount) || 0;
-    const win = parseFloat(winAmount) || 0;
-    return win - bet;
-  };
-
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        Add Gambling Activity
+      <DialogTitle sx={{ textAlign: 'center' }}>
+        Track Gambling Result
       </DialogTitle>
       <DialogContent>
         <Box sx={{ pt: 2 }}>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Record your gambling activity. Enter the amount you bet and any winnings from that activity.
+            Did you win or lose money from your gambling activity? Enter the total amount.
           </Typography>
 
+          {/* Win/Loss Toggle */}
+          <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center' }}>
+            <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
+              <Button
+                onClick={() => setResultType('win')}
+                startIcon={<WinIcon />}
+                size="small"
+                disableRipple
+                sx={{
+                  flex: 1,
+                  color: '#00C853 !important',
+                  backgroundColor: resultType === 'win' ? 'rgba(0, 200, 83, 0.15) !important' : 'transparent !important',
+                  border: resultType === 'win' ? '3px solid #00C853 !important' : '2px solid #00C853 !important',
+                  fontWeight: resultType === 'win' ? 800 : 600,
+                  textTransform: 'none',
+                  boxShadow: resultType === 'win' ? '0 0 0 1px rgba(0, 200, 83, 0.3)' : 'none',
+                  '&:hover': {
+                    backgroundColor: 'rgba(0, 200, 83, 0.08) !important',
+                    border: '2px solid #00C853 !important',
+                  },
+                  '&:active': {
+                    backgroundColor: 'rgba(0, 200, 83, 0.12) !important',
+                  },
+                  '&:focus': {
+                    backgroundColor: resultType === 'win' ? 'rgba(0, 200, 83, 0.15) !important' : 'transparent !important',
+                  },
+                  // Override all possible Material-UI states
+                  '&.Mui-focusVisible': {
+                    backgroundColor: resultType === 'win' ? 'rgba(0, 200, 83, 0.15) !important' : 'transparent !important',
+                  },
+                  '&.MuiButton-root': {
+                    backgroundColor: resultType === 'win' ? 'rgba(0, 200, 83, 0.15) !important' : 'transparent !important',
+                  }
+                }}
+              >
+                I Won Money
+              </Button>
+              <Button
+                onClick={() => setResultType('loss')}
+                startIcon={<LossIcon />}
+                size="small"
+                disableRipple
+                sx={{
+                  flex: 1,
+                  color: '#F44336 !important',
+                  backgroundColor: resultType === 'loss' ? 'rgba(244, 67, 54, 0.15) !important' : 'transparent !important',
+                  border: resultType === 'loss' ? '3px solid #F44336 !important' : '2px solid #F44336 !important',
+                  fontWeight: resultType === 'loss' ? 800 : 600,
+                  textTransform: 'none',
+                  boxShadow: resultType === 'loss' ? '0 0 0 1px rgba(244, 67, 54, 0.3)' : 'none',
+                  '&:hover': {
+                    backgroundColor: 'rgba(244, 67, 54, 0.08) !important',
+                    border: '2px solid #F44336 !important',
+                  },
+                  '&:active': {
+                    backgroundColor: 'rgba(244, 67, 54, 0.12) !important',
+                  },
+                  '&:focus': {
+                    backgroundColor: resultType === 'loss' ? 'rgba(244, 67, 54, 0.15) !important' : 'transparent !important',
+                  },
+                  // Override all possible Material-UI states
+                  '&.Mui-focusVisible': {
+                    backgroundColor: resultType === 'loss' ? 'rgba(244, 67, 54, 0.15) !important' : 'transparent !important',
+                  },
+                  '&.MuiButton-root': {
+                    backgroundColor: resultType === 'loss' ? 'rgba(244, 67, 54, 0.15) !important' : 'transparent !important',
+                  }
+                }}
+              >
+                I Lost Money
+              </Button>
+            </Box>
+          </Box>
+
+          {/* Amount Field */}
           <Box sx={{ mb: 3 }}>
             <TextField
-              label="Bet Amount"
-              value={betAmount}
-              onChange={(e) => setBetAmount(e.target.value)}
+              label={resultType === 'win' ? 'Amount Won' : 'Amount Lost'}
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
               fullWidth
               required
               type="number"
@@ -174,39 +233,79 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
                 input: {
                   startAdornment: (
                     <InputAdornment position="start">
-                      <MoneyIcon />
+                      <MoneyIcon sx={{ color: resultType === 'win' ? 'success.main' : 'error.main' }} />
                     </InputAdornment>
                   ),
                 },
               }}
-              helperText="Amount you spent on this gambling activity"
+              helperText={
+                resultType === 'win' 
+                  ? "Enter the total amount you won (after accounting for what you spent)"
+                  : "Enter the total amount you lost"
+              }
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '&.Mui-focused fieldset': {
+                    borderColor: resultType === 'win' ? 'success.main' : 'error.main',
+                  },
+                },
+                '& .MuiInputLabel-root.Mui-focused': {
+                  color: resultType === 'win' ? 'success.main' : 'error.main',
+                }
+              }}
             />
           </Box>
 
+          {/* Result Preview */}
+          {amount && (
+            <Box sx={{ 
+              p: 2, 
+              backgroundColor: 'transparent',
+              borderRadius: 1, 
+              mb: 3,
+              border: 2,
+              borderColor: resultType === 'win' ? 'success.main' : 'error.main'
+            }}>
+              <Typography variant="body2" sx={{ color: resultType === 'win' ? 'success.dark' : 'error.dark' }}>
+                Net Result: 
+                <Typography 
+                  component="span" 
+                  variant="h6" 
+                  sx={{ 
+                    ml: 1, 
+                    fontWeight: 'bold',
+                    color: resultType === 'win' ? 'success.dark' : 'error.dark'
+                  }}
+                >
+                  {resultType === 'win' ? '+' : '-'}${parseFloat(amount || '0').toFixed(2)}
+                </Typography>
+              </Typography>
+              <Typography variant="caption" sx={{ color: resultType === 'win' ? 'success.dark' : 'error.dark' }}>
+                {resultType === 'win' ? '🎉 Great job!' : '💸 Better luck next time!'}
+              </Typography>
+            </Box>
+          )}
+
+          {/* Quick Amount Buttons */}
           <Box sx={{ mb: 3 }}>
-            <TextField
-              label="Win Amount (Optional)"
-              value={winAmount}
-              onChange={(e) => setWinAmount(e.target.value)}
-              fullWidth
-              type="number"
-              slotProps={{
-                htmlInput: {
-                  min: 0,
-                  step: 0.01,
-                },
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <MoneyIcon />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-              helperText="Amount you won from this activity (leave empty if no win)"
-            />
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              Quick amounts:
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              {[5, 10, 20, 50, 100].map((quickAmount) => (
+                <Chip
+                  key={quickAmount}
+                  label={`$${quickAmount}`}
+                  onClick={() => setAmount(quickAmount.toString())}
+                  clickable
+                  variant="outlined"
+                  size="small"
+                />
+              ))}
+            </Box>
           </Box>
 
+          {/* Description Field */}
           <Box sx={{ mb: 3 }}>
             <TextField
               label="Description"
@@ -219,6 +318,7 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
             />
           </Box>
 
+          {/* Location Field */}
           <Box sx={{ mb: 3 }}>
             <Autocomplete
               options={locations}
@@ -254,29 +354,6 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
             />
           </Box>
 
-          {/* Net Result Display */}
-          {(betAmount || winAmount) && (
-            <Box sx={{ p: 2, bgcolor: 'action.hover', borderRadius: 1, mb: 2 }}>
-              <Typography variant="body2" color="text.secondary">
-                Net Result: 
-                <Typography 
-                  component="span" 
-                  variant="body1" 
-                  sx={{ 
-                    ml: 1, 
-                    fontWeight: 'bold',
-                    color: netResult() >= 0 ? 'success.main' : 'error.main'
-                  }}
-                >
-                  {netResult() >= 0 ? '+' : ''}${netResult().toFixed(2)}
-                </Typography>
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {netResult() >= 0 ? '🎉 You came out ahead!' : '💸 You spent more than you won'}
-              </Typography>
-            </Box>
-          )}
-
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {error}
@@ -303,13 +380,12 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
         <Button
           onClick={() => { void handleSave(); }}
           variant="contained"
-          color="primary"
-          disabled={isLoading}
+          disabled={isLoading || !amount}
           sx={{ 
-            backgroundColor: 'primary.main',
-            color: 'primary.contrastText',
+            backgroundColor: resultType === 'win' ? 'success.main' : 'error.main',
+            color: 'white',
             '&:hover': {
-              backgroundColor: 'primary.dark'
+              backgroundColor: resultType === 'win' ? 'success.dark' : 'error.dark'
             },
             '&:disabled': {
               backgroundColor: 'action.disabledBackground',
@@ -317,7 +393,7 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
             }
           }}
         >
-          {isLoading ? 'Adding...' : 'Add Activity'}
+          {isLoading ? 'Adding...' : `Record ${resultType === 'win' ? 'Win' : 'Loss'}`}
         </Button>
       </DialogActions>
     </Dialog>

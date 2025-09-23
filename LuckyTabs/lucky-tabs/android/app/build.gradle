@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "com.tabsy.app"
+    namespace "com.tabsywins.app"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.tabsy.app"
+        applicationId "com.tabsywins.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -40,6 +40,15 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')
+    
+    // Import the Firebase BoM
+    implementation platform('com.google.firebase:firebase-bom:34.3.0')
+    
+    // Firebase Analytics
+    implementation 'com.google.firebase:firebase-analytics'
+    
+    // Firebase Auth
+    implementation 'com.google.firebase:firebase-auth'
 }
 
 apply from: 'capacitor.build.gradle'

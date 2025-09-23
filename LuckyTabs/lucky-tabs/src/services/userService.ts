@@ -127,6 +127,11 @@ class UserService {
     updates: Partial<Pick<UserData, 'displayName' | 'firstName' | 'lastName' | 'avatar' | 'plan' | 'isAdmin'>>
   ): Promise<void> {
     try {
+      // Validate displayName if provided
+      if (updates.displayName !== undefined && !updates.displayName.trim()) {
+        throw new Error('Display name cannot be empty');
+      }
+
       const updateData = {
         ...updates,
         updatedAt: Timestamp.fromDate(new Date())

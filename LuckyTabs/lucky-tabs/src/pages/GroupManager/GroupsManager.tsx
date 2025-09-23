@@ -9,7 +9,6 @@ import {
 } from '@mui/icons-material';
 import { groupService, GroupData } from '../../services/groupService';
 import { CreateGroupDialog } from './CreateGroupDialog';
-import { GroupMembersDialog } from './GroupMembersDialog';
 import { GroupsList } from './GroupsList';
 
 interface GroupsManagerProps {
@@ -21,8 +20,6 @@ export const GroupsManager: React.FC<GroupsManagerProps> = ({ currentUserId, cur
   const [groups, setGroups] = useState<GroupData[]>([]);
   const [loading, setLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [selectedGroup, setSelectedGroup] = useState<GroupData | null>(null);
-  const [membersDialogOpen, setMembersDialogOpen] = useState(false);
 
   // Load user's groups
   const loadGroups = useCallback(async () => {
@@ -44,11 +41,6 @@ export const GroupsManager: React.FC<GroupsManagerProps> = ({ currentUserId, cur
     void loadGroups();
   }, [currentUserId, loadGroups]);
 
-  const handleGroupClick = (group: GroupData) => {
-    setSelectedGroup(group);
-    setMembersDialogOpen(true);
-  };
-
   const handleDeleteGroup = async (groupId: string) => {
     try {
       await groupService.deleteGroup(groupId, currentUserId);
@@ -58,26 +50,10 @@ export const GroupsManager: React.FC<GroupsManagerProps> = ({ currentUserId, cur
     }
   };
 
-  // Handle member changes with proper refresh
-  const handleMemberChanged = useCallback(async () => {
-    await loadGroups();
-    
-    // Update the selected group if dialog is open
-    if (selectedGroup) {
-      try {
-        const updatedGroup = await groupService.getGroup(selectedGroup.id);
-        if (updatedGroup) {
-          setSelectedGroup(updatedGroup);
-        }
-      } catch (error) {
-      }
-    }
-  }, [loadGroups, selectedGroup]);
-
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h6">My Groups</Typography>
+        <Typography variant="h6">My Crews</Typography>
         <Fab
           color="primary"
           size="small"
@@ -92,7 +68,7 @@ export const GroupsManager: React.FC<GroupsManagerProps> = ({ currentUserId, cur
         groups={groups}
         loading={loading}
         currentUserId={currentUserId}
-        onGroupClick={handleGroupClick}
+        onGroupClick={() => undefined} // Not needed anymore since cards handle everything
         onDeleteGroup={(groupId) => { void handleDeleteGroup(groupId); }}
       />
 
@@ -102,15 +78,6 @@ export const GroupsManager: React.FC<GroupsManagerProps> = ({ currentUserId, cur
         onClose={() => setCreateDialogOpen(false)}
         onGroupCreated={() => { void loadGroups(); }}
         currentUserId={currentUserId}
-      />
-
-      {/* Group Members Dialog */}
-      <GroupMembersDialog
-        open={membersDialogOpen}
-        onClose={() => setMembersDialogOpen(false)}
-        group={selectedGroup}
-        currentUserId={currentUserId}
-        onMemberAdded={() => { void handleMemberChanged(); }}
       />
     </Box>
   );

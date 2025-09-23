@@ -115,35 +115,16 @@ export const Tracking: React.FC = () => {
     <Box sx={{ p: 3 }}>
       <Box sx={{ 
         display: 'flex', 
-        flexDirection: { xs: 'column', sm: 'row' },
-        justifyContent: 'space-between', 
-        alignItems: { xs: 'stretch', sm: 'center' }, 
-        gap: { xs: 2, sm: 0 },
+        justifyContent: 'center',
+        alignItems: 'center', 
         mb: 3 
       }}>
         <Box sx={{ 
           display: 'flex', 
           flexDirection: { xs: 'column', sm: 'row' },
-          gap: 1,
-          width: { xs: '100%', sm: 'auto' }
+          gap: 2,
+          alignItems: 'center'
         }}>
-          <Button
-            variant="outlined"
-            color="primary"
-            startIcon={<EditIcon />}
-            onClick={() => setBudgetManagerOpen(true)}
-            sx={{ 
-              borderColor: 'primary.main',
-              color: 'text.primary',
-              '&:hover': {
-                borderColor: 'primary.dark',
-                backgroundColor: 'primary.main',
-                color: 'text.primary'
-              }
-            }}
-          >
-            {userBudget ? 'Edit Budget' : 'Set Budget'}
-          </Button>
           <Button
             variant="contained"
             color="primary"
@@ -157,14 +138,35 @@ export const Tracking: React.FC = () => {
               }
             }}
           >
-            Add Transaction
+            Track $
+          </Button>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<EditIcon />}
+            onClick={() => setBudgetManagerOpen(true)}
+            sx={{ 
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              textTransform: 'none',
+              minWidth: 'auto',
+              padding: '4px 8px',
+              '& .MuiButton-startIcon': {
+                marginRight: '4px',
+                '& > svg': {
+                  fontSize: '16px'
+                }
+              }
+            }}
+          >
+            Budget
           </Button>
         </Box>
       </Box>
 
       {/* Quick Stats Cards */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 2, mb: 2 }}>
-        <Card>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 2 }}>
+        <Card sx={{ width: '100%' }}>
           <CardContent sx={{ textAlign: 'center' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
               <MoneyIcon sx={{ mr: 1, color: 'error.main' }} />
@@ -257,7 +259,7 @@ export const Tracking: React.FC = () => {
       </Box>
 
       {/* Tabs for different views */}
-      <Card>
+      <Card sx={{ width: '100%' }}>
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs value={tabValue} onChange={handleTabChange} aria-label="tracking tabs">
             <Tab 

@@ -1,4 +1,3 @@
-// Move ScreenshotCarousel to the very top of the file
 import React, { useEffect, useState } from 'react';
 import { trackLandingPageVisit } from '../../utils/analytics';
 import { Capacitor } from '@capacitor/core';
@@ -10,72 +9,11 @@ import {
   Stack,
 } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
-
-const ScreenshotCarousel: React.FC = () => {
-  const screenshots = [
-    '/screenshots/Profile.png',
-    '/screenshots/boxes.png',
-    '/screenshots/box.png',
-    '/screenshots/Community.png',
-  ];
-  const titles = [
-    'Profile Page',
-    'Track Your Boxes',
-    'Box Details',
-    'Community Page',
-  ];
-  const [index, setIndex] = useState(0);
-  const total = screenshots.length;
-
-  const prev = () => setIndex((i) => (i - 1 + total) % total);
-  const next = () => setIndex((i) => (i + 1) % total);
-
-  return (
-    <Box sx={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      mb: { xs: 2, sm: 3 },
-      width: '90%',
-      maxWidth: 500,
-      mx: 'auto',
-      position: 'relative',
-    }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'center' }}>
-        <Button onClick={prev} size="small" sx={{ minWidth: 0, px: 1 }} aria-label="Previous screenshot">&#8592;</Button>
-        <Box sx={{
-          width: { xs: 150 },
-          height: { xs: 170 },
-          overflow: 'hidden',
-          mx: 1,
-          boxShadow: 2,
-          background: '#181a20',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <img
-            src={screenshots[index]}
-            alt={titles[index]}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'contain',
-              display: 'block',
-            }}
-          />
-        </Box>
-        <Button onClick={next} size="small" sx={{ minWidth: 0, px: 1 }} aria-label="Next screenshot">&#8594;</Button>
-      </Box>
-      <Typography variant="subtitle1" align="center" sx={{ mt: 1, fontWeight: 600, color: '#fff' }}>
-        {titles[index]}
-      </Typography>
-    </Box>
-  );
-};
+import { PreviewDialog } from './PreviewDialog';
 
 export const LandingPage: React.FC = () => {
+  const [previewOpen, setPreviewOpen] = useState(false);
+
   // Track landing page visit when component mounts
   useEffect(() => {
     // Get referrer information for traffic source tracking
@@ -135,8 +73,8 @@ export const LandingPage: React.FC = () => {
               style={{
                 height: 'auto',
                 width: '100%',
-                maxHeight: '110px',
-                maxWidth: '180px',
+                maxHeight: '280px',
+                maxWidth: '280px',
                 objectFit: 'contain',
               }}
             />
@@ -156,11 +94,8 @@ export const LandingPage: React.FC = () => {
                 mb: { xs: 2, sm: 3 }
               }}
             >
-              {`Welcome to Tabsy's Community of Pull Tab Enthusiasts!`}
+              Smarter Pull Tab Play Starts Here
             </Typography>
-
-            {/* Screenshot Carousel */}
-            <ScreenshotCarousel />
 
             <Typography 
               variant="body1" 
@@ -173,43 +108,44 @@ export const LandingPage: React.FC = () => {
                 pt: { xs: 1},
                 maxWidth: '800px',
                 mx: 'auto',
-                mb: { xs: 3, sm: 2 },
+                mb: { xs: 3, sm: 4 },
                 whiteSpace: 'pre-line'
               }}
             >
-              {`Tabsy Wins isn’t just another app—it’s a magical toolkit for pull tab players. Log your sessions, scan boxes, predict smarter outcomes, and connect with a crew of streak-chasers who play with heart. Whether you're a casual ripper or a strategic player, Tabsy helps you stay sharp, stay social, and stay in the game.`}
+              {`Tabsy helps you track wins, scan Flare, set budgets, and spot hot boxes—so you can rip with confidence, not guesswork. Built for players. Powered by data. Backed by community.`}
             </Typography>
           </Box>
 
           <Box sx={{ 
             my: { xs: 4}, 
             display: 'flex', 
-            justifyContent: 'center', 
+            flexDirection: 'column',
+            alignItems: 'center',
             gap: { xs: 2 }, 
-            flexWrap: 'wrap'
           }}>
+            {/* First row: Join and Features buttons side by side */}
             <Stack
-              direction={{ xs: 'row', sm: 'row' }}
+              direction="row"
               spacing={{ xs: 1, sm: 2 }}
               justifyContent="center"
               alignItems="center"
-              sx={{ width: '100%' }}
+              sx={{ flexWrap: 'wrap', gap: { xs: 1, sm: 2 } }}
             >
               <Button
                 component={RouterLink}
                 to="/signup"
-                size="medium"
+                size="small"
                 variant="contained"
                 color="success"
                 sx={{
-                  px: { xs: 2, sm: 2.5 },
-                  py: { xs: 2, sm: 1 },
+                  px: { xs: 1.5, sm: 2.5 },
+                  py: { xs: 1, sm: 1 },
                   fontWeight: 800,
                   textTransform: 'none',
-                  fontSize: { xs: '0.85rem', sm: '1rem' },
-                  minWidth: { xs: '80px', sm: '100px' },
+                  fontSize: { xs: '0.75rem', sm: '1rem' },
+                  minWidth: { xs: '110px', sm: '120px' },
                   boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
-                  height: { xs: '48px' }
+                  height: { xs: '42px', sm: '48px' }
                 }}
               >
                 {`Join Tabsy's Crew`}
@@ -218,27 +154,59 @@ export const LandingPage: React.FC = () => {
               <Button
                 component={RouterLink}
                 to="/features"
-                size="medium"
+                size="small"
                 variant="contained"
                 color="secondary"
                 sx={{
-                  px: { xs: 2, sm: 2.5 },
+                  px: { xs: 1.5, sm: 2.5 },
                   py: { xs: 1, sm: 1 },
                   fontWeight: 800,
                   textTransform: 'none',
-                  fontSize: { xs: '0.85rem', sm: '1rem' },
-                  minWidth: { xs: '100px', sm: '120px' },
+                  fontSize: { xs: '0.75rem', sm: '1rem' },
+                  minWidth: { xs: '110px', sm: '120px' },
                   boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
-                  height: { xs: '48px' }
+                  height: { xs: '42px', sm: '48px' }
                 }}
               >
-                {`Tabsy's Crystal Ball`}
+                {`Behind the Magic`}
               </Button>
             </Stack>
+
+            {/* Second row: Preview App button centered */}
+            <Button
+              onClick={() => setPreviewOpen(true)}
+              size="small"
+              variant="outlined"
+              sx={{
+                px: { xs: 2, sm: 2.5 },
+                py: { xs: 1, sm: 1 },
+                fontWeight: 800,
+                textTransform: 'none',
+                fontSize: { xs: '0.85rem', sm: '1rem' },
+                minWidth: { xs: '160px', sm: '120px' },
+                borderColor: 'white',
+                color: 'white',
+                borderWidth: 2,
+                '&:hover': {
+                  borderColor: 'white',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  borderWidth: 2,
+                },
+                height: { xs: '48px' }
+              }}
+            >
+              Preview App
+            </Button>
           </Box>
 
         </Container>
       </Box>
+      
+      {/* Preview Dialog */}
+      <PreviewDialog 
+        open={previewOpen} 
+        onClose={() => setPreviewOpen(false)} 
+      />
     </Box>
   );
 };

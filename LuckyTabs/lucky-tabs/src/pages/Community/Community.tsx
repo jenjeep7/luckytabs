@@ -76,6 +76,8 @@ interface PostCardProps {
   currentUserAvatar?: string;
   authorProfile?: UserData;
   userProfiles?: Map<string, UserData>;
+  currentUserProfile?: UserData | null;
+  isPublicFeed?: boolean;
 }
 
 function PostCard({
@@ -90,6 +92,8 @@ function PostCard({
   currentUserAvatar,
   authorProfile,
   userProfiles,
+  currentUserProfile,
+  isPublicFeed = false,
 }: PostCardProps) {
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState('');
@@ -140,6 +144,20 @@ function PostCard({
           setCommentCount(list.length);
         })
         .catch(console.error);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    try {
+      await communityService.deleteComment(commentId);
+      // Refresh comments
+      if (showComments) {
+        const updatedComments = await communityService.getComments(post.id);
+        setComments(updatedComments);
+        setCommentCount(updatedComments.length);
+      }
+    } catch (error) {
+      console.error('Error deleting comment:', error);
     }
   };
 
@@ -243,6 +261,9 @@ function PostCard({
   };
 
   const isLiked = currentUserId ? post.likes.includes(currentUserId) : false;
+  const isPostAuthor = currentUserId === post.authorId;
+  const isAdmin = currentUserProfile?.isAdmin || false;
+  const canModerate = isPostAuthor || (isAdmin && isPublicFeed);
 
   return (
     <Card
@@ -291,8 +312,8 @@ function PostCard({
               />
             </Box>
           </Box>
-          {/* Three dots menu - only show for posts by current user */}
-          {currentUserId === post.authorId && (
+          {/* Three dots menu - show for post authors or admins (on public feed) */}
+          {canModerate && (
             <>
               <IconButton 
                 size="small" 
@@ -309,13 +330,17 @@ function PostCard({
                   sx: { bgcolor: 'background.paper', color: 'text.primary' }
                 }}
               >
-                <MenuItem onClick={() => {
-                  setIsEditing(true);
-                  setMenuAnchor(null);
-                }}>
-                  <Edit sx={{ mr: 1, fontSize: 20 }} />
-                  Edit Post
-                </MenuItem>
+                {/* Edit option - only for post authors */}
+                {isPostAuthor && (
+                  <MenuItem onClick={() => {
+                    setIsEditing(true);
+                    setMenuAnchor(null);
+                  }}>
+                    <Edit sx={{ mr: 1, fontSize: 20 }} />
+                    Edit Post
+                  </MenuItem>
+                )}
+                {/* Delete option - for authors and admins */}
                 <MenuItem 
                   onClick={() => {
                     if (onDelete && setDeleteConfirmation) {
@@ -326,7 +351,7 @@ function PostCard({
                   sx={{ color: 'error.main' }}
                 >
                   <Delete sx={{ mr: 1, fontSize: 20 }} />
-                  Delete Post
+                  {isAdmin && !isPostAuthor ? 'Remove Post (Admin)' : 'Delete Post'}
                 </MenuItem>
               </Menu>
             </>
@@ -514,6 +539,17 @@ function PostCard({
                         {formatTime(comment.timestamp)}
                       </Typography>
                     </Box>
+                    {/* Admin delete for comments on public feed */}
+                    {isAdmin && isPublicFeed && (
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => void handleDeleteComment(comment.id)}
+                        sx={{ opacity: 0.7, '&:hover': { opacity: 1 } }}
+                      >
+                        <Delete fontSize="small" />
+                      </IconButton>
+                    )}
                   </Box>
                 ))}
               </>
@@ -556,9 +592,14 @@ function PostCard({
                   '& .MuiInputBase-input::placeholder': { color: 'text.secondary', opacity: 1 },
                 }}
               />
-              <Button onClick={handleComment} disabled={!commentText.trim()} variant="contained" size="small" startIcon={<Send />}>
-                Post
-              </Button>
+              <IconButton 
+                onClick={handleComment} 
+                disabled={!commentText.trim()} 
+                color="primary"
+                size="small"
+              >
+                <Send />
+              </IconButton>
             </Box>
           </Box>
         )}
@@ -902,8 +943,8 @@ export const Community: React.FC = () => {
           }}
         >
           <Tab icon={<Public />} label="Public Feed" iconPosition="start" />
-          <Tab icon={<Group />} label="Group Feed" iconPosition="start" />
-          <Tab icon={<GroupsIcon />} label="My Groups" iconPosition="start" />
+          <Tab icon={<Group />} label="Crew Feed" iconPosition="start" />
+          <Tab icon={<GroupsIcon />} label="My Crews" iconPosition="start" />
         </Tabs>
 
         {/* PUBLIC FEED */}
@@ -949,6 +990,8 @@ export const Community: React.FC = () => {
                 currentUserAvatar={currentUserProfile?.avatar || (user && typeof user === 'object' && 'photoURL' in user ? (user as { photoURL?: string }).photoURL : undefined)}
                 authorProfile={userProfiles.get(post.authorId)}
                 userProfiles={userProfiles}
+                currentUserProfile={currentUserProfile}
+                isPublicFeed={true}
               />
             ))
           )}
@@ -1031,6 +1074,8 @@ export const Community: React.FC = () => {
                   currentUserAvatar={currentUserProfile?.avatar || user?.photoURL || undefined}
                   authorProfile={userProfiles.get(post.authorId)}
                   userProfiles={userProfiles}
+                  currentUserProfile={currentUserProfile}
+                  isPublicFeed={false}
                 />
               ))}
             </>

@@ -2,7 +2,7 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.tabsy.app',
+  appId: 'com.tabsywins.app',
   appName: 'Tabsy',
   webDir: 'build',
   server: {

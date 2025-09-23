@@ -3,8 +3,6 @@ import { Dialog, DialogTitle, DialogContent, DialogActions, Button, CircularProg
 import { PhotoCamera, Save, Cancel } from '@mui/icons-material';
 
 export interface ProfileForm {
-  firstName: string;
-  lastName: string;
   displayName: string;
   avatar: string;
 }
@@ -34,7 +32,8 @@ const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
       <Box sx={{ mt: 2 }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
           <Avatar src={editForm.avatar} sx={{ width: 100, height: 100, mb: 2 }}>
-            {editForm.firstName[0]}{editForm.lastName[0]}
+            {(editForm.displayName?.[0] || '?').toUpperCase()}
+            {(editForm.displayName?.[1] || '').toUpperCase()}
           </Avatar>
           <input
             accept="image/*"
@@ -49,13 +48,14 @@ const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
             </Button>
           </label>
         </Box>
-        <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-        </Box>
         <TextField
           fullWidth
           label="Display Name"
           value={editForm.displayName}
           onChange={(e) => setEditForm((prev) => ({ ...prev, displayName: e.target.value }))}
+          required
+          error={!editForm.displayName.trim()}
+          helperText={!editForm.displayName.trim() ? 'Display name is required' : ''}
         />
       </Box>
     </DialogContent>
@@ -64,7 +64,7 @@ const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
       <Button
         onClick={onSave}
         variant="contained"
-        disabled={saving}
+        disabled={saving || !editForm.displayName.trim()}
         startIcon={saving ? <CircularProgress size={16} /> : <Save />}
       >
         {saving ? 'Saving...' : 'Save Changes'}
