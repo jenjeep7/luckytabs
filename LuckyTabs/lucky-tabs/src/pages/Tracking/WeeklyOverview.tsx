@@ -73,17 +73,44 @@ export const WeeklyOverview: React.FC<WeeklyOverviewProps> = ({
       // Mark all related transactions as processed
       relatedTransactions.forEach(t => processed.add(t.id));
 
-      // Calculate totals
-      const betTransaction = relatedTransactions.find(t => t.type === 'bet');
-      const winTransaction = relatedTransactions.find(t => t.type === 'win');
+      // Calculate totals - support both old format (bet/win) and new format (win/loss with netAmount)
+      let betAmount = 0;
+      let winAmount = 0;
+      let netResult = 0;
+      let description = 'Gambling Activity';
+      let location = '';
 
-      const betAmount = betTransaction?.amount || 0;
-      const winAmount = winTransaction?.amount || 0;
-      const netResult = winAmount - betAmount;
+      // Handle new format transactions
+      const newFormatTransactions = relatedTransactions.filter(t => t.netAmount !== undefined);
+      if (newFormatTransactions.length > 0) {
+        // Use the new format logic
+        newFormatTransactions.forEach(t => {
+          const netAmount = t.netAmount ?? 0;
+          if (netAmount < 0) {
+            betAmount += Math.abs(netAmount);
+          } else if (netAmount > 0) {
+            winAmount += netAmount;
+          }
+        });
+        netResult = winAmount - betAmount;
+        
+        // Use the description and location from any transaction
+        const transactionWithDetails = newFormatTransactions.find(t => t.description) || newFormatTransactions[0];
+        description = transactionWithDetails?.description || 'Gambling Activity';
+        location = transactionWithDetails?.location || '';
+      } else {
+        // Handle old format transactions
+        const betTransaction = relatedTransactions.find(t => t.type === 'bet');
+        const winTransaction = relatedTransactions.find(t => t.type === 'win');
 
-      // Use the description from either transaction, preferring bet if both exist
-      const description = betTransaction?.description || winTransaction?.description || 'Gambling Activity';
-      const location = betTransaction?.location || winTransaction?.location;
+        betAmount = betTransaction?.amount || 0;
+        winAmount = winTransaction?.amount || 0;
+        netResult = winAmount - betAmount;
+
+        // Use the description from either transaction, preferring bet if both exist
+        description = betTransaction?.description || winTransaction?.description || 'Gambling Activity';
+        location = betTransaction?.location || winTransaction?.location || '';
+      }
 
       grouped.push({
         id: `group-${relatedTransactions.map(t => t.id).join('-')}`,
