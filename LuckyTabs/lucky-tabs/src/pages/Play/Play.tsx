@@ -228,7 +228,6 @@ export const Play: React.FC = () => {
           return {
             id: doc.id,
             boxName: (docData.boxName as string) || '',
-            boxNumber: (docData.boxNumber as string) || '',
             pricePerTicket: (docData.pricePerTicket as string) || '',
             type: (docData.type as "wall" | "bar box") || 'wall',
             locationId: (docData.locationId as string) || '',
@@ -923,7 +922,7 @@ export const Play: React.FC = () => {
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                           <Box sx={{ flex: 1 }}>
                             <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.primary', fontSize: '1rem' }}>
-                              {box.boxNumber ? `#${box.boxNumber} - ${box.boxName}` : box.boxName}
+                              {box.boxName}
                             </Typography>
                             <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.9rem', mt: 0.5 }}>
                               {boxView === 'group' && box.ownerName && (
@@ -1152,7 +1151,7 @@ export const Play: React.FC = () => {
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                               <Box sx={{ flex: 1 }}>
                                 <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.primary', fontSize: '1rem' }}>
-                                  {box.boxNumber ? `Box #${box.boxNumber} - ${box.boxName}` : box.boxName}
+                                  {box.boxName}
                                 </Typography>
                                 <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.9rem', mt: 0.5 }}>
                                   {boxView === 'group' && box.ownerName && (

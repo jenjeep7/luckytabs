@@ -2,29 +2,8 @@
 import React from 'react';
 import { Box, Typography, Card, CardContent, Chip, Tooltip, IconButton, useTheme } from '@mui/material';
 import InfoIcon from '@mui/icons-material/Info';
-
+import { BoxItem } from '../../services/boxService';
 import { calculateAdvancedMetrics } from './helpers';
-
-interface BoxItem {
-  id: string;
-  boxName: string;
-  boxNumber: string;
-  pricePerTicket: string;
-  startingTickets?: number;
-  type: "wall" | "bar box";
-  locationId: string;
-  ownerId: string;
-  isActive?: boolean;
-  winningTickets?: any[];
-  estimatedRemainingTickets?: number;
-  rowEstimates?: {
-    row1: number;
-    row2: number;
-    row3: number;
-    row4: number;
-  };
-  [key: string]: unknown;
-}
 
 interface AdvancedAnalyticsProps {
   box: BoxItem;

@@ -44,13 +44,12 @@ interface BoxShare {
 interface WinningTicket {
   totalPrizes: number;
   claimedTotal: number;
-  prize: string | number;
+  prize: string;
 }
 
 interface BoxItem {
   id: string;
   boxName: string;
-  boxNumber: string;
   pricePerTicket: string;
   startingTickets?: number;
   type: "wall" | "bar box";

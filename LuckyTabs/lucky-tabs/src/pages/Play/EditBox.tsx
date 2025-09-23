@@ -37,7 +37,6 @@ type WinningTicket = {
 type BoxType = {
   id: string;
   type: "wall" | "bar box";
-  boxNumber: string | number;
   pricePerTicket: string | number;
   startingTickets?: number;
   boxName: string;
@@ -52,7 +51,7 @@ export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onCl
   
   // Existing state
   const [type, setType] = useState<"wall" | "bar box">(box.type);
-  const [boxNumber, setBoxNumber] = useState<string | number>(box.boxNumber);
+  const [boxName, setBoxName] = useState<string>(box.boxName);
   const [pricePerTicket, setPricePerTicket] = useState<string | number>(box.pricePerTicket);
   const [startingTickets, setStartingTickets] = useState<string>(box.startingTickets ? box.startingTickets.toString() : "");
   const [winningTickets, setWinningTickets] = useState<WinningTicket[]>(box.winningTickets || []);
@@ -274,8 +273,8 @@ export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onCl
 
       const updatedBox = {
         ...box,
+        boxName,
         type,
-        boxNumber,
         pricePerTicket,
         startingTickets: startingTickets ? Number(startingTickets) : 0,
         winningTickets,
@@ -297,11 +296,48 @@ export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onCl
 
   const handlePrizeChange = (index: number, field: string, value: string | number) => {
     const updated = [...winningTickets];
-    updated[index] = {
-      ...updated[index],
-      [field]: field === "prize" ? String(value) : (value === "" ? 0 : Number(value)),
-    };
+    const currentPrize = updated[index];
+    
+    if (field === "prize") {
+      updated[index] = {
+        ...currentPrize,
+        [field]: String(value),
+      };
+    } else {
+      const numValue = value === "" ? 0 : Number(value);
+      
+      // Just set the value without validation - let the error state show
+      updated[index] = {
+        ...currentPrize,
+        [field]: numValue,
+      };
+      
+      // If we're updating totalPrizes and claimedTotal exceeds it, adjust claimedTotal
+      if (field === "totalPrizes" && currentPrize.claimedTotal > numValue) {
+        updated[index] = {
+          ...updated[index],
+          claimedTotal: numValue,
+        };
+      }
+    }
+    
     setWinningTickets(updated);
+  };
+
+  // Validation function to check if any claimed totals exceed total prizes
+  const hasValidationErrors = () => {
+    return winningTickets.some(prize => prize.claimedTotal > prize.totalPrizes);
+  };
+
+  // Sort prizes by amount (highest to lowest) for display
+  const sortedPrizesForDisplay = () => {
+    return winningTickets
+      .map((prize, originalIndex) => ({ ...prize, originalIndex }))
+      .sort((a, b) => {
+        const prizeA = parseFloat(String(a.prize || '').replace(/[^0-9.]/g, '')) || 0;
+        const prizeB = parseFloat(String(b.prize || '').replace(/[^0-9.]/g, '')) || 0;
+        return prizeB - prizeA; // Highest to lowest
+      });
   };
 
   const addPrize = () => {
@@ -389,7 +425,7 @@ export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onCl
                 color="primary"
               />
             }
-            label="Use Auto Fill to detect claimed prizes."
+            label="Use Auto Fill to estimate claimed prizes by uploading a new image."
             sx={{ mb: 2 }}
           />
         )}
@@ -473,29 +509,32 @@ export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onCl
 
       <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
         <Grid container spacing={2} sx={{ maxWidth: 600 }}>
-          <Grid size={4}>
+          <Grid size={12}>
             <TextField
-              label="Box Number"
+              label="Box Name"
               fullWidth
-              value={boxNumber}
-              onChange={(e) => setBoxNumber(e.target.value)}
+              value={boxName}
+              onChange={(e) => setBoxName(e.target.value)}
+              size="small"
             />
           </Grid>
-          <Grid size={4}>
+          <Grid size={6}>
             <TextField
-              label="Price Per Ticket"
+              label="Price Per Ticket $"
               fullWidth
               value={pricePerTicket}
               onChange={(e) => setPricePerTicket(e.target.value)}
+              size="small"
             />
           </Grid>
-          <Grid size={4}>
+          <Grid size={6}>
             <TextField
               label="# of Tickets"
               type="number"
               fullWidth
               value={startingTickets}
               onChange={(e) => setStartingTickets(e.target.value)}
+              size="small"
             />
           </Grid>
         </Grid>
@@ -503,14 +542,15 @@ export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onCl
 
       <Box sx={{ mt: 3 }}>
         <Typography variant="subtitle1">Winning Prizes</Typography>
-        {winningTickets.map((prize, idx) => (
-          <Grid container spacing={1} key={idx} sx={{ mt: 1 }}>
+        {sortedPrizesForDisplay().map((prize, displayIdx) => (
+          <Grid container spacing={1} key={displayIdx} sx={{ mt: 1 }}>
             <Grid size={4}>
               <TextField
                 label="Prize"
                 value={prize.prize}
-                onChange={(e) => handlePrizeChange(idx, "prize", e.target.value)}
+                onChange={(e) => handlePrizeChange(prize.originalIndex, "prize", e.target.value)}
                 fullWidth
+                size="small"
               />
             </Grid>
             <Grid size={4}>
@@ -518,17 +558,29 @@ export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onCl
                 label="Total Prizes"
                 type="number"
                 value={prize.totalPrizes || ""}
-                onChange={(e) => handlePrizeChange(idx, "totalPrizes", e.target.value)}
+                onChange={(e) => handlePrizeChange(prize.originalIndex, "totalPrizes", e.target.value)}
                 fullWidth
+                size="small"
               />
             </Grid>
             <Grid size={4}>
               <TextField
                 label="Claimed Total"
                 type="number"
-                value={prize.claimedTotal || ""}
-                onChange={(e) => handlePrizeChange(idx, "claimedTotal", e.target.value)}
+                value={prize.claimedTotal || 0}
+                onChange={(e) => handlePrizeChange(prize.originalIndex, "claimedTotal", e.target.value)}
                 fullWidth
+                inputProps={{ 
+                  min: 0, 
+                  max: prize.totalPrizes || 0 
+                }}
+                error={prize.claimedTotal > prize.totalPrizes}
+                helperText={
+                  prize.claimedTotal > prize.totalPrizes 
+                    ? `Cannot exceed ${prize.totalPrizes} total prizes`
+                    : ""
+                }
+                size="small"
               />
             </Grid>
           </Grid>
@@ -542,7 +594,7 @@ export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onCl
         variant="contained" 
         onClick={() => { void handleSubmit(); }} 
         sx={{ mt: 4 }}
-        disabled={uploading}
+        disabled={uploading || hasValidationErrors()}
       >
         {uploading ? 'Updating...' : 'Update Box'}
       </Button>

@@ -12,22 +12,17 @@ export interface Prize {
 interface BoxItem {
   id: string;
   boxName: string;
-  boxNumber: string;
   pricePerTicket: string;
-  startingTickets?: number;
   type: "wall" | "bar box";
   locationId: string;
   ownerId: string;
   isActive?: boolean;
-  winningTickets?: WinningTicket[];
+  winningTickets?: Array<{
+    totalPrizes: number;
+    claimedTotal: number;
+    prize: string;
+  }>;
   estimatedRemainingTickets?: number;
-  rowEstimates?: {
-    row1: number;
-    row2: number;
-    row3: number;
-    row4: number;
-  };
-  [key: string]: unknown;
 }
 
 // Advanced Metrics Types
