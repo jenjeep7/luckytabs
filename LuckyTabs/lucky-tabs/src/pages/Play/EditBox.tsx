@@ -518,7 +518,7 @@ export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onCl
               size="small"
             />
           </Grid>
-          <Grid size={6}>
+          <Grid size={type === "wall" ? 12 : 6}>
             <TextField
               label="Price Per Ticket $"
               fullWidth
@@ -527,16 +527,18 @@ export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onCl
               size="small"
             />
           </Grid>
-          <Grid size={6}>
-            <TextField
-              label="# of Tickets"
-              type="number"
-              fullWidth
-              value={startingTickets}
-              onChange={(e) => setStartingTickets(e.target.value)}
-              size="small"
-            />
-          </Grid>
+          {type === "bar box" && (
+            <Grid size={6}>
+              <TextField
+                label="# of Tickets"
+                type="number"
+                fullWidth
+                value={startingTickets}
+                onChange={(e) => setStartingTickets(e.target.value)}
+                size="small"
+              />
+            </Grid>
+          )}
         </Grid>
       </Box>
 
