@@ -29,6 +29,10 @@ yarn-error.log*
 firestore-debug.log
 firebase-debug.log
 
+# Firebase config files (contain sensitive API keys)
+android/app/google-services.json
+ios/App/App/GoogleService-Info.plist
+
 # OS generated files
 .DS_Store
 .DS_Store?
