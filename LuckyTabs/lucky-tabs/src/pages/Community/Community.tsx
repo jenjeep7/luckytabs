@@ -21,7 +21,6 @@ import {
   CircularProgress,
   Alert,
   Snackbar,
-  LinearProgress,
   Select,
   MenuItem,
   FormControl,
@@ -37,7 +36,6 @@ import {
   Group,
   Add,
   Groups as GroupsIcon,
-  Image as ImageIcon,
   Close as CloseIcon,
   MoreVert,
   Edit,
@@ -49,7 +47,14 @@ import { communityService, Post, Comment } from '../../services/communityService
 import { userService, UserData } from '../../services/userService';
 import { groupService, GroupData } from '../../services/groupService';
 import { GroupsManager } from '../GroupManager/GroupsManager';
-import { uploadPostImage } from '../../services/storageService';
+import { NewPostDialog } from './NewPostDialog';
+import { 
+  formatTime, 
+  getInitialsFromName, 
+  parseTabFromUrl, 
+  getFallbackUserDisplay, 
+  getInitialsFromUserId 
+} from './helpers';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -164,15 +169,6 @@ function PostCard({
     }
   };
 
-  const formatTime = (date: Date) => {
-    const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    if (diffInHours < 1) return 'Just now';
-    if (diffInHours === 1) return '1 hour ago';
-    if (diffInHours < 24) return `${diffInHours} hours ago`;
-    return date.toLocaleDateString();
-  };
-
   const getDisplayName = (authorId: string) => {
     if (authorId === currentUserId) return currentUserName || 'You';
     
@@ -192,28 +188,18 @@ function PostCard({
     }
     
     // Fallback to a cleaner user ID display
-    return `User ${authorId.slice(0, 8)}`;
+    return getFallbackUserDisplay(authorId);
   };
 
   const getInitials = (authorId: string) => {
     if (authorId === currentUserId && currentUserName) {
-      return currentUserName
-        .split(' ')
-        .map((n) => n[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2);
+      return getInitialsFromName(currentUserName);
     }
     
     // First check the specific authorProfile prop
     if (authorProfile && authorProfile.uid === authorId) {
       if (authorProfile.displayName) {
-        return authorProfile.displayName
-          .split(' ')
-          .map((n) => n[0])
-          .join('')
-          .toUpperCase()
-          .slice(0, 2);
+        return getInitialsFromName(authorProfile.displayName);
       }
     }
     
@@ -221,16 +207,11 @@ function PostCard({
     const userProfile = userProfiles?.get(authorId);
     if (userProfile) {
       if (userProfile.displayName) {
-        return userProfile.displayName
-          .split(' ')
-          .map((n) => n[0])
-          .join('')
-          .toUpperCase()
-          .slice(0, 2);
+        return getInitialsFromName(userProfile.displayName);
       }
     }
     
-    return authorId.slice(0, 2).toUpperCase();
+    return getInitialsFromUserId(authorId);
   };
 
   const getAvatarUrl = (authorId: string) => {
@@ -599,10 +580,7 @@ export const Community: React.FC = () => {
   
   // Parse initial tab from URL parameter - memoized to prevent recalculation
   const initialTab = React.useMemo(() => {
-    const tabParam = searchParams.get('tab');
-    if (tabParam === '1') return 1; // Group Feed
-    if (tabParam === '2') return 2; // My Groups
-    return 0; // Default to Public Feed
+    return parseTabFromUrl(searchParams);
   }, [searchParams]);
   
   const [activeTab, setActiveTab] = useState(initialTab); // 0=Public, 1=Group, 2=My Groups
@@ -627,11 +605,6 @@ export const Community: React.FC = () => {
   }, [activeTab, publicPosts, groupPosts, allGroupPosts]);
   
   const [newPostDialog, setNewPostDialog] = useState(false);
-  const [newPostContent, setNewPostContent] = useState('');
-  const [files, setFiles] = useState<File[]>([]);
-  const [previews, setPreviews] = useState<string[]>([]);
-  const [uploadProgress, setUploadProgress] = useState<number[]>([]);
-  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userProfiles, setUserProfiles] = useState<Map<string, UserData>>(new Map());
   const [currentUserProfile, setCurrentUserProfile] = useState<UserData | null>(null);
@@ -695,7 +668,7 @@ export const Community: React.FC = () => {
           return;
         }
         
-        const result = await communityService.getPosts(feedType, groupId, 10); // Load 10 posts initially
+        const result = await communityService.getPosts(feedType, groupId); // Use default page size from service
         
         // Set posts to the correct state based on which tab is active
         if (activeTab === 0) {
@@ -937,70 +910,20 @@ export const Community: React.FC = () => {
     }
   };
 
-  const onPickFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = Array.from(e.target.files ?? []).slice(0, 4); // limit to 4 images
-    setFiles(f);
-    setPreviews(f.map((file) => URL.createObjectURL(file)));
-    setUploadProgress(new Array(f.length).fill(0));
+  // Callback for when a new post is created
+  const handlePostCreated = async () => {
+    // Refresh both states to ensure consistency
+    const [updatedPublicPosts, updatedGroupPosts] = await Promise.all([
+      communityService.getPostsSimple('public'),
+      selectedGroupId ? communityService.getPostsSimple('group', selectedGroupId) : Promise.resolve([])
+    ]);
+    setPublicPosts(updatedPublicPosts);
+    setGroupPosts(updatedGroupPosts);
   };
 
-  const clearComposer = () => {
-    setNewPostContent('');
-    setFiles([]);
-    setPreviews([]);
-    setUploadProgress([]);
-  };
-
-  const handleCreatePost = async () => {
-    if (!user) return;
-    if (!newPostContent.trim() && files.length === 0) return;
-    
-    // Validate group selection for group posts
-    if (activeTab === 1 && !selectedGroupId) {
-      setSnackbar({ open: true, message: 'Please select a group to post to', severity: 'error' });
-      return;
-    }
-
-    setUploading(true);
-    try {
-      const feedType = activeTab === 0 ? 'public' : 'group';
-      const groupId = activeTab === 1 ? selectedGroupId : undefined;
-
-      // Upload images in parallel and collect media descriptors
-      let media: { url: string; width?: number; height?: number; contentType?: string }[] = [];
-      if (!user || typeof user !== 'object' || !('uid' in user)) return;
-      if (files.length > 0) {
-        media = await Promise.all(
-          files.map((f, idx) =>
-            uploadPostImage((user as { uid: string }).uid, /* postId path key */ crypto.randomUUID(), f, (pct) => {
-              setUploadProgress((prev) => {
-                const next = [...prev];
-                next[idx] = pct;
-                return next;
-              });
-            })
-          )
-        );
-      }
-      await communityService.createPost((user as { uid: string }).uid, newPostContent, feedType, groupId, media);
-
-      clearComposer();
-      setNewPostDialog(false);
-
-      // Refresh both states to ensure consistency
-      const [updatedPublicPosts, updatedGroupPosts] = await Promise.all([
-        communityService.getPostsSimple('public'),
-        selectedGroupId ? communityService.getPostsSimple('group', selectedGroupId) : Promise.resolve([])
-      ]);
-      setPublicPosts(updatedPublicPosts);
-      setGroupPosts(updatedGroupPosts);
-      setSnackbar({ open: true, message: 'Post created successfully!', severity: 'success' });
-    } catch (e) {
-      console.error(e);
-      setSnackbar({ open: true, message: 'Failed to create post', severity: 'error' });
-    } finally {
-      setUploading(false);
-    }
+  // Callback to show snackbar messages
+  const handleShowSnackbar = (message: string, severity: 'success' | 'error') => {
+    setSnackbar({ open: true, message, severity });
   };
 
   if (!user) {
@@ -1246,119 +1169,18 @@ export const Community: React.FC = () => {
             currentUserName={currentUserProfile?.displayName || (user && typeof user === 'object' && 'displayName' in user ? (user as { displayName?: string }).displayName : undefined)}
           />
         </TabPanel>
-      {/* New Post Dialog (with images) */}
-      <Dialog
+      
+      {/* New Post Dialog Component */}
+      <NewPostDialog
         open={newPostDialog}
         onClose={() => setNewPostDialog(false)}
-        maxWidth="sm"
-        fullWidth
-        sx={{
-          '& .MuiDialog-paper': {
-            bgcolor: 'background.paper',
-            color: 'text.primary',
-            border: '1px solid',
-            borderColor: 'divider',
-          },
-        }}
-      >
-        <DialogTitle sx={{ color: 'text.primary', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          {activeTab === 0 
-            ? 'Create New Post' 
-            : `Post to ${userGroups.find(g => g.id === selectedGroupId)?.name || 'Group'}`
-          }
-          <IconButton size="small" onClick={() => setNewPostDialog(false)}>
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent>
-          <TextField
-            fullWidth
-            multiline
-            rows={4}
-            placeholder={
-              activeTab === 0 
-                ? "What's on your mind? Share with the public community..." 
-                : `Share something with ${userGroups.find(g => g.id === selectedGroupId)?.name || 'your group'}...`
-            }
-            value={newPostContent}
-            onChange={(e) => setNewPostContent(e.target.value)}
-            sx={{
-              mt: 1,
-              '& .MuiOutlinedInput-root': {
-                bgcolor: 'background.default',
-                color: 'text.primary',
-                '& fieldset': { borderColor: 'divider' },
-                '&:hover fieldset': { borderColor: 'primary.main' },
-                '&.Mui-focused fieldset': { borderColor: 'primary.main' },
-              },
-              '& .MuiInputBase-input::placeholder': { color: 'text.secondary', opacity: 1 },
-            }}
-          />
-
-          {/* Image picker + previews */}
-          <Box sx={{ display: 'flex', gap: 1, mt: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-            <Button variant="outlined" component="label" startIcon={<ImageIcon />}>
-              Add Images
-              <input hidden accept="image/*" multiple type="file" onChange={onPickFiles} />
-            </Button>
-            {!!files.length && (
-              <Typography variant="caption" color="text.secondary">
-                {files.length} image{files.length > 1 ? 's' : ''} selected
-              </Typography>
-            )}
-          </Box>
-
-          {previews.length > 0 && (
-            <Box
-              sx={{
-                mt: 1.5,
-                display: 'grid',
-                gap: 1,
-                gridTemplateColumns: {
-                  xs: previews.length === 1 ? '1fr' : 'repeat(2, 1fr)',
-                  sm: previews.length >= 3 ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)',
-                },
-              }}
-            >
-              {previews.map((src, i) => (
-                <Box
-                  key={i}
-                  sx={{
-                    position: 'relative',
-                    pt: '100%',
-                    borderRadius: 1,
-                    overflow: 'hidden',
-                    border: '1px solid',
-                    borderColor: 'divider',
-                  }}
-                >
-                  <img src={src} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-                  {uploading && (
-                    <Box sx={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
-                      <LinearProgress variant="determinate" value={uploadProgress[i] || 0} />
-                    </Box>
-                  )}
-                </Box>
-              ))}
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ bgcolor: 'background.paper' }}>
-          <Button
-            onClick={() => {
-              clearComposer();
-              setNewPostDialog(false);
-            }}
-            sx={{ color: 'text.secondary' }}
-            disabled={uploading}
-          >
-            Cancel
-          </Button>
-          <Button onClick={() => void handleCreatePost()} variant="contained" disabled={uploading || (!newPostContent.trim() && files.length === 0)}>
-            {uploading ? 'Posting…' : 'Post'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        activeTab={activeTab}
+        userGroups={userGroups}
+        selectedGroupId={selectedGroupId}
+        userId={user && typeof user === 'object' && 'uid' in user ? (user as { uid: string }).uid : ''}
+        onPostCreated={() => { void handlePostCreated(); }}
+        onShowSnackbar={handleShowSnackbar}
+      />
 
       {/* Delete Confirmation Dialog */}
       <Dialog

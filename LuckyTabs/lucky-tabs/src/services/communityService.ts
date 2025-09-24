@@ -184,7 +184,7 @@ async createPost(
 
   // Wrapper method for backward compatibility - maintains old API
   async getPostsSimple(type: 'public' | 'group', groupId?: string): Promise<Post[]> {
-    const result = await this.getPosts(type, groupId, 50);
+    const result = await this.getPosts(type, groupId, 50); // Use larger page size for simple method
     return result.posts;
   }
 
