@@ -14,6 +14,9 @@ import {
   arrayUnion,
   arrayRemove,
   getCountFromServer,
+  limit,
+  startAfter,
+  QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 
@@ -51,10 +54,23 @@ export interface Comment {
   id: string;
   postId: string;
   authorId: string;
+  authorDisplayName: string; // Store the author's display name when comment is created
   content: string;
   timestamp: Date;
   edited?: boolean;
   editedAt?: Date;
+}
+
+export interface PaginatedPosts {
+  posts: Post[];
+  lastDoc: QueryDocumentSnapshot | null;
+  hasMore: boolean;
+}
+
+export interface PaginatedComments {
+  comments: Comment[];
+  lastDoc: QueryDocumentSnapshot | null;
+  hasMore: boolean;
 }
 
 export interface Group {
@@ -114,35 +130,69 @@ async createPost(
 }
 
 
-  async getPosts(type: 'public' | 'group', groupId?: string): Promise<Post[]> {
-  const postsRef = collection(db, 'posts');
-  let q = query(postsRef, where('type', '==', type), orderBy('timestamp', 'desc'));
-  if (type === 'group' && groupId) {
-    q = query(
-      postsRef,
-      where('type', '==', type),
-      where('groupId', '==', groupId),
-      orderBy('timestamp', 'desc')
-    );
+  async getPosts(type: 'public' | 'group', groupId?: string, pageSize = 10, lastDoc?: QueryDocumentSnapshot): Promise<PaginatedPosts> {
+    const postsRef = collection(db, 'posts');
+    let q = query(postsRef, where('type', '==', type), orderBy('timestamp', 'desc'), limit(pageSize));
+    
+    if (type === 'group' && groupId) {
+      q = query(
+        postsRef,
+        where('type', '==', type),
+        where('groupId', '==', groupId),
+        orderBy('timestamp', 'desc'),
+        limit(pageSize)
+      );
+    }
+    
+    if (lastDoc) {
+      q = query(postsRef, where('type', '==', type), orderBy('timestamp', 'desc'), startAfter(lastDoc), limit(pageSize));
+      if (type === 'group' && groupId) {
+        q = query(
+          postsRef,
+          where('type', '==', type),
+          where('groupId', '==', groupId),
+          orderBy('timestamp', 'desc'),
+          startAfter(lastDoc),
+          limit(pageSize)
+        );
+      }
+    }
+
+    const snapshot = await getDocs(q);
+    const posts = snapshot.docs.map(docSnap => {
+      const data = docSnap.data() as FirestorePostData;
+      return {
+        id: docSnap.id,
+        authorId: data.authorId,
+        content: data.content,
+        timestamp: (data.timestamp).toDate(),
+        likes: (data.likes as string[]) || [],
+        type: data.type,
+        ...(data.groupId && { groupId: data.groupId }),
+        ...(data.edited && { edited: data.edited as boolean }),
+        ...(data.editedAt && { editedAt: (data.editedAt).toDate() }),
+        media: (data.media as Array<{ url: string; width?: number; height?: number; contentType?: string }>) || [],
+      } as Post;
+    });
+
+    return {
+      posts,
+      lastDoc: snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null,
+      hasMore: snapshot.docs.length === pageSize
+    };
   }
 
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(docSnap => {
-    const data = docSnap.data() as FirestorePostData;
-    return {
-      id: docSnap.id,
-      authorId: data.authorId ,
-      content: data.content ,
-      timestamp: (data.timestamp ).toDate(),
-      likes: (data.likes as string[]) || [],
-      type: data.type ,
-      ...(data.groupId && { groupId: data.groupId  }),
-      ...(data.edited && { edited: data.edited as boolean }),
-      ...(data.editedAt && { editedAt: (data.editedAt ).toDate() }),
-      media: (data.media as Array<{ url: string; width?: number; height?: number; contentType?: string }>) || [],
-    } as Post;
-  });
-}
+  // Wrapper method for backward compatibility - maintains old API
+  async getPostsSimple(type: 'public' | 'group', groupId?: string): Promise<Post[]> {
+    const result = await this.getPosts(type, groupId, 50);
+    return result.posts;
+  }
+
+  // Legacy method for backward compatibility - will be deprecated
+  async getPostsLegacy(type: 'public' | 'group', groupId?: string): Promise<Post[]> {
+    const result = await this.getPosts(type, groupId, 50); // Get more posts for legacy usage
+    return result.posts;
+  }
 
 
   async likePost(postId: string, userId: string): Promise<void> {
@@ -187,10 +237,11 @@ async createPost(
   }
 
   // Comments
-  async createComment(postId: string, authorId: string, content: string): Promise<string> {
+  async createComment(postId: string, authorId: string, authorDisplayName: string, content: string): Promise<string> {
     const commentData: Omit<Comment, 'id'> = {
       postId,
       authorId,
+      authorDisplayName,
       content,
       timestamp: new Date()
     };
@@ -203,26 +254,56 @@ async createPost(
     return docRef.id;
   }
 
-  async getComments(postId: string): Promise<Comment[]> {
-    const commentsQuery = query(
+  async getComments(postId: string, pageSize = 20, lastDoc?: QueryDocumentSnapshot): Promise<PaginatedComments> {
+    let commentsQuery = query(
       collection(db, 'comments'),
       where('postId', '==', postId),
-      orderBy('timestamp', 'asc')
+      orderBy('timestamp', 'asc'),
+      limit(pageSize)
     );
 
+    if (lastDoc) {
+      commentsQuery = query(
+        collection(db, 'comments'),
+        where('postId', '==', postId),
+        orderBy('timestamp', 'asc'),
+        startAfter(lastDoc),
+        limit(pageSize)
+      );
+    }
+
     const snapshot = await getDocs(commentsQuery);
-    return snapshot.docs.map(doc => {
+    const comments = snapshot.docs.map(doc => {
       const data = doc.data();
       return {
         id: doc.id,
         postId: data.postId as string,
         authorId: data.authorId as string,
+        authorDisplayName: data.authorDisplayName as string || 'Unknown User',
         content: data.content as string,
         timestamp: (data.timestamp as Timestamp).toDate(),
         ...(data.edited && { edited: data.edited as boolean }),
         ...(data.editedAt && { editedAt: (data.editedAt as Timestamp).toDate() })
       } as Comment;
     });
+
+    return {
+      comments,
+      lastDoc: snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null,
+      hasMore: snapshot.docs.length === pageSize
+    };
+  }
+
+  // Legacy method for backward compatibility - will be deprecated
+  async getCommentsLegacy(postId: string): Promise<Comment[]> {
+    const result = await this.getComments(postId, 100); // Get more comments for legacy usage
+    return result.comments;
+  }
+
+  // Wrapper method for backward compatibility - maintains old API
+  async getCommentsSimple(postId: string): Promise<Comment[]> {
+    const result = await this.getComments(postId, 50);
+    return result.comments;
   }
 
   async deleteComment(commentId: string): Promise<void> {
