@@ -12,11 +12,11 @@ import {
   Grid,
   Card,
   CardMedia,
-  IconButton,
   LinearProgress,
   Alert,
+  Snackbar,
 } from "@mui/material";
-import { PhotoCamera, Delete, Upload } from "@mui/icons-material";
+import { PhotoCamera, Upload } from "@mui/icons-material";
 import { collection, addDoc, serverTimestamp, doc, updateDoc, onSnapshot } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "../../firebase";
@@ -42,7 +42,6 @@ interface Prize {
 export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated, replaceMode = false, boxToReplace = null }) => {
   const [type, setType] = useState<"wall" | "bar box">("wall");
   const [boxName, setBoxName] = useState("");
-  const [boxNumber, setBoxNumber] = useState("");
   const [pricePerTicket, setPricePerTicket] = useState("");
   const [startingTickets, setStartingTickets] = useState("3000");
   const [user] = useAuthStateCompat();
@@ -50,7 +49,6 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
   const [winningTickets, setWinningTickets] = useState<Prize[]>([
     { prize: "", totalPrizes: 0, claimedTotal: 0 },
   ]);
-  const [ocrProcessed, setOcrProcessed] = useState(false); // Track if OCR has been processed
   const ocrProcessedRef = useRef(false); // Use ref to avoid dependency array issues
   
   // Image upload state
@@ -69,6 +67,9 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
   // Estimate tickets dialog state
   const [estimateDialogOpen, setEstimateDialogOpen] = useState(false);
   const [rowEstimates, setRowEstimates] = useState<{ row1: number; row2: number; row3: number; row4: number } | null>(null);
+  
+  // Success snackbar state
+  const [showSuccessSnackbar, setShowSuccessSnackbar] = useState(false);
   
   // Fetch user profile
   useEffect(() => {
@@ -116,13 +117,20 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
         const data = docSnap.data();
         
         if (data.ocrProcessed && !ocrProcessedRef.current) {
-          // Only set winningTickets from OCR, let user manually enter everything else
-          setWinningTickets(Array.isArray(data.winningTickets) ? data.winningTickets : []);
-          setOcrProcessed(true); // Mark OCR as processed
-          ocrProcessedRef.current = true; // Also set the ref
+          const ocrTickets = Array.isArray(data.winningTickets) ? data.winningTickets : [];
+          const sortedTickets = ocrTickets.sort((a: any, b: any) => {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            const prizeA = parseFloat(String(a?.prize || '').replace(/[^0-9.]/g, '')) || 0;
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            const prizeB = parseFloat(String(b?.prize || '').replace(/[^0-9.]/g, '')) || 0;
+            return prizeB - prizeA; // Highest to lowest
+          });
+          setWinningTickets(sortedTickets);
+          ocrProcessedRef.current = true; // Mark OCR as processed
           setParsing(false);
           setParseError(null);
           setTempBoxId(null);
+          setShowSuccessSnackbar(true); // Show success message
         } else if (data.ocrProcessed && ocrProcessedRef.current) {
           // OCR already processed, ignoring duplicate data
         } else if (data.error) {
@@ -195,8 +203,7 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
       setParsing(true);
       setParseError(null);
       setUploadError(null);
-      setOcrProcessed(false); // Reset OCR processed flag for new image
-      ocrProcessedRef.current = false; // Also reset the ref
+      ocrProcessedRef.current = false; // Reset OCR processed flag for new image
 
       const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       setTempBoxId(tempId);
@@ -208,16 +215,6 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
       setParsing(false);
       setParseError(`Failed to parse image: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setUploadError(null);
-    }
-  };
-
-  // Remove selected image
-  const handleRemoveImage = () => {
-    setFlareSheetImage(null);
-    setFlareSheetPreview(null);
-    setUploadError(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
     }
   };
 
@@ -256,11 +253,6 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
       }
 
       // Validation for both modes now
-      if (type === "bar box" && !boxNumber.trim()) {
-        setUploadError('Box number is required for bar boxes');
-        setUploading(false);
-        return;
-      }
       if (!pricePerTicket.trim()) {
         setUploadError('Price per ticket is required');
         setUploading(false);
@@ -274,7 +266,6 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
 
       interface Box {
         boxName: string;
-        boxNumber: string;
         pricePerTicket: string;
         startingTickets: number;
         type: "wall" | "bar box";
@@ -286,8 +277,8 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
         tags: string[];
         winningTickets: Prize[];
         rows?: { rowNumber: number; estimatedTicketsRemaining: number }[];
-        estimatedTicketsRemaining?: number; // For bar boxes
-        estimatedTicketsUpdated?: Date;
+        estimatedRemainingTickets?: number; // For bar boxes
+        estimatedTicketsUpdated?: any; // Use any to allow both Date and FieldValue
         flareSheetUrl?: string;
         manuallyEdited?: boolean;
       }
@@ -322,13 +313,12 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
       } else {
         // Bar boxes: single value for all remaining tickets
         boxSpecificData = {
-          estimatedTicketsRemaining: totalStartingTickets,
+          estimatedRemainingTickets: totalStartingTickets,
         };
       }
 
       const newBox: Box = {
-        boxName: boxName || (type === "bar box" ? `Box ${boxNumber}` : "Wall Box"),
-        boxNumber: type === "bar box" ? boxNumber : "",
+        boxName: boxName || (type === "bar box" ? "Bar Box" : "Wall Box"),
         pricePerTicket: pricePerTicket,
         startingTickets: totalStartingTickets,
         type,
@@ -341,7 +331,7 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
         winningTickets: winningTickets,
         manuallyEdited: true, // Flag to prevent OCR from overwriting
         ...boxSpecificData,
-        estimatedTicketsUpdated: new Date(),
+        estimatedTicketsUpdated: serverTimestamp(),
       };
 
       // Create the box first to get the document ID
@@ -505,10 +495,10 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
           </Box>
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center' }}>
-            <Card sx={{ maxWidth: 300 }}>
+            <Card sx={{ maxWidth: 600, width: '100%' }}>
               <CardMedia
                 component="img"
-                height="200"
+                height="400"
                 image={flareSheetPreview}
                 alt="Flare sheet preview"
                 sx={{ objectFit: 'contain' }}
@@ -524,14 +514,6 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
               >
                 Change Image
               </Button>
-              <IconButton
-                onClick={handleRemoveImage}
-                disabled={uploading}
-                color="error"
-                size="small"
-              >
-                <Delete />
-              </IconButton>
             </Box>
           </Box>
         )}
@@ -565,15 +547,7 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
       {entryMode === "auto" && !flareSheetImage && (
         <Box sx={{ textAlign: 'center', mb: 3 }}>
           <Alert severity="info" sx={{ mb: 2 }}>
-            Upload a flare sheet image and Tabsy will automatically extract the box details using OCR!
-          </Alert>
-        </Box>
-      )}
-
-      {entryMode === "auto" && flareSheetImage && !parsing && winningTickets.length > 0 && (
-        <Box sx={{ textAlign: 'center', mb: 3 }}>
-          <Alert severity="success" sx={{ mb: 2 }}>
-            ✅ Image parsed successfully! Review and edit the data below before creating the box.
+            Upload a flare sheet image and Tabsy will automatically estimate the box details!
           </Alert>
         </Box>
       )}
@@ -592,21 +566,6 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
             disabled={parsing}
           />
         </Grid>
-        {type === "bar box" && (
-          <Grid size={{ xs: 12, sm: 3 }}>
-            <TextField
-              size="small"
-              label="Box Number"
-              fullWidth
-              value={boxNumber}
-              onChange={(e) => {
-                setBoxNumber(e.target.value);
-              }}
-              required
-              disabled={parsing}
-            />
-          </Grid>
-        )}
         <Grid size={{ xs: 12, sm: 3 }}>
           <TextField
             size="small"
@@ -634,21 +593,26 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
           />
           {/* Estimate by row button for wall boxes */}
           {type === "wall" && (
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={handleEstimateClick}
-              sx={{ mt: 1, fontSize: '0.75rem', height: '28px' }}
-              disabled={parsing}
-            >
-              Set by Row
-            </Button>
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={handleEstimateClick}
+                sx={{ fontSize: '0.75rem', height: '28px' }}
+                disabled={parsing}
+              >
+                Set by Row
+              </Button>
+            </Box>
           )}
         </Grid>
       </Grid>
 
-      <Box sx={{ mt: 3 }}>
+      <Box sx={{ mt: 1 }}>
         <Typography variant="subtitle1">Prizes</Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+          *add any crossed off/claimed prizes if desired. Double check amounts for accuracy.
+        </Typography>
         {winningTickets.map((prize, idx) => (
           <Grid container spacing={1} key={idx} sx={{ mt: 1 }}>
             <Grid size={{ xs: 5 }}>
@@ -677,7 +641,7 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
               <TextField
                 label="Claimed"
                 type="number"
-                value={prize.claimedTotal || ""}
+                value={prize.claimedTotal || 0}
                 onChange={(e) => handlePrizeChange(idx, "claimedTotal", e.target.value)}
                 fullWidth
                 size="small"
@@ -686,21 +650,22 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
             </Grid>
           </Grid>
         ))}
-        <Button 
-          size="small" 
-          variant="contained" 
-          color="info" 
-          onClick={addPrize} 
-          sx={{ mt: 2 }}
-          disabled={parsing}
-        >
-          Add Another
-        </Button>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+          <Button 
+            size="small" 
+            variant="contained" 
+            color="info" 
+            onClick={addPrize} 
+            disabled={parsing}
+          >
+            Add Another
+          </Button>
+        </Box>
       </Box>
 
       <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
         <Button 
-          size="small" 
+          size="medium" 
           variant="contained" 
           onClick={() => { 
             void handleSubmit(); 
@@ -726,6 +691,29 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
         onUpdate={handleEstimateUpdate}
         onCancel={handleEstimateCancel}
       />
+
+      {/* Success Snackbar */}
+      <Snackbar
+        open={showSuccessSnackbar}
+        autoHideDuration={4000}
+        onClose={() => setShowSuccessSnackbar(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert 
+          severity="success" 
+          onClose={() => setShowSuccessSnackbar(false)}
+          sx={{ 
+            fontSize: '1rem',
+            fontWeight: 500,
+            minWidth: '300px',
+            '& .MuiAlert-message': {
+              fontSize: '1rem'
+            }
+          }}
+        >
+          ✅ Image parsed successfully! Review and edit the data below before creating the box.
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

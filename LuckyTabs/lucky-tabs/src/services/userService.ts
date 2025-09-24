@@ -25,6 +25,11 @@ export interface UserData {
   createdAt: Date;
   updatedAt: Date;
   plan: string;
+  metricThresholds?: {
+    rtpGoodThreshold: number;   // Default: 85
+    rtpDecentThreshold: number; // Default: 75
+    evPositiveThreshold: number; // Default: 0 (for positive EV)
+  };
 }
 
 export interface GroupMember {
@@ -70,6 +75,11 @@ class UserService {
           createdAt,
           updatedAt,
           plan: data.plan as string || 'free',
+          metricThresholds: data.metricThresholds as UserData['metricThresholds'] || {
+            rtpGoodThreshold: 85,
+            rtpDecentThreshold: 75,
+            evPositiveThreshold: 0
+          }
         };
         // Cache the profile
         this.cachedProfile = profile;
@@ -106,6 +116,11 @@ class UserService {
         createdAt: new Date(),
         updatedAt: new Date(),
         plan: 'free',
+        metricThresholds: {
+          rtpGoodThreshold: 85,
+          rtpDecentThreshold: 75,
+          evPositiveThreshold: 0
+        }
       };
 
       const firestoreData = {
@@ -124,7 +139,7 @@ class UserService {
   // Update user profile
   async updateUserProfile(
     userId: string, 
-    updates: Partial<Pick<UserData, 'displayName' | 'firstName' | 'lastName' | 'avatar' | 'plan' | 'isAdmin'>>
+    updates: Partial<Pick<UserData, 'displayName' | 'firstName' | 'lastName' | 'avatar' | 'plan' | 'isAdmin' | 'metricThresholds'>>
   ): Promise<void> {
     try {
       // Validate displayName if provided

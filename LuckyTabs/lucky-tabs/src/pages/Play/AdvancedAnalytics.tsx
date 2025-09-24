@@ -2,29 +2,8 @@
 import React from 'react';
 import { Box, Typography, Card, CardContent, Chip, Tooltip, IconButton, useTheme } from '@mui/material';
 import InfoIcon from '@mui/icons-material/Info';
-
+import { BoxItem } from '../../services/boxService';
 import { calculateAdvancedMetrics } from './helpers';
-
-interface BoxItem {
-  id: string;
-  boxName: string;
-  boxNumber: string;
-  pricePerTicket: string;
-  startingTickets?: number;
-  type: "wall" | "bar box";
-  locationId: string;
-  ownerId: string;
-  isActive?: boolean;
-  winningTickets?: any[];
-  estimatedRemainingTickets?: number;
-  rowEstimates?: {
-    row1: number;
-    row2: number;
-    row3: number;
-    row4: number;
-  };
-  [key: string]: unknown;
-}
 
 interface AdvancedAnalyticsProps {
   box: BoxItem;
@@ -360,92 +339,6 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
                   }}
                 >
                   {(metrics.goodnessScore * 100).toFixed(0)}/100
-                </Typography>
-              </CardContent>
-            </Card>
-          </Box>
-        </Box>
-
-        {/* Buyout Analysis */}
-        <Box>
-          <Typography 
-            variant="subtitle1" 
-            sx={{ 
-              fontWeight: 'bold', 
-              mb: 2, 
-              textAlign: 'center',
-              ...theme.neon.effects.textGlow(theme.neon.colors.amber, 0.6),
-              fontSize: '1.2rem'
-            }}
-          >
-            💰 Buyout Analysis
-          </Typography>
-          <Box sx={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: 2 
-          }}>
-            <Card 
-              variant="outlined" 
-              sx={{ 
-                ...theme.neon.effects.boxGlow(theme.neon.colors.amber, 0.15),
-                ...theme.neon.effects.hoverTransform,
-                background: `linear-gradient(135deg, 
-                  rgba(255,193,7,0.05) 0%, 
-                  rgba(18,20,24,0.95) 50%, 
-                  rgba(255,193,7,0.03) 100%)`,
-                borderColor: 'rgba(255,193,7,0.2)'
-              }}
-            >
-              <CardContent sx={{ p: 1.5, textAlign: 'center' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, justifyContent: 'center', mb: 0.5 }}>
-                  <Typography variant="caption" sx={{ fontSize: '0.7rem', color: theme.neon.colors.text.secondary }}>
-                    Cost to Clear
-                  </Typography>
-           
-                </Box>
-                <Typography 
-                  variant="h6" 
-                  sx={{ 
-                    color: theme.neon.colors.amber,
-                    fontWeight: 'bold',
-                    fontSize: '1.1rem',
-                    ...theme.neon.effects.textGlow(theme.neon.colors.amber, 0.4)
-                  }}
-                >
-                  ${metrics.costToClear.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </Typography>
-              </CardContent>
-            </Card>
-
-            <Card 
-              variant="outlined" 
-              sx={{ 
-                ...theme.neon.effects.boxGlow(metrics.netIfCleared >= 0 ? theme.neon.colors.green : theme.neon.colors.pink, 0.15),
-                ...theme.neon.effects.hoverTransform,
-                background: `linear-gradient(135deg, 
-                  ${metrics.netIfCleared >= 0 ? 'rgba(0,230,118,0.05)' : 'rgba(255,60,172,0.05)'} 0%, 
-                  rgba(18,20,24,0.95) 50%, 
-                  ${metrics.netIfCleared >= 0 ? 'rgba(0,230,118,0.03)' : 'rgba(255,60,172,0.03)'} 100%)`,
-                borderColor: metrics.netIfCleared >= 0 ? 'rgba(0,230,118,0.2)' : 'rgba(255,60,172,0.2)'
-              }}
-            >
-              <CardContent sx={{ p: 1.5, textAlign: 'center' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, justifyContent: 'center', mb: 0.5 }}>
-                  <Typography variant="caption" sx={{ fontSize: '0.7rem', color: theme.neon.colors.text.secondary }}>
-                    Net if Cleared
-                  </Typography>
-                </Box>
-                <Typography 
-                  variant="h6" 
-                  sx={{ 
-                    color: metrics.netIfCleared >= 0 ? theme.neon.colors.green : theme.neon.colors.pink,
-                    fontWeight: 'bold',
-                    fontSize: '1.1rem',
-                    ...theme.neon.effects.textGlow(metrics.netIfCleared >= 0 ? theme.neon.colors.green : theme.neon.colors.pink, 0.4)
-                  }}
-                >
-                  {metrics.netIfCleared >= 0 ? '+' : '-'}${Math.abs(metrics.netIfCleared).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </Typography>
               </CardContent>
             </Card>

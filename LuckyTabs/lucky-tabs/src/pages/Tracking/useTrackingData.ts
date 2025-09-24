@@ -13,8 +13,9 @@ import { db } from '../../firebase';
 export interface Transaction {
   id: string;
   userId: string;
-  type: 'bet' | 'win';
+  type: 'bet' | 'win' | 'loss';
   amount: number;
+  netAmount?: number; // New field for the net result
   description?: string;
   location?: string;
   createdAt: Timestamp | null;
@@ -131,13 +132,27 @@ export const useTrackingData = (userId: string | undefined) => {
           return transactionDate >= weekStart && transactionDate <= weekEnd;
         });
 
-        const totalSpent = currentWeekTransactions
-          .filter(t => t.type === 'bet')
-          .reduce((sum, t) => sum + t.amount, 0);
+        // Calculate totals supporting both old (bet/win) and new (win/loss with netAmount) formats
+        let totalSpent = 0;
+        let totalWon = 0;
 
-        const totalWon = currentWeekTransactions
-          .filter(t => t.type === 'win')
-          .reduce((sum, t) => sum + t.amount, 0);
+        currentWeekTransactions.forEach(transaction => {
+          if (transaction.netAmount !== undefined) {
+            // New format: use netAmount
+            if (transaction.netAmount < 0) {
+              totalSpent += Math.abs(transaction.netAmount);
+            } else if (transaction.netAmount > 0) {
+              totalWon += transaction.netAmount;
+            }
+          } else {
+            // Old format: use type-based calculation
+            if (transaction.type === 'bet') {
+              totalSpent += transaction.amount;
+            } else if (transaction.type === 'win') {
+              totalWon += transaction.amount;
+            }
+          }
+        });
 
         const currentWeek: WeeklyData = {
           totalSpent,
@@ -177,13 +192,27 @@ export const useTrackingData = (userId: string | undefined) => {
             const weekStartDate = new Date(year, month, date);
             const weekEndDate = getEndOfWeek(weekStartDate);
             
-            const spent = weekTransactions
-              .filter(t => t.type === 'bet')
-              .reduce((sum, t) => sum + t.amount, 0);
-            
-            const won = weekTransactions
-              .filter(t => t.type === 'win')
-              .reduce((sum, t) => sum + t.amount, 0);
+            // Calculate totals supporting both old (bet/win) and new (win/loss with netAmount) formats
+            let spent = 0;
+            let won = 0;
+
+            weekTransactions.forEach(transaction => {
+              if (transaction.netAmount !== undefined) {
+                // New format: use netAmount
+                if (transaction.netAmount < 0) {
+                  spent += Math.abs(transaction.netAmount);
+                } else if (transaction.netAmount > 0) {
+                  won += transaction.netAmount;
+                }
+              } else {
+                // Old format: use type-based calculation
+                if (transaction.type === 'bet') {
+                  spent += transaction.amount;
+                } else if (transaction.type === 'win') {
+                  won += transaction.amount;
+                }
+              }
+            });
 
             return {
               weekStart: weekStartDate,

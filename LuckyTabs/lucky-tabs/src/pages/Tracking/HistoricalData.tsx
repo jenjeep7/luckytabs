@@ -240,8 +240,16 @@ export const HistoricalData: React.FC<HistoricalDataProps> = ({
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                               <Chip
-                                label={transaction.type === 'bet' ? 'Bet' : 'Win'}
-                                color={transaction.type === 'bet' ? 'error' : 'success'}
+                                label={
+                                  transaction.netAmount !== undefined 
+                                    ? (transaction.netAmount < 0 ? 'Loss' : 'Win')
+                                    : (transaction.type === 'bet' ? 'Bet' : 'Win')
+                                }
+                                color={
+                                  transaction.netAmount !== undefined
+                                    ? (transaction.netAmount < 0 ? 'error' : 'success')
+                                    : (transaction.type === 'bet' ? 'error' : 'success')
+                                }
                                 size="small"
                                 variant="outlined"
                               />
@@ -254,9 +262,16 @@ export const HistoricalData: React.FC<HistoricalDataProps> = ({
                             <Typography 
                               variant="body1" 
                               fontWeight="bold"
-                              color={transaction.type === 'bet' ? 'error.main' : 'success.main'}
+                              color={
+                                transaction.netAmount !== undefined
+                                  ? (transaction.netAmount < 0 ? 'error.main' : 'success.main')
+                                  : (transaction.type === 'bet' ? 'error.main' : 'success.main')
+                              }
                             >
-                              {transaction.type === 'bet' ? '-' : '+'}{formatCurrency(transaction.amount)}
+                              {transaction.netAmount !== undefined 
+                                ? (transaction.netAmount >= 0 ? '+' : '') + formatCurrency(Math.abs(transaction.netAmount))
+                                : (transaction.type === 'bet' ? '-' : '+') + formatCurrency(transaction.amount)
+                              }
                             </Typography>
                           </Box>
                         }

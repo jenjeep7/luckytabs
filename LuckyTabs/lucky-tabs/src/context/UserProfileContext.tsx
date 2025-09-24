@@ -1,12 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuthStateCompat } from '../services/useAuthStateCompat';
-import { userService } from '../services/userService';
+import { userService, UserData } from '../services/userService';
 import { setUserAnalyticsProperties } from '../utils/analytics';
 
-export type UserProfile = {
-  plan?: string;
-  // ...other fields as needed
-};
+export type UserProfile = UserData;
 
 interface UserProfileContextType {
   userProfile: UserProfile | null;

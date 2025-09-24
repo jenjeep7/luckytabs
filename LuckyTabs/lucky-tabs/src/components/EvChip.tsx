@@ -10,7 +10,7 @@ export function EvChip({ label, tone = 'good', size = 'medium' }: EvChipProps) {
   const theme = useTheme();
   
   const colors = {
-    good: { bg: theme.neon.colors.cyan, glow: 'rgba(125,249,255,.45)' },
+    good: { bg: theme.neon.colors.green, glow: 'rgba(0,230,118,.45)' },
     decent:    { bg: theme.neon.colors.amber, glow: 'rgba(255,193,7,.35)' },
     poor:      { bg: theme.neon.colors.pink, glow: 'rgba(255,60,172,.45)' },
   }[tone];

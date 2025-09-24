@@ -132,7 +132,19 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <Dialog 
+      open={open} 
+      onClose={handleClose} 
+      maxWidth={false}
+      fullScreen
+      sx={{
+        '& .MuiDialog-paper': {
+          m: 0,
+          width: '100%',
+          height: '100%',
+        }
+      }}
+    >
       <DialogTitle sx={{ textAlign: 'center' }}>
         Track Gambling Result
       </DialogTitle>
@@ -292,7 +304,7 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
               Quick amounts:
             </Typography>
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-              {[5, 10, 20, 50, 100].map((quickAmount) => (
+              {[20, 50, 100, 200].map((quickAmount) => (
                 <Chip
                   key={quickAmount}
                   label={`$${quickAmount}`}

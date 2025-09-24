@@ -20,6 +20,7 @@ import { BudgetManager } from './BudgetManager';
 import { TransactionManager } from './TransactionManager';
 import { WeeklyOverview } from './WeeklyOverview';
 import { HistoricalData } from './HistoricalData';
+import { WinLossChart } from './WinLossChart';
 import { useTrackingData } from './useTrackingData';
 import { formatCurrency } from '../../utils/formatters';
 
@@ -41,7 +42,7 @@ function TabPanel(props: TabPanelProps) {
       {...other}
     >
       {value === index && (
-        <Box sx={{ p: 1 }}>
+        <Box sx={{ p: { xs: 1, sm: 2 } }}>
           {children}
         </Box>
       )}
@@ -109,10 +110,8 @@ export const Tracking: React.FC = () => {
     transactions: [],
   };
 
-  const netLoss = Math.max(0, -currentWeekStats.netResult); // Only count losses, not profits
-
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ py: { xs: 1, sm: 3 }, pt: {xs: 3}, maxWidth: '100%' }}>
       <Box sx={{ 
         display: 'flex', 
         justifyContent: 'center',
@@ -166,31 +165,32 @@ export const Tracking: React.FC = () => {
 
       {/* Quick Stats Cards */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 2 }}>
+        {/* Smaller Net Result Card */}
         <Card sx={{ width: '100%' }}>
-          <CardContent sx={{ textAlign: 'center' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
-              <MoneyIcon sx={{ mr: 1, color: 'error.main' }} />
-              <Typography variant="h6" component="div">
-                Net Loss This Week
+          <CardContent sx={{ textAlign: 'center', py: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 0.5 }}>
+              <MoneyIcon sx={{ mr: 0.5, fontSize: '1.2rem', color: currentWeekStats.netResult < 0 ? 'error.main' : 'success.main' }} />
+              <Typography variant="subtitle1" component="div" sx={{ fontSize: '0.95rem' }}>
+                {currentWeekStats.netResult < 0 ? 'Net Loss This Week' : 'Net Win This Week'}
               </Typography>
             </Box>
             <Typography 
-              variant="h4" 
+              variant="h5" 
               component="div" 
-              color={netLoss > 0 ? "error.main" : "success.main"}
+              color={currentWeekStats.netResult < 0 ? "error.main" : "success.main"}
+              sx={{ mb: 0.5 }}
             >
-              {netLoss > 0 ? formatCurrency(netLoss) : ''}
+              {currentWeekStats.netResult !== 0 ? formatCurrency(Math.abs(currentWeekStats.netResult)) : '$0.00'}
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="caption" color="text.secondary">
               {userBudget ? `of ${formatCurrency(userBudget.weeklyLimit)} budget` : 'No budget set'}
+              {currentWeekStats.netResult >= 0 && currentWeekStats.netResult > 0 && ' 🎉'}
             </Typography>
-            {currentWeekStats.netResult >= 0 && (
-              <Typography variant="caption" color="success.main">
-                {`🎉 You're ahead this week!`}
-              </Typography>
-            )}
           </CardContent>
         </Card>
+
+        {/* Win/Loss Trend Chart */}
+        <WinLossChart historicalData={historicalData || []} />
         
         {/* <Card>
           <CardContent sx={{ textAlign: 'center' }}>
@@ -259,13 +259,25 @@ export const Tracking: React.FC = () => {
       </Box>
 
       {/* Tabs for different views */}
-      <Card sx={{ width: '100%' }}>
-        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs value={tabValue} onChange={handleTabChange} aria-label="tracking tabs">
+      <Box sx={{ width: '100%' }}>
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', backgroundColor: 'background.paper', borderRadius: '4px 4px 0 0' }}>
+          <Tabs 
+            value={tabValue} 
+            onChange={handleTabChange} 
+            aria-label="tracking tabs"
+            variant="fullWidth"
+            sx={{
+              '& .MuiTabs-flexContainer': {
+                width: '100%'
+              }
+            }}
+          >
             <Tab 
               label="This Week" 
               sx={{ 
                 color: 'text.primary',
+                flex: 1,
+                maxWidth: 'none',
                 '&.Mui-selected': {
                   color: 'text.secondary'
                 }
@@ -275,6 +287,8 @@ export const Tracking: React.FC = () => {
               label="History" 
               sx={{ 
                 color: 'text.primary',
+                flex: 1,
+                maxWidth: 'none',
                 '&.Mui-selected': {
                   color: 'text.secondary'
                 }
@@ -283,21 +297,23 @@ export const Tracking: React.FC = () => {
           </Tabs>
         </Box>
         
-        <TabPanel value={tabValue} index={0}>
-          <WeeklyOverview 
-            weeklyData={currentWeekStats}
-            userBudget={userBudget}
-            onRefresh={handleRefreshData}
-          />
-        </TabPanel>
-        
-        <TabPanel value={tabValue} index={1}>
-          <HistoricalData 
-            historicalData={historicalData || []}
-            onRefresh={handleRefreshData}
-          />
-        </TabPanel>
-      </Card>
+        <Box sx={{ width: '100%', backgroundColor: 'background.paper', borderRadius: '0 0 4px 4px' }}>
+          <TabPanel value={tabValue} index={0}>
+            <WeeklyOverview 
+              weeklyData={currentWeekStats}
+              userBudget={userBudget}
+              onRefresh={handleRefreshData}
+            />
+          </TabPanel>
+          
+          <TabPanel value={tabValue} index={1}>
+            <HistoricalData 
+              historicalData={historicalData || []}
+              onRefresh={handleRefreshData}
+            />
+          </TabPanel>
+        </Box>
+      </Box>
 
       {/* Modals */}
       <BudgetManager

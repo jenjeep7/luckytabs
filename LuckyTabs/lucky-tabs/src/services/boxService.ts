@@ -29,7 +29,6 @@ export interface BoxShare {
 export interface BoxItem {
   id: string;
   boxName: string;
-  boxNumber: string;
   pricePerTicket: string;
   type: "wall" | "bar box";
   locationId: string;
@@ -181,7 +180,6 @@ class BoxService {
   private mapBoxData(boxes: any[]): BoxItem[] {
     return boxes.map(box => ({
       ...box,
-      boxNumber: String(box.boxNumber || ''), // Ensure boxNumber is always a string
       pricePerTicket: String(box.pricePerTicket || ''), // Ensure pricePerTicket is always a string
       boxName: String(box.boxName || ''), // Ensure boxName is always a string
       isActive: box.isActive !== false,
