@@ -28,6 +28,7 @@ import { FeedbackDialog } from './components/FeedbackDialog';
 
 
 import { useAuthStateCompat } from './services/useAuthStateCompat';
+import { ScrollToTop } from './components/ScrollToTop';
 
 
 type NavItem = {
@@ -40,7 +41,7 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { label: 'Profile', route: '/profile', icon: <PersonIcon /> },
-  { label: 'Log a Box', route: '/play', icon: <AutoGraph /> },
+  { label: 'Log Box', route: '/play', icon: <AutoGraph /> },
   { label: 'Profit/Loss', route: '/tracking', icon: <ListAltIcon /> },
   { label: 'Social', route: '/community', icon: <GroupIcon /> },
   { label: 'Feedback', action: 'feedback', icon: <FeedbackIcon /> },
@@ -78,15 +79,38 @@ function Layout() {
   const handleLogout = async () => await signOutCompat();
 
   const handleNavItemClick = (item: typeof navItems[number]) => {
+    // Force scroll to top before navigation
+    const forceScrollToTop = () => {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      
+      // Reset any scrollable containers
+      const allElements = document.querySelectorAll('*');
+      allElements.forEach(element => {
+        if (element instanceof HTMLElement && element.scrollTop > 0) {
+          element.scrollTop = 0;
+        }
+      });
+    };
+    
     if (item.action === 'feedback') {
       setFeedbackDialogOpen(true);
     } else if (item.route) {
+      // Force scroll reset before navigation
+      forceScrollToTop();
+      
       // Clear search parameters when navigating to main tabs to prevent tab conflicts
       if (item.route === '/community') {
         void navigate(item.route, { replace: true });
       } else {
         void navigate(item.route);
       }
+      
+      // Force scroll reset after navigation with a small delay
+      setTimeout(forceScrollToTop, 50);
+      setTimeout(forceScrollToTop, 100);
+      setTimeout(forceScrollToTop, 200);
     } else if (item.email) {
       const subject = encodeURIComponent('Tabsy Wins - Contact');
       const body = encodeURIComponent('Hello,\n\nI would like to get in touch regarding Tabsy Wins.\n\nThank you!');
@@ -155,7 +179,8 @@ function Layout() {
         }}
       >
   {user && isMdUp && <Toolbar sx={{ display: 'none' } /* already accounted with pt */} />}
-  <Outlet />
+  <ScrollToTop />
+  <Outlet key={location.pathname} />
       </Box>
 
       {/* Bottom Navigation (mobile only, when logged-in) */}
