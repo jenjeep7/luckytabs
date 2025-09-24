@@ -41,6 +41,7 @@ import { useLocation } from "../../hooks/useLocation";
 import { boxService, BoxItem } from "../../services/boxService";
 import { userService, UserData } from "../../services/userService";
 import { groupService, GroupData } from "../../services/groupService";
+import { useMetricThresholds, getBoxStatus } from '../../hooks/useMetricThresholds';
 import ShareBoxDialog from "./ShareBoxDialog";
 import { useAuthStateCompat } from '../../services/useAuthStateCompat';
 import { statusColors, getNeonHeaderStyle } from '../../utils/neonUtils';
@@ -67,6 +68,7 @@ interface WinningTicket {
 
 export const Play: React.FC = () => {
   const theme = useTheme();
+  const metricThresholds = useMetricThresholds();
   
   // Use location context instead of local state
   const { 
@@ -313,23 +315,18 @@ export const Play: React.FC = () => {
   const extractCityFromAddress = (address: string): string => {
     if (!address) return '';
     
-    // Split address by commas and look for city (usually second to last part before state/zip)
     const parts = address.split(',').map(part => part.trim());
     
-    // Look for patterns that indicate city names
-    // City is typically after the street address and before state
     for (let i = 1; i < parts.length - 1; i++) {
       const part = parts[i];
-      // Skip parts that look like street numbers, states, or zip codes
-      if (!/^\d/.test(part) && // not starting with number
-          !/^[A-Z]{2}$/.test(part) && // not a state abbreviation
-          !/^\d{5}/.test(part) && // not a zip code
-          part.length > 2) { // reasonable city name length
+      if (!/^\d/.test(part) &&
+          !/^[A-Z]{2}$/.test(part) &&
+          !/^\d{5}/.test(part) && 
+          part.length > 2) { 
         return part;
       }
     }
     
-    // Fallback: return the second part if it exists and looks reasonable
     if (parts.length >= 2 && parts[1].length > 2) {
       return parts[1];
     }
@@ -842,15 +839,16 @@ export const Play: React.FC = () => {
                 const evData = (totalRemainingValue - costToCloseOut) / estimatedTickets;
                 const rtpData = (totalRemainingValue / costToCloseOut) * 100;
                 
-                // Color coding based on EV and RTP using neon colors (custom thresholds)
-                if (evData >= 0 || rtpData > 85) {
-                  evColor = statusColors.good; // Neon green for positive EV or RTP > 85
+                // Color coding based on EV and RTP using custom user thresholds
+                const boxStatus = getBoxStatus(evData, rtpData, metricThresholds);
+                if (boxStatus === 'good') {
+                  evColor = statusColors.good;
                   evStatus = 'Good';
-                } else if (rtpData >= 75) {
-                  evColor = statusColors.decent; // Neon amber for RTP 75-85
+                } else if (boxStatus === 'decent') {
+                  evColor = statusColors.decent;
                   evStatus = 'Decent';
                 } else {
-                  evColor = statusColors.poor; // Neon red for poor
+                  evColor = statusColors.poor;
                   evStatus = 'Poor';
                 }
               }
@@ -1071,15 +1069,16 @@ export const Play: React.FC = () => {
                     const evData = (totalRemainingValue - costToCloseOut) / estimatedTickets;
                     const rtpData = (totalRemainingValue / costToCloseOut) * 100;
 
-                    // Color coding based on EV and RTP using neon colors (custom thresholds)
-                    if (evData >= 0 || rtpData > 85) {
-                      evColor = statusColors.good; // Neon green for positive EV or RTP > 85
+                    // Color coding based on EV and RTP using custom user thresholds
+                    const boxStatus = getBoxStatus(evData, rtpData, metricThresholds);
+                    if (boxStatus === 'good') {
+                      evColor = statusColors.good;
                       evStatus = 'Good';
-                    } else if (rtpData >= 75) {
-                      evColor = statusColors.decent; // Neon amber for RTP 75-85
+                    } else if (boxStatus === 'decent') {
+                      evColor = statusColors.decent;
                       evStatus = 'Decent';
                     } else {
-                      evColor = statusColors.poor; // Neon pink for poor
+                      evColor = statusColors.poor;
                       evStatus = 'Poor';
                     }
                   }

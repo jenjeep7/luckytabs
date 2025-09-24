@@ -23,15 +23,19 @@ import {
 } from '@mui/material';
 import {
   Edit,
-  Logout
+  Logout,
+  Settings
 } from '@mui/icons-material';
 import { signOutCompat } from '../../services/authService';
 import { useAuthStateCompat } from '../../services/useAuthStateCompat';
 import { userService, UserData, GroupMember } from '../../services/userService';
 import EditProfileDialog from './EditProfileDialog';
+import { MetricThresholdsSettings } from './MetricThresholdsSettings';
 import { getVersionInfo } from '../../utils/version';
 import { ProfileFlare } from './ProfileFlare';
 import { AchievementBanner } from './AchievementBanner';
+import { useMetricThresholds, MetricThresholds } from '../../hooks/useMetricThresholds';
+import { useUserProfile } from '../../context/UserProfileContext';
 import type { User } from 'firebase/auth';
 
 // Type guard to check if user has required properties (works for both web and native)
@@ -45,8 +49,10 @@ function isValidUser(u: unknown): u is User {
 
 export const UserProfile: React.FC = () => {
   const [user] = useAuthStateCompat();
+  const { refreshProfile } = useUserProfile();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [editDialog, setEditDialog] = useState(false);
+  const [metricsDialog, setMetricsDialog] = useState(false);
   const [addUserDialog, setAddUserDialog] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -62,6 +68,9 @@ export const UserProfile: React.FC = () => {
     message: '',
     severity: 'success'
   });
+
+  // Get current metric thresholds
+  const currentThresholds = useMetricThresholds();
 
   // Form state for editing
   const [editForm, setEditForm] = useState({
@@ -191,6 +200,33 @@ export const UserProfile: React.FC = () => {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveMetricThresholds = async (thresholds: MetricThresholds) => {
+    if (!isValidUser(user)) return;
+
+    try {
+      // Update user profile with new metric thresholds
+      await userService.updateUserProfile(user.uid, { metricThresholds: thresholds });
+      
+      // Refresh user data and profile context to get the updated thresholds
+      await loadUserData();
+      await refreshProfile();
+      
+      setSnackbar({
+        open: true,
+        message: 'Metric thresholds updated successfully!',
+        severity: 'success'
+      });
+    } catch (error) {
+      console.error('Error saving metric thresholds:', error);
+      setSnackbar({
+        open: true,
+        message: 'Failed to update metric thresholds',
+        severity: 'error'
+      });
+      throw error; // Re-throw to let the dialog handle it
     }
   };
 
@@ -394,6 +430,20 @@ export const UserProfile: React.FC = () => {
                        {userData.plan === 'pro' ? 'Manage Plan' : 'Go Pro'}
                      </Button>
                    </Box>
+                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                     <Typography variant="body2" sx={{ flexGrow: 1 }}>
+                       <strong>Box Metrics:</strong> Custom thresholds
+                     </Typography>
+                     <Button
+                       size="small"
+                       variant="outlined"
+                       startIcon={<Settings />}
+                       onClick={() => setMetricsDialog(true)}
+                       sx={{ minWidth: 120, fontWeight: 500 }}
+                     >
+                       Configure
+                     </Button>
+                   </Box>
                 </Stack>
               </CardContent>
             </Card>
@@ -410,6 +460,15 @@ export const UserProfile: React.FC = () => {
         editForm={editForm}
         setEditForm={setEditForm}
         handleAvatarUpload={(e) => void handleAvatarUpload(e)}
+      />
+
+      {/* Metric Thresholds Settings Dialog */}
+      <MetricThresholdsSettings
+        open={metricsDialog}
+        onClose={() => setMetricsDialog(false)}
+        onSave={(thresholds) => handleSaveMetricThresholds(thresholds)}
+        currentThresholds={currentThresholds}
+        saving={saving}
       />
 
       {/* Add User to Group Dialog */}

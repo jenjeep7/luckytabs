@@ -1,19 +1,22 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useUserProfile } from '../../context/UserProfileContext';
+import { useMetricThresholds, getBoxStatus, getRTPColor } from '../../hooks/useMetricThresholds';
 import {
   Box,
   Typography,
   Button,
   IconButton,
   TextField,
-  useTheme
+  useTheme,
+  Card,
+  CardContent
 } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuthStateCompat } from '../../services/useAuthStateCompat';
 import { ConfirmRemoveDialog, EstimateRemainingDialog, ClaimedPrize } from './BoxDialogs';
-import { formatCurrency } from '../../utils/formatters';
+import { formatCurrency, formatCurrencyClean } from '../../utils/formatters';
 import { AdvancedAnalytics } from './AdvancedAnalytics';
 import FlareSheetDisplay from '../../components/FlareSheetDisplay';
 import { Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
@@ -25,7 +28,8 @@ import {
   calculateOneInXChances,
   evPerTicket,
   rtpRemaining,
-  Prize
+  Prize,
+  calculateCostToClear
 } from './helpers';
 import {
   trackBoxRemoved,
@@ -91,6 +95,7 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
 }) => {
   const [firebaseUser] = useAuthStateCompat();
   const { userProfile } = useUserProfile();
+  const metricThresholds = useMetricThresholds();
   const theme = useTheme();
   const isDarkMode = theme.palette.mode === 'dark';
 
@@ -143,30 +148,16 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
   }, [localClaimedPrizes, boxes]);
 
   // Helper function to determine EV color based on neon theme system
-  // Cyan: RTP > 85 (Excellent)
-  // Amber: RTP >= 75 and <= 85 (Decent)
-  // Pink: RTP < 75 (Poor)
+  // Cyan: RTP > custom good threshold (Excellent)
+  // Amber: RTP >= custom decent threshold and <= custom good threshold (Decent)
+  // Pink: RTP < custom decent threshold (Poor)
   const getEvColor = (_evValue: number, rtpValue: number, isPercentage = true): string => {
-    const rtpExcellent = isPercentage ? 85 : 0.85;
-    const rtpDecent = isPercentage ? 75 : 0.75;
-    if (rtpValue > rtpExcellent) {
-      return theme.neon.colors.cyan; // Cyan for RTP > 85
-    } else if (rtpValue >= rtpDecent) {
-      return theme.neon.colors.amber; // Amber for RTP >= 75 and <= 85
-    } else {
-      return theme.neon.colors.pink; // Pink for RTP < 75
-    }
+    return getRTPColor(rtpValue, metricThresholds, theme, isPercentage);
   };
 
-  // Helper function to get EV status text based on neon theme
+  // Helper function to get EV status text based on custom thresholds
   const getEvStatus = (evValue: number, rtpValue: number): StatusType => {
-    if (evValue >= 0 || rtpValue > 85) {
-      return 'good'; // Positive EV or RTP > 85 = excellent (cyan)
-    } else if (rtpValue >= 75) {
-      return 'decent'; // RTP 75-85 = decent (amber)
-    } else {
-      return 'poor'; // RTP < 75 = poor (pink)
-    }
+    return getBoxStatus(evValue, rtpValue, metricThresholds);
   };
 
   // Separate component for EV Badge to help with TypeScript inference
@@ -181,6 +172,9 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
           label={`${statusText} - ${rtpData.toFixed(1)}%`}
           tone={status}
         />
+        <Typography variant="caption" sx={{ mt: 0.5, color: 'text.secondary', fontSize: '0.7rem', fontStyle: 'italic', display: 'block', textAlign: 'center' }}>
+          *return to player % based on estimated tickets
+        </Typography>
         {/* <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
           Expected Value: {evData >= 0 ? '+' : ''}{formatCurrency(Math.abs(evData))}
         </Typography> */}
@@ -465,8 +459,8 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
         setEstimateDialog({ open: false, boxId: '', boxName: '' });
         
         // Refresh data if callback exists
-        if (onBoxRemoved) {
-          onBoxRemoved();
+        if (refreshBoxes) {
+          refreshBoxes(estimateDialog.boxId);
         }
       } catch (error) {
         console.error('Error updating estimated remaining tickets:', error);
@@ -733,7 +727,7 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
                   {typeof evData === 'number' && typeof rtpData === 'number' && (
                     <EvBadge evData={evData} rtpData={rtpData} />
                   )}
-                  <Typography><strong>Price per Ticket:</strong> {formatCurrency(parseFloat(box.pricePerTicket))}</Typography>
+                  <Typography variant="body1" sx={{ mb: 1 }}>Price per Ticket: <strong>{formatCurrencyClean(parseFloat(box.pricePerTicket))}</strong></Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 0 }}>
                       {renderPrizeButtons(box)}
                   </Box>
@@ -779,17 +773,122 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
                     <Typography sx={{ fontWeight: 'bold', color: 'secondary.main' }}>
                       <strong>Odds:</strong> {calculateOneInXChances(remainingTicketsInput, box.id, { ...box, winningTickets: getEffectiveWinningTickets(box) })}
                     </Typography>
-                    <Typography sx={{ fontWeight: 'bold', color: 'success.main' }}>
-                      <strong>Total Remaining Prize Value:</strong> {formatCurrency(calculateTotalRemainingPrizeValue({ ...box, winningTickets: getEffectiveWinningTickets(box) }))}
-                    </Typography>
+                    
+                    {/* Key Metrics in Glow Box */}
+                    {(() => {
+                      const costToClear = Number(remainingTicketsInput[box.id]) * parseFloat(box.pricePerTicket);
+                      const totalRemainingValue = calculateTotalRemainingPrizeValue({ ...box, winningTickets: getEffectiveWinningTickets(box) });
+                      const netIfCleared = totalRemainingValue - costToClear;
+                      
+                      return (
+                        <Box sx={{ 
+                          mt: 2,
+                          display: 'grid', 
+                          gridTemplateColumns: 'repeat(3, 1fr)',
+                          gap: 1.5,
+                          maxWidth: 700,
+                          mx: 'auto'
+                        }}>
+                          {/* Total Remaining Prize Value */}
+                          <Card 
+                            variant="outlined" 
+                            sx={{ 
+                              ...theme.neon.effects.boxGlow(theme.neon.colors.green, 0.15),
+                              background: `linear-gradient(135deg, 
+                                rgba(0,230,118,0.05) 0%, 
+                                rgba(18,20,24,0.95) 50%, 
+                                rgba(0,230,118,0.03) 100%)`,
+                              borderColor: 'rgba(0,230,118,0.2)',
+                              minHeight: '70px'
+                            }}
+                          >
+                            <CardContent sx={{ p: 1.5, textAlign: 'center' }}>
+                              <Typography variant="caption" sx={{ fontSize: '0.7rem', color: theme.neon.colors.text.secondary, display: 'block', mb: 0.5 }}>
+                                Prize Value
+                              </Typography>
+                              <Typography 
+                                variant="body1" 
+                                sx={{ 
+                                  color: theme.neon.colors.green,
+                                  fontWeight: 'bold',
+                                  fontSize: '1.1rem',
+                                  ...theme.neon.effects.textGlow(theme.neon.colors.green, 0.3)
+                                }}
+                              >
+                                {formatCurrencyClean(totalRemainingValue)}
+                              </Typography>
+                            </CardContent>
+                          </Card>
+
+                          {/* Cost to Clear */}
+                          <Card 
+                            variant="outlined" 
+                            sx={{ 
+                              ...theme.neon.effects.boxGlow(theme.neon.colors.amber, 0.15),
+                              background: `linear-gradient(135deg, 
+                                rgba(255,193,7,0.05) 0%, 
+                                rgba(18,20,24,0.95) 50%, 
+                                rgba(255,193,7,0.03) 100%)`,
+                              borderColor: 'rgba(255,193,7,0.2)',
+                              minHeight: '70px'
+                            }}
+                          >
+                            <CardContent sx={{ p: 1.5, textAlign: 'center' }}>
+                              <Typography variant="caption" sx={{ fontSize: '0.7rem', color: theme.neon.colors.text.secondary, display: 'block', mb: 0.5 }}>
+                                Cost to Clear
+                              </Typography>
+                              <Typography 
+                                variant="body1" 
+                                sx={{ 
+                                  color: theme.neon.colors.amber,
+                                  fontWeight: 'bold',
+                                  fontSize: '1.1rem',
+                                  ...theme.neon.effects.textGlow(theme.neon.colors.amber, 0.3)
+                                }}
+                              >
+                                {formatCurrencyClean(costToClear)}
+                              </Typography>
+                            </CardContent>
+                          </Card>
+
+                          {/* Net if Cleared */}
+                          <Card 
+                            variant="outlined" 
+                            sx={{ 
+                              ...theme.neon.effects.boxGlow(netIfCleared >= 0 ? theme.neon.colors.green : theme.neon.colors.pink, 0.15),
+                              background: `linear-gradient(135deg, 
+                                ${netIfCleared >= 0 ? 'rgba(0,230,118,0.05)' : 'rgba(255,60,172,0.05)'} 0%, 
+                                rgba(18,20,24,0.95) 50%, 
+                                ${netIfCleared >= 0 ? 'rgba(0,230,118,0.03)' : 'rgba(255,60,172,0.03)'} 100%)`,
+                              borderColor: netIfCleared >= 0 ? 'rgba(0,230,118,0.2)' : 'rgba(255,60,172,0.2)',
+                              minHeight: '70px'
+                            }}
+                          >
+                            <CardContent sx={{ p: 1.5, textAlign: 'center' }}>
+                              <Typography variant="caption" sx={{ fontSize: '0.7rem', color: theme.neon.colors.text.secondary, display: 'block', mb: 0.5 }}>
+                                Net if Cleared
+                              </Typography>
+                              <Typography 
+                                variant="body1" 
+                                sx={{ 
+                                  color: netIfCleared >= 0 ? theme.neon.colors.green : theme.neon.colors.pink,
+                                  fontWeight: 'bold',
+                                  fontSize: '1.1rem',
+                                  ...theme.neon.effects.textGlow(netIfCleared >= 0 ? theme.neon.colors.green : theme.neon.colors.pink, 0.3)
+                                }}
+                              >
+                                {netIfCleared >= 0 ? '+' : '-'}{formatCurrencyClean(Math.abs(netIfCleared))}
+                              </Typography>
+                            </CardContent>
+                          </Card>
+                        </Box>
+                      );
+                    })()}
                     {showOwner && (
                       <Typography>
                         <strong>Created By:</strong> {userDisplayNames[box.ownerId] || 'Loading...'}
                       </Typography>
                     )}
-                    {/* <Typography sx={{ fontWeight: 'bold', color: getPayoutColor(remainingTicketsInput, box.id, boxWithEffectiveTickets) }}>
-                      <strong>Percent to buyout:</strong> {calculatePayoutPercentage(remainingTicketsInput, box.id, boxWithEffectiveTickets)}
-                    </Typography> */}
                   </>
                 )}
                 

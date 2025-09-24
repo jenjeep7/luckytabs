@@ -7,6 +7,17 @@
       maximumFractionDigits: 2
     }).format(amount);
   };
+
+  // Helper function to format currency without decimals for whole dollar amounts
+  export const formatCurrencyClean = (amount: number): string => {
+    const isWholeNumber = amount % 1 === 0;
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: isWholeNumber ? 0 : 2,
+      maximumFractionDigits: 2
+    }).format(amount);
+  };
   export const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', {
       month: 'numeric',
