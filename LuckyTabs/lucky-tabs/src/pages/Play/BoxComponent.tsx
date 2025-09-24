@@ -16,7 +16,7 @@ import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuthStateCompat } from '../../services/useAuthStateCompat';
 import { ConfirmRemoveDialog, EstimateRemainingDialog, ClaimedPrize } from './BoxDialogs';
-import { formatCurrency, formatCurrencyClean } from '../../utils/formatters';
+import { formatCurrencyClean } from '../../utils/formatters';
 import { AdvancedAnalytics } from './AdvancedAnalytics';
 import FlareSheetDisplay from '../../components/FlareSheetDisplay';
 import { Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
@@ -29,7 +29,6 @@ import {
   evPerTicket,
   rtpRemaining,
   Prize,
-  calculateCostToClear
 } from './helpers';
 import {
   trackBoxRemoved,
