@@ -131,17 +131,8 @@ export default function AppRoutes() {
   // Always call the hook (React rule)
   const [user, loading, error] = useAuthStateCompat();
 
-  // Debug logging
-  console.log('[AppRoutes] Auth state:', { 
-    user: user ? { uid: user.uid, email: user.email } : null, 
-    loading, 
-    error,
-    userExists: !!user 
-  });
-
   // Show loading while auth state is being determined
   if (loading) {
-    console.log('[AppRoutes] Still loading auth state...');
     return (
       <Box sx={{ 
         display: 'flex', 

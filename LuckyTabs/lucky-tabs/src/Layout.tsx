@@ -29,6 +29,7 @@ import { FeedbackDialog } from './components/FeedbackDialog';
 
 import { useAuthStateCompat } from './services/useAuthStateCompat';
 import { ScrollToTop } from './components/ScrollToTop';
+import { PageViewTracker } from './components/PageViewTracker';
 
 
 type NavItem = {
@@ -180,6 +181,7 @@ function Layout() {
       >
   {user && isMdUp && <Toolbar sx={{ display: 'none' } /* already accounted with pt */} />}
   <ScrollToTop />
+  <PageViewTracker />
   <Outlet key={location.pathname} />
       </Box>
 
