@@ -8,19 +8,19 @@ import { calculateAdvancedMetrics } from './helpers';
 interface AdvancedAnalyticsProps {
   box: BoxItem;
   remainingTickets: number;
-  getEvColor: (_evValue: number, rtpValue: number, isPercentage?: boolean) => string;
 }
 
-export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remainingTickets, getEvColor: _getEvColor }) => {
+export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remainingTickets }) => {
   const theme = useTheme();
   
-  // Helper function to get neon colors based on EV status
-  const getNeonColorForEV = (evValue: number) => {
-    if (evValue > 0) return theme.neon.colors.cyan; // Positive EV - cyan (good)
-    if (evValue > -0.5) return theme.neon.colors.amber; // Slightly negative - amber (caution)
-    return theme.neon.colors.pink; // Very negative - red (bad)
+  // Helper function to get EV/Dollar color
+  const getValueColor = (evx: number) => {
+    if (evx >= 1) return theme.neon.colors.green;
+    if (evx >= 0.8) return theme.neon.colors.cyan;
+    if (evx >= 0.6) return theme.neon.colors.amber;
+    return theme.neon.colors.pink;
   };
-  
+
   // Helper function to get neon colors based on risk ratio
   const getNeonColorForRisk = (riskValue: number) => {
     if (riskValue > 0.1) return theme.neon.colors.green; // Excellent risk-adjusted returns
@@ -29,18 +29,29 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
     return theme.neon.colors.pink; // High risk with losses
   };
   
+  // Helper function to get risk level text
+  const getRiskLevelText = (riskValue: number): string => {
+    if (riskValue <= 5) return 'Low';
+    if (riskValue <= 15) return 'Med';
+    if (riskValue <= 30) return 'High';
+    return 'Extreme';
+  };
+
+  // Helper function to get risk level color
+  const getRiskLevelColor = (riskValue: number): string => {
+    if (riskValue <= 5) return theme.neon.colors.green;
+    if (riskValue <= 15) return theme.neon.colors.cyan;
+    if (riskValue <= 30) return theme.neon.colors.amber;
+    return theme.neon.colors.pink;
+  };
+
   const [payoutTooltipOpen, setPayoutTooltipOpen] = React.useState(false);
   const handlePayoutTooltipToggle = () => setPayoutTooltipOpen((open) => !open);
   const handlePayoutTooltipClose = () => setPayoutTooltipOpen(false);
   const [riskTooltipOpen, setRiskTooltipOpen] = React.useState(false);
   const handleRiskTooltipToggle = () => setRiskTooltipOpen((open) => !open);
   const handleRiskTooltipClose = () => setRiskTooltipOpen(false);
-  const [topPrizeTooltipOpen, setTopPrizeTooltipOpen] = React.useState(false);
-  const handleTopPrizeTooltipToggle = () => setTopPrizeTooltipOpen((open) => !open);
-  const handleTopPrizeTooltipClose = () => setTopPrizeTooltipOpen(false);
-  const [profitOddsTooltipOpen, setProfitOddsTooltipOpen] = React.useState(false);
-  const handleProfitOddsTooltipToggle = () => setProfitOddsTooltipOpen((open) => !open);
-  const handleProfitOddsTooltipClose = () => setProfitOddsTooltipOpen(false);
+
   const [evPerDollarTooltipOpen, setEvPerDollarTooltipOpen] = React.useState(false);
   const handleEvPerDollarTooltipToggle = () => setEvPerDollarTooltipOpen((open) => !open);
   const handleEvPerDollarTooltipClose = () => setEvPerDollarTooltipOpen(false);
@@ -65,20 +76,13 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
   const [prizeSurplusTooltipOpen, setPrizeSurplusTooltipOpen] = React.useState(false);
   const handlePrizeSurplusTooltipToggle = () => setPrizeSurplusTooltipOpen((open) => !open);
   const handlePrizeSurplusTooltipClose = () => setPrizeSurplusTooltipOpen(false);
-  if (!box || !remainingTickets) return null;
+  
+  // Guard clause for invalid data - explicit intent
+  if (!box || remainingTickets <= 0) return null;
+  
   const metrics = calculateAdvancedMetrics(box, remainingTickets);
-  // Calculate profit ticket odds for next 1, 10, and 20 pulls
-  const profitTicketOdds = {
-    next1: metrics.profitTicketOdds?.next1 ?? 0,
-    next10: 1 - Math.pow(1 - (metrics.profitTicketOdds?.next1 ?? 0), 10),
-    next20: 1 - Math.pow(1 - (metrics.profitTicketOdds?.next1 ?? 0), 20),
-  };
-  // Calculate top prize odds for next 1, 10, and 20 pulls
-  const topPrizeOdds = {
-    next1: metrics.topPrizeOdds?.next1 ?? 0,
-    next10: 1 - Math.pow(1 - (metrics.topPrizeOdds?.next1 ?? 0), 10),
-    next20: 1 - Math.pow(1 - (metrics.topPrizeOdds?.next1 ?? 0), 20),
-  };
+  // Use exact hypergeometric odds from calculateAdvancedMetrics
+
 
   return (
     <Box sx={{ mt: 2, maxWidth: 800, mx: 'auto' }}>
@@ -117,7 +121,7 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
               <CardContent sx={{ p: 1.5, textAlign: 'center' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, justifyContent: 'center', mb: 0.5 }}>
                   <Typography variant="caption" sx={{ fontSize: '0.7rem', color: theme.neon.colors.text.secondary }}>
-                    EV/Dollar
+                    Value (EV per $)
                   </Typography>
                   <Tooltip
                     title={
@@ -131,7 +135,7 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
                           <strong>Below 0.6:</strong> Very Poor (less than 60% return)
                         </Typography>
                         <Typography variant="body2" sx={{ mb: 1 }}>
-                          <strong>Example:</strong> 0.85 means you expect to get $0.85 back for every $1.00 spent on average.
+                          <strong>Example:</strong> 0.75 means you expect to get $0.75 back for every $1.00 spent on average.
                         </Typography>
                         <Typography variant="body2"><em>This accounts for all remaining prizes and tickets, giving you the true expected return rate.</em></Typography>
                       </Box>
@@ -149,17 +153,30 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
                     </IconButton>
                   </Tooltip>
                 </Box>
-                <Typography 
-                  variant="h6" 
-                  sx={{ 
-                    color: getNeonColorForEV(metrics.evPerTicket),
-                    fontWeight: 'bold',
-                    fontSize: '1.1rem',
-                    ...theme.neon.effects.textGlow(getNeonColorForEV(metrics.evPerTicket), 0.4)
-                  }}
-                >
-                  ${metrics.evPerDollar.toFixed(2)}
-                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <Typography 
+                    variant="h6" 
+                    sx={{ 
+                      color: getValueColor(metrics.evPerDollar),
+                      fontWeight: 'bold',
+                      fontSize: '1.1rem',
+                      ...theme.neon.effects.textGlow(getValueColor(metrics.evPerDollar), 0.4),
+                      lineHeight: 1
+                    }}
+                  >
+                    {metrics.evPerDollar.toFixed(2)}×
+                  </Typography>
+                  <Typography 
+                    variant="caption" 
+                    sx={{ 
+                      fontSize: '0.65rem',
+                      color: 'text.secondary',
+                      lineHeight: 1
+                    }}
+                  >
+                    {(metrics.evPerDollar * 100).toFixed(0)}% RTP
+                  </Typography>
+                </Box>
               </CardContent>
             </Card>
 
@@ -178,7 +195,7 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
               <CardContent sx={{ p: 1.5, textAlign: 'center' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, justifyContent: 'center', mb: 0.5 }}>
                   <Typography variant="caption" sx={{ fontSize: '0.7rem', color: theme.neon.colors.text.secondary }}>
-                    Risk Ratio
+                    Value/Risk Ratio
                   </Typography>
                   <Tooltip
                     title={
@@ -260,7 +277,7 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
               <CardContent sx={{ p: 1.5, textAlign: 'center' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, justifyContent: 'center', mb: 0.5 }}>
                   <Typography variant="caption" sx={{ fontSize: '0.7rem', color: theme.neon.colors.text.secondary }}>
-                    Win Odds (Next 5)
+                    Win in Next 5
                   </Typography>
                   <Tooltip
                     title={
@@ -423,6 +440,16 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
                 }}
               >
                 {metrics.prizeSurplusRatio.toFixed(2)}x
+              </Typography>
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  fontSize: '0.65rem',
+                  color: 'text.secondary',
+                  fontStyle: 'italic'
+                }}
+              >
+                experimental
               </Typography>
             </Box>
           </Box>
@@ -642,139 +669,18 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
           </Box>
         </Box>
 
-        {/* Odds Analysis */}
-        <Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', my: 1, textAlign: 'center' }}>{`🎯 Odds Analysis`}</Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-            <Card variant="outlined" sx={{ flex: '1 1 300px' }}>
-                <CardContent sx={{ p: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, justifyContent: 'center' }}>
-                  <Typography variant="subtitle2" sx={{ mb: 0 }}>{`Top Prize Odds`}</Typography>
-                  <Tooltip
-                    title={
-                      <Box>
-                        <Typography variant="subtitle2" sx={{ mb: 1 }}>{`Top Prize Odds (Premium Tier)`}</Typography>
-                        <Typography variant="body2" sx={{ mb: 1 }}>{`Shows your chance of getting prizes in the top 20% by value in the next 1, 10, or 20 pulls. These are the highest-value prizes remaining in the box.`}</Typography>
-                        <Typography variant="body2" sx={{ mb: 1 }}>
-                          <strong>How we calculate &quot;top prizes&quot;:</strong> We rank all remaining prizes by value and take the top 20% as &quot;premium tier&quot; prizes.
-                        </Typography>
-                        <Typography variant="body2" sx={{ mb: 1 }}>
-                          <strong>Reading the odds:</strong><br/>
-                          • Next 1: Your chance on the very next ticket<br/>
-                          • Next 10: Odds of hitting at least one in your next 10 tickets<br/>
-                          • Next 20: Odds across a larger sample size
-                        </Typography>
-                        <Typography variant="body2" sx={{ mb: 1 }}>
-                          <strong>Strategy:</strong> Higher percentages mean better short-term chances for hitting the biggest remaining prizes. Great for players who want to target the most valuable tickets.
-                        </Typography>
-                        <Typography variant="body2" sx={{ mb: 1, fontStyle: 'italic', color: 'info.main' }}>
-                          <strong>Advanced Options:</strong> See the Advanced Big Hit Analysis section below for $50+ prize odds and top-2 prize targeting.
-                        </Typography>
-                        <Typography variant="body2"><em>Use this to decide if it&apos;s worth making a focused play on the biggest prizes left.</em></Typography>
-                      </Box>
-                    }
-                    arrow
-                    placement="top"
-                    open={topPrizeTooltipOpen}
-                    onClose={handleTopPrizeTooltipClose}
-                    disableFocusListener
-                    disableHoverListener
-                    disableTouchListener
-                  >
-                    <IconButton size="small" sx={{ p: 0.25 }} onClick={handleTopPrizeTooltipToggle}>
-                      <InfoIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
-                <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', justifyContent: 'center' }}>
-                  <Chip 
-                    label={`Next 1: ${(topPrizeOdds.next1 * 100).toFixed(1)}%`} 
-                    size="small" 
-                    color="primary"
-                  />
-                  <Chip 
-                    label={`Next 10: ${(topPrizeOdds.next10 * 100).toFixed(1)}%`} 
-                    size="small" 
-                    color="primary"
-                  />
-                  <Chip 
-                    label={`Next 20: ${(topPrizeOdds.next20 * 100).toFixed(1)}%`} 
-                    size="small" 
-                    color="primary"
-                  />
-                </Box>
-              </CardContent>
-            </Card>
-            <Card variant="outlined" sx={{ flex: '1 1 300px' }}>
-                <CardContent sx={{ p: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, justifyContent: 'center' }}>
-                  <Typography variant="subtitle2">{`Profit Ticket Odds`}</Typography>
-                  <Tooltip
-                    title={
-                      <Box>
-                        <Typography variant="subtitle2" sx={{ mb: 1 }}>{`Profit Ticket Odds (Break-Even+)`}</Typography>
-                        <Typography variant="body2" sx={{ mb: 1 }}>{`Shows your chance of getting a ticket that pays out more than its cost in the next 1, 10, or 20 pulls. This is about consistent profitability, not big wins.`}</Typography>
-                        <Typography variant="body2" sx={{ mb: 1 }}>
-                          <strong>What counts as &quot;profit&quot;:</strong> Any ticket that pays more than the ticket price. If tickets cost $2, then any prize &gt;$2 counts as profit.
-                        </Typography>
-                        <Typography variant="body2" sx={{ mb: 1 }}>
-                          <strong>Strategy guide:</strong><br/>
-                          • &gt;50%: Excellent odds for steady wins<br/>
-                          • 30-50%: Good odds for regular play<br/>
-                          • 10-30%: Fair odds, expect some dry spells<br/>
-                          • &lt;10%: Poor odds, mostly losing tickets left
-                        </Typography>
-                        <Typography variant="body2" sx={{ mb: 1 }}>
-                          <strong>Best for:</strong> Players who want consistent smaller wins rather than chasing jackpots. Good for building confidence and maintaining bankroll.
-                        </Typography>
-                        <Typography variant="body2"><em>High profit ticket odds mean you&apos;ll have more frequent wins to keep you in the game longer.</em></Typography>
-                      </Box>
-                    }
-                    arrow
-                    placement="top"
-                    open={profitOddsTooltipOpen}
-                    onClose={handleProfitOddsTooltipClose}
-                    disableFocusListener
-                    disableHoverListener
-                    disableTouchListener
-                  >
-                    <IconButton size="small" sx={{ p: 0.25 }} onClick={handleProfitOddsTooltipToggle}>
-                      <InfoIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
-                <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', justifyContent: 'center' }}>
-                  <Chip 
-                    label={`Next 1: ${(profitTicketOdds.next1 * 100).toFixed(1)}%`} 
-                    size="small" 
-                    color="success"
-                  />
-                  <Chip 
-                    label={`Next 10: ${(profitTicketOdds.next10 * 100).toFixed(1)}%`} 
-                    size="small" 
-                    color="success"
-                  />
-                  <Chip 
-                    label={`Next 20: ${(profitTicketOdds.next20 * 100).toFixed(1)}%`} 
-                    size="small" 
-                    color="success"
-                  />
-                </Box>
-              </CardContent>
-            </Card>
-          </Box>
-        </Box>
+
 
         {/* Risk Analysis */}
         <Box>
           <Typography variant="subtitle1" sx={{ fontWeight: 'bold', my: 2, textAlign: 'center' }}>{`⚠️ Risk Analysis`}</Typography>
           <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 3, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'background.paper', px: 2, py: 1, borderRadius: 1, boxShadow: 1 }}>
-              <Typography variant="caption" color="text.secondary">{`Risk per Ticket:`}</Typography>
+              <Typography variant="caption" color="text.secondary">{`Risk:`}</Typography>
               <Tooltip
                 title={
                   <Box>
-                    <Typography variant="subtitle2" sx={{ mb: 1 }}>{`Risk per Ticket (Standard Deviation)`}</Typography>
+                    <Typography variant="subtitle2" sx={{ mb: 1 }}>{`Risk Level (Standard Deviation)`}</Typography>
                     <Typography variant="body2" sx={{ mb: 1 }}>{`Shows how much the payout for each ticket can vary from the average. This measures volatility - how &quot;swingy&quot; your results will be.`}</Typography>
                     <Typography variant="body2" sx={{ mb: 1 }}>
                       <strong>Understanding risk levels:</strong><br/>
@@ -804,7 +710,28 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
                   <InfoIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
-              <Typography variant="h6">±${metrics.riskPerTicket.toFixed(2)}</Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    color: getRiskLevelColor(metrics.riskPerTicket),
+                    fontWeight: 'bold',
+                    lineHeight: 1
+                  }}
+                >
+                  {getRiskLevelText(metrics.riskPerTicket)}
+                </Typography>
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    fontSize: '0.65rem',
+                    color: 'text.secondary',
+                    lineHeight: 1
+                  }}
+                >
+                  ±${metrics.riskPerTicket.toFixed(2)}
+                </Typography>
+              </Box>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'background.paper', px: 2, py: 1, borderRadius: 1, boxShadow: 1 }}>
               <Typography variant="caption" color="text.secondary">{`Payout Concentration:`}</Typography>
@@ -812,9 +739,12 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
                 title={
                   <Box>
                     <Typography variant="subtitle2" sx={{ mb: 1 }}>{`Payout Concentration`}</Typography>
-                    <Typography variant="body2" sx={{ mb: 1 }}>{`Shows how much of the total prize money is concentrated in the biggest prizes. High concentration means most of the money is in a few big wins; low means it's spread across many tickets.`}</Typography>
+                    <Typography variant="body2" sx={{ mb: 1 }}>{`Shows what percentage of the total prize pool is concentrated in the top 20% of prize tiers by value. High concentration means most of the money is in a few big wins; low means it's spread across many tickets.`}</Typography>
                     <Typography variant="body2" sx={{ mb: 1 }}>
-                      <strong>Example:</strong> If 80% of the prize money is in just 2 tickets, payout concentration is high (80%). If 80% is spread across 100 tickets, payout concentration is low.
+                      <strong>Calculation:</strong> % of total prize pool held by the top 20% of prize tiers (by dollar value).
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      <strong>Example:</strong> If the top 20% of prize tiers contain 80% of all prize money, concentration is 80%. If they only contain 40%, concentration is 40%.
                     </Typography>
                     <Typography variant="body2"><em>{`High: Jackpot style. Low: Frequent smaller wins.`}</em></Typography>
                   </Box>
@@ -849,7 +779,7 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
           <Card variant="outlined" sx={{ bgcolor: 'warning.light' }}>
             <CardContent sx={{ p: 1 }}>
               <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>{`⚠️ Estimate Sensitivity Warning`}</Typography>
-              <Typography variant="body2" sx={{ mb: 1 }}>{`EV at 90% estimate: $${metrics.sensitivity.evLow.toFixed(2)} | EV at 110% estimate: $${metrics.sensitivity.evHigh.toFixed(2)}`}</Typography>
+              <Typography variant="body2" sx={{ mb: 1 }}>{`EV per ticket at 90% estimate: $${metrics.sensitivity.evLow.toFixed(2)} | EV per ticket at 110% estimate: $${metrics.sensitivity.evHigh.toFixed(2)}`}</Typography>
               <Typography variant="caption">{`The profitability estimate is sensitive to your ticket count estimate. Consider refining your count.`}</Typography>
             </CardContent>
           </Card>

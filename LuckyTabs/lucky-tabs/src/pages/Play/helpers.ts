@@ -1,3 +1,5 @@
+import { BoxItem } from '../../services/boxService';
+
 interface WinningTicket {
   totalPrizes: number;
   claimedTotal: number;
@@ -7,22 +9,6 @@ interface WinningTicket {
 export interface Prize {
   value: number;
   remaining: number;
-}
-
-interface BoxItem {
-  id: string;
-  boxName: string;
-  pricePerTicket: string;
-  type: "wall" | "bar box";
-  locationId: string;
-  ownerId: string;
-  isActive?: boolean;
-  winningTickets?: Array<{
-    totalPrizes: number;
-    claimedTotal: number;
-    prize: string;
-  }>;
-  estimatedRemainingTickets?: number;
 }
 
 // Advanced Metrics Types
