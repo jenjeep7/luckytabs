@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 import {
   Fab,
   Dialog,
@@ -15,14 +16,12 @@ import {
   CircularProgress
 } from '@mui/material';
 import {
-  Chat as ChatIcon,
   Close as CloseIcon,
-  Send as SendIcon,
-  SmartToy as BotIcon
+  Send as SendIcon
 } from '@mui/icons-material';
 import { TransitionProps } from '@mui/material/transitions';
 import { BoxItem } from '../services/boxService';
-import { calculateAdvancedMetrics } from '../pages/Play/helpers';
+import { calculateAdvancedMetrics, AdvancedMetrics } from '../pages/Play/helpers';
 
 const Transition = React.forwardRef(function Transition(
   props: TransitionProps & {
@@ -40,6 +39,19 @@ interface Message {
   timestamp: Date;
 }
 
+interface PickResult {
+  box_id: string;
+  rank: number;
+  reason: string;
+}
+
+interface BoxAnalysis {
+  box: BoxItem;
+  remainingTickets: number;
+  metrics: AdvancedMetrics | null;
+  pricePerTicket: number;
+}
+
 interface FloatingChatBotProps {
   boxes: BoxItem[];
   remainingTicketsInput?: { [key: string]: string };
@@ -54,7 +66,7 @@ export const FloatingChatBot: React.FC<FloatingChatBotProps> = ({
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: "Hi! I'm your Lucky Tabs advisor. I can help you choose the best boxes to play based on your budget and risk tolerance. Try asking me things like:\n\n• 'Which box has the best odds?'\n• 'What's the safest box for $20?'\n• 'Which box gives me the best chance at a big win?'",
+      text: "Hi! I'm Tabsy, your advisor. I can help you choose the best boxes to play based on your budget and risk tolerance. Try asking me things like:\n\n• 'Which box has the best odds?'\n• 'What's the safest box for $20?'\n• 'Which box gives me the best chance at a big win?'",
       isBot: true,
       timestamp: new Date()
     }
@@ -83,6 +95,41 @@ export const FloatingChatBot: React.FC<FloatingChatBotProps> = ({
         pricePerTicket: Number(box.pricePerTicket) || 0
       };
     }).filter(item => item.remainingTickets > 0 && item.metrics);
+  };
+
+  // LLM Integration via server-side API
+  const queryLLM = async (message: string, analyses: BoxAnalysis[]): Promise<string | null> => {
+    try {
+      // Prepare structured data for the server
+      const payload = analyses.map(a => ({
+        id: a.box.id,
+        name: a.box.boxName || 'Unknown',
+        price_per_ticket: a.pricePerTicket,
+        ev: Number(a.metrics?.evPerTicket?.toFixed(2) ?? 0),
+        rtp: Number(a.metrics?.rtpRemaining?.toFixed(1) ?? 0),
+        risk: Number(a.metrics?.riskPerTicket?.toFixed(2) ?? 0),
+        p_win_next1: Number(a.metrics?.anyWinOdds?.next1?.toFixed(4) ?? 0),
+        p_win_next5: Number(a.metrics?.anyWinOdds?.next5?.toFixed(4) ?? 0),
+        p_top_next10: Number(a.metrics?.topPrizeOdds?.next10?.toFixed(4) ?? 0),
+      }));
+
+      const response = await fetch('https://boxadvisor-hnzwvyldha-uc.a.run.app', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message, boxes: payload })
+      });
+
+      if (!response.ok) {
+        console.warn(`Server API error: ${response.status}`);
+        return null;
+      }
+
+      const data = await response.json() as { answerMarkdown: string; picks: PickResult[] };
+      return data.answerMarkdown;
+    } catch (error) {
+      console.warn('LLM server query failed:', error);
+      return null;
+    }
   };
 
   const generateResponse = (userMessage: string): string => {
@@ -152,7 +199,8 @@ export const FloatingChatBot: React.FC<FloatingChatBotProps> = ({
 
       const topRec = recommendations[0];
       const anyWinOddsNext1 = topRec.metrics?.anyWinOdds.next1 ?? 0;
-      return `For $${budget}, I recommend **${topRec.box.boxName}**!\n\nYou can buy ${topRec.ticketsAffordable} tickets at $${topRec.pricePerTicket} each.\n\nExpected return: $${(budget + topRec.expectedReturn).toFixed(2)} (profit: $${topRec.expectedReturn.toFixed(2)})\n\nYour odds of winning something: ${(1 - Math.pow(1 - anyWinOddsNext1, topRec.ticketsAffordable) * 100).toFixed(1)}%`;
+      const combinedWinOdds = (1 - Math.pow(1 - anyWinOddsNext1, topRec.ticketsAffordable)) * 100;
+      return `For $${budget}, I recommend **${topRec.box.boxName}**!\n\nYou can buy ${topRec.ticketsAffordable} tickets at $${topRec.pricePerTicket} each.\n\nExpected return: $${(budget + topRec.expectedReturn).toFixed(2)} (profit: $${topRec.expectedReturn.toFixed(2)})\n\nYour odds of winning something: ${combinedWinOdds.toFixed(1)}%`;
     }
 
     // Big win / jackpot questions
@@ -229,7 +277,7 @@ export const FloatingChatBot: React.FC<FloatingChatBotProps> = ({
     return `I can help you choose the best box! Try asking me:\n\n• "Which box has the best odds?"\n• "What's the safest box?"\n• "Which box is best for $50?"\n• "Compare my boxes"\n• "Which box gives me the best chance at a big win?"\n• "What should I play?"\n• "Help" - See all my commands\n\nI'll analyze all your boxes and give you personalized recommendations!`;
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!inputValue.trim()) return;
 
     const userMessage: Message = {
@@ -244,53 +292,121 @@ export const FloatingChatBot: React.FC<FloatingChatBotProps> = ({
     setInputValue('');
     setIsTyping(true);
 
-    // Simulate typing delay
-    setTimeout(() => {
-      const response = generateResponse(messageToProcess);
+    try {
+      // First, try rule-based response for fast, reliable answers
+      const ruleResponse = generateResponse(messageToProcess);
+      
+      // Check if it's a generic fallback response (indicates complex query)
+      const isGenericResponse = ruleResponse.includes("I can help you choose the best box!");
+      
+      let finalResponse = ruleResponse;
+      
+      // If it's a complex query and we have API available, try LLM
+      if (isGenericResponse) {
+        const boxData = analyzeBoxes();
+        const llmResponse = await queryLLM(messageToProcess, boxData);
+        
+        if (llmResponse) {
+          finalResponse = `🤖 **AI Analysis:** ${llmResponse}`;
+        } else {
+          // LLM failed, add helpful context to rule-based response
+          finalResponse = `🎯 **Quick Help:** ${ruleResponse}\n\n💡 **Tip:** For more detailed analysis, try asking specific questions like "which box has the best odds?" or "compare my boxes".`;
+        }
+      }
       
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: response,
+        text: finalResponse,
         isBot: true,
         timestamp: new Date()
       };
 
       setMessages(prev => [...prev, botMessage]);
+    } catch (error) {
+      console.error('Error generating response:', error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: "Sorry, I encountered an error. Please try asking a specific question like 'Which box has the best odds?' or 'What's the safest box?'",
+        isBot: true,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsTyping(false);
-    }, 1000 + Math.random() * 1000); // 1-2 second delay
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      void handleSend();
     }
   };
 
   return (
     <>
-      {/* Floating Action Button */}
+      {/* Floating Action Button with Tabsy Logo */}
       <Fab
         sx={{
           position: 'fixed',
-          bottom: 24,
-          right: 24,
+          top: 100,
+          right: 20,
           zIndex: 1300,
-          background: `linear-gradient(135deg, ${theme.neon.colors.cyan}, ${theme.neon.colors.purple})`,
-          color: 'white',
-          ...theme.neon.effects.boxGlow(theme.neon.colors.cyan, 0.3),
+          width: 56,
+          height: 56,
+          background: `radial-gradient(circle at center, ${theme.neon.colors.cyan}40, ${theme.neon.colors.purple}20, transparent 70%)`,
+          backgroundColor: alpha(theme.palette.background.paper, 0.1),
+          border: `2px solid ${theme.neon.colors.cyan}`,
+          backdropFilter: 'blur(10px)',
+          boxShadow: [
+            `0 0 20px ${alpha(theme.neon.colors.cyan, 0.5)}`,
+            `inset 0 0 20px ${alpha(theme.neon.colors.cyan, 0.1)}`,
+            `0 0 40px ${alpha(theme.neon.colors.cyan, 0.3)}`
+          ].join(', '),
           '&:hover': {
-            ...theme.neon.effects.boxGlow(theme.neon.colors.cyan, 0.5),
-            transform: 'scale(1.05)',
+            backgroundColor: alpha(theme.neon.colors.cyan, 0.1),
+            transform: 'scale(1.1)',
+            boxShadow: [
+              `0 0 30px ${alpha(theme.neon.colors.cyan, 0.8)}`,
+              `inset 0 0 30px ${alpha(theme.neon.colors.cyan, 0.2)}`,
+              `0 0 60px ${alpha(theme.neon.colors.cyan, 0.5)}`
+            ].join(', '),
           },
-          transition: 'all 0.3s ease'
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            inset: -2,
+            borderRadius: '50%',
+            background: `conic-gradient(from 0deg, ${theme.neon.colors.cyan}, ${theme.neon.colors.purple}, ${theme.neon.colors.pink}, ${theme.neon.colors.cyan})`,
+            mask: 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
+            maskComposite: 'xor',
+            WebkitMaskComposite: 'xor',
+            padding: '2px',
+            zIndex: -1,
+            opacity: 0.7,
+            animation: 'rotate 3s linear infinite'
+          },
+          '@keyframes rotate': {
+            '0%': { transform: 'rotate(0deg)' },
+            '100%': { transform: 'rotate(360deg)' }
+          }
         }}
         onClick={() => setOpen(true)}
       >
-        <ChatIcon />
+        <img 
+          src="/Tabsy8.png" 
+          alt="Tabsy AI Chat" 
+          style={{ 
+            width: '48px', 
+            height: '48px',
+            borderRadius: '50%',
+            filter: `drop-shadow(0 0 8px ${theme.neon.colors.cyan})` 
+          }} 
+        />
       </Fab>
 
-      {/* Chat Dialog */}
+      {/* Chat Dialog with Enhanced Neon */}
       <Dialog
         open={open}
         onClose={() => setOpen(false)}
@@ -300,9 +416,25 @@ export const FloatingChatBot: React.FC<FloatingChatBotProps> = ({
         PaperProps={{
           sx: {
             height: '70vh',
-            background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.95)}, ${alpha(theme.palette.background.default, 0.95)})`,
-            backdropFilter: 'blur(10px)',
-            ...theme.neon.effects.boxGlow(theme.neon.colors.cyan, 0.1),
+            background: `radial-gradient(ellipse at top, ${alpha(theme.neon.colors.purple, 0.1)}, ${alpha(theme.palette.background.paper, 0.95)} 50%, ${alpha(theme.neon.colors.cyan, 0.05)} 100%)`,
+            backdropFilter: 'blur(20px)',
+            border: `1px solid ${alpha(theme.neon.colors.cyan, 0.2)}`,
+            boxShadow: [
+              `0 0 50px ${alpha(theme.neon.colors.cyan, 0.3)}`,
+              `inset 0 0 50px ${alpha(theme.neon.colors.purple, 0.1)}`,
+              `0 0 100px ${alpha(theme.neon.colors.cyan, 0.2)}`
+            ].join(', '),
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: `linear-gradient(45deg, ${alpha(theme.neon.colors.cyan, 0.1)}, transparent 30%, ${alpha(theme.neon.colors.purple, 0.05)} 60%, transparent)`,
+              pointerEvents: 'none',
+              zIndex: 1
+            }
           }
         }}
       >
@@ -313,12 +445,39 @@ export const FloatingChatBot: React.FC<FloatingChatBotProps> = ({
             justifyContent: 'space-between',
             background: `linear-gradient(135deg, ${theme.neon.colors.cyan}, ${theme.neon.colors.purple})`,
             color: 'white',
-            py: 2
+            py: 2,
+            position: 'relative',
+            zIndex: 2,
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: `black`,
+              zIndex: -1
+            }
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <BotIcon />
-            <Typography variant="h6">Lucky Tabs AI Advisor</Typography>
+            <img 
+              src="/Tabsy8.png" 
+              alt="Tabsy Logo" 
+              style={{ 
+                height: '48px', 
+                width: 'auto',
+              }} 
+            />
+            <Typography 
+              variant="body1" 
+              sx={{ 
+                textShadow: '0 0 10px rgba(255, 255, 255, 0.8)',
+                fontWeight: 'bold'
+              }}
+            >
+              Lucky Tabs AI Advisor
+            </Typography>
           </Box>
           <IconButton
             onClick={() => setOpen(false)}
@@ -329,7 +488,7 @@ export const FloatingChatBot: React.FC<FloatingChatBotProps> = ({
         </DialogTitle>
 
         <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column' }}>
-          {/* Messages Area */}
+          {/* Messages Area with Custom Scrollbar */}
           <Box
             sx={{
               flex: 1,
@@ -337,7 +496,26 @@ export const FloatingChatBot: React.FC<FloatingChatBotProps> = ({
               p: 2,
               display: 'flex',
               flexDirection: 'column',
-              gap: 2
+              gap: 2,
+              position: 'relative',
+              zIndex: 2,
+              // Custom Neon Scrollbar
+              '&::-webkit-scrollbar': {
+                width: '8px',
+              },
+              '&::-webkit-scrollbar-track': {
+                background: alpha(theme.palette.background.default, 0.3),
+                borderRadius: '10px',
+              },
+              '&::-webkit-scrollbar-thumb': {
+                background: `linear-gradient(45deg, ${theme.neon.colors.cyan}, ${theme.neon.colors.purple})`,
+                borderRadius: '10px',
+                boxShadow: `0 0 10px ${alpha(theme.neon.colors.cyan, 0.5)}`,
+              },
+              '&::-webkit-scrollbar-thumb:hover': {
+                background: `linear-gradient(45deg, ${theme.neon.colors.purple}, ${theme.neon.colors.cyan})`,
+                boxShadow: `0 0 15px ${alpha(theme.neon.colors.cyan, 0.7)}`,
+              }
             }}
           >
             {messages.map((message) => (
@@ -353,27 +531,76 @@ export const FloatingChatBot: React.FC<FloatingChatBotProps> = ({
                     p: 2,
                     maxWidth: '80%',
                     background: message.isBot
-                      ? `linear-gradient(135deg, ${alpha(theme.neon.colors.cyan, 0.1)}, ${alpha(theme.neon.colors.purple, 0.1)})`
+                      ? `radial-gradient(ellipse at bottom left, ${alpha(theme.neon.colors.cyan, 0.15)}, ${alpha(theme.neon.colors.purple, 0.1)}, ${alpha(theme.palette.background.paper, 0.95)})`
                       : `linear-gradient(135deg, ${theme.neon.colors.green}, ${theme.neon.colors.cyan})`,
                     color: message.isBot ? 'text.primary' : 'white',
-                    borderRadius: 2,
-                    ...(message.isBot && {
-                      border: `1px solid ${alpha(theme.neon.colors.cyan, 0.3)}`
-                    })
+                    borderRadius: message.isBot ? '20px 20px 20px 5px' : '20px 20px 5px 20px',
+                    border: message.isBot 
+                      ? `1px solid ${alpha(theme.neon.colors.cyan, 0.3)}` 
+                      : `1px solid ${alpha(theme.neon.colors.green, 0.5)}`,
+                    boxShadow: message.isBot
+                      ? [
+                          `0 0 20px ${alpha(theme.neon.colors.cyan, 0.2)}`,
+                          `inset 0 0 20px ${alpha(theme.neon.colors.cyan, 0.05)}`
+                        ].join(', ')
+                      : [
+                          `0 0 20px ${alpha(theme.neon.colors.green, 0.3)}`,
+                          `inset 0 0 20px ${alpha(theme.neon.colors.green, 0.1)}`
+                        ].join(', '),
+                    position: 'relative',
+                    '&::before': message.isBot ? {
+                      content: '""',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      background: `linear-gradient(45deg, ${alpha(theme.neon.colors.cyan, 0.05)}, transparent 70%)`,
+                      borderRadius: 'inherit',
+                      pointerEvents: 'none',
+                      zIndex: -1
+                    } : {}
                   }}
                 >
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      whiteSpace: 'pre-wrap',
-                      '& strong': {
-                        fontWeight: 'bold',
-                        color: message.isBot ? theme.neon.colors.cyan : 'inherit'
-                      }
+                  <ReactMarkdown
+                    components={{
+                      // Customize rendering for better styling
+                      strong: ({...props}) => (
+                        <Typography 
+                          component="span" 
+                          sx={{ 
+                            fontWeight: 'bold',
+                            color: message.isBot ? theme.neon.colors.cyan : 'inherit'
+                          }} 
+                          {...props} 
+                        />
+                      ),
+                      p: ({...props}) => (
+                        <Typography variant="body2" component="div" sx={{ mb: 1 }} {...props} />
+                      ),
+                      li: ({...props}) => (
+                        <Typography variant="body2" component="li" {...props} />
+                      )
                     }}
                   >
                     {message.text}
-                  </Typography>
+                  </ReactMarkdown>
+                  
+                  {message.isBot && message.text.includes('AI Analysis') && (
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        display: 'block',
+                        mt: 1,
+                        fontStyle: 'italic',
+                        color: 'text.secondary',
+                        borderTop: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                        pt: 1
+                      }}
+                    >
+                      ⚠️ Play for entertainment only - never gamble more than you can afford to lose.
+                    </Typography>
+                  )}
                 </Paper>
               </Box>
             ))}
@@ -402,13 +629,17 @@ export const FloatingChatBot: React.FC<FloatingChatBotProps> = ({
             <div ref={messagesEndRef} />
           </Box>
 
-          {/* Input Area */}
+          {/* Input Area with Enhanced Neon */}
           <Box
             sx={{
               p: 2,
               borderTop: `1px solid ${alpha(theme.neon.colors.cyan, 0.2)}`,
               display: 'flex',
-              gap: 1
+              gap: 1,
+              position: 'relative',
+              zIndex: 2,
+              background: `linear-gradient(90deg, ${alpha(theme.neon.colors.cyan, 0.02)}, ${alpha(theme.neon.colors.purple, 0.01)})`,
+              backdropFilter: 'blur(10px)'
             }}
           >
             <TextField
@@ -422,34 +653,64 @@ export const FloatingChatBot: React.FC<FloatingChatBotProps> = ({
               variant="outlined"
               sx={{
                 '& .MuiOutlinedInput-root': {
+                  background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.8)}, ${alpha(theme.palette.background.default, 0.9)})`,
+                  backdropFilter: 'blur(10px)',
+                  border: `1px solid ${alpha(theme.neon.colors.cyan, 0.3)}`,
+                  borderRadius: '15px',
                   '& fieldset': {
-                    borderColor: alpha(theme.neon.colors.cyan, 0.3),
+                    border: 'none',
                   },
-                  '&:hover fieldset': {
+                  '&:hover': {
                     borderColor: alpha(theme.neon.colors.cyan, 0.5),
+                    boxShadow: `0 0 15px ${alpha(theme.neon.colors.cyan, 0.2)}`,
                   },
-                  '&.Mui-focused fieldset': {
+                  '&.Mui-focused': {
                     borderColor: theme.neon.colors.cyan,
+                    boxShadow: `0 0 25px ${alpha(theme.neon.colors.cyan, 0.4)}`,
                   },
+                  '& .MuiInputBase-input': {
+                    color: theme.palette.text.primary,
+                    '&::placeholder': {
+                      color: alpha(theme.neon.colors.cyan, 0.5),
+                      opacity: 1,
+                    },
+                    '&.Mui-focused::placeholder': {
+                      color: alpha(theme.neon.colors.cyan, 0.5),
+                      opacity: 1,
+                    }
+                  }
                 }
               }}
             />
             <IconButton
-              onClick={handleSend}
+              onClick={() => void handleSend()}
               disabled={!inputValue.trim() || isTyping}
               sx={{
-                background: `linear-gradient(135deg, ${theme.neon.colors.cyan}, ${theme.neon.colors.purple})`,
-                color: 'white',
+                width: 48,
+                height: 48,
+                background: `radial-gradient(circle, ${alpha(theme.neon.colors.cyan, 0.2)}, ${alpha(theme.neon.colors.purple, 0.1)})`,
+                border: `1px solid ${alpha(theme.neon.colors.cyan, 0.3)}`,
+                color: theme.neon.colors.cyan,
+                backdropFilter: 'blur(10px)',
                 '&:hover': {
-                  background: `linear-gradient(135deg, ${theme.neon.colors.purple}, ${theme.neon.colors.cyan})`,
+                  background: `radial-gradient(circle, ${alpha(theme.neon.colors.cyan, 0.3)}, ${alpha(theme.neon.colors.purple, 0.2)})`,
+                  borderColor: alpha(theme.neon.colors.cyan, 0.6),
+                  transform: 'scale(1.05)',
+                  boxShadow: `0 0 25px ${alpha(theme.neon.colors.cyan, 0.4)}`,
                 },
                 '&.Mui-disabled': {
-                  background: alpha(theme.palette.action.disabled, 0.12),
-                  color: alpha(theme.palette.action.disabled, 0.26),
-                }
+                  background: alpha(theme.palette.background.default, 0.1),
+                  color: alpha(theme.palette.action.disabled, 0.3),
+                  borderColor: alpha(theme.palette.action.disabled, 0.1)
+                },
+                transition: 'all 0.2s ease'
               }}
             >
-              <SendIcon />
+              <SendIcon sx={{ 
+                filter: !inputValue.trim() || isTyping 
+                  ? 'none' 
+                  : `drop-shadow(0 0 5px ${alpha(theme.neon.colors.cyan, 0.5)})` 
+              }} />
             </IconButton>
           </Box>
         </DialogContent>

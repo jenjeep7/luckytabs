@@ -4,6 +4,9 @@ import vision from "@google-cloud/vision";
 
 admin.initializeApp();
 
+// Export the box advisor function
+export { boxAdvisor } from "./boxAdvisor";
+
 const db = admin.firestore();
 const visionClient = new vision.ImageAnnotatorClient();
 
