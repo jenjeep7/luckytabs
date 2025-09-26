@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuthStateCompat } from '../../services/useAuthStateCompat';
 import {
@@ -21,7 +21,6 @@ import {
   CircularProgress,
   Alert,
   Snackbar,
-  LinearProgress,
   Select,
   MenuItem,
   FormControl,
@@ -37,18 +36,25 @@ import {
   Group,
   Add,
   Groups as GroupsIcon,
-  Image as ImageIcon,
   Close as CloseIcon,
   MoreVert,
   Edit,
   Delete,
 } from '@mui/icons-material';
-//
+
+import { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import { communityService, Post, Comment } from '../../services/communityService';
 import { userService, UserData } from '../../services/userService';
 import { groupService, GroupData } from '../../services/groupService';
 import { GroupsManager } from '../GroupManager/GroupsManager';
-import { uploadPostImage } from '../../services/storageService';
+import { NewPostDialog } from './NewPostDialog';
+import { 
+  formatTime, 
+  getInitialsFromName, 
+  parseTabFromUrl, 
+  getFallbackUserDisplay, 
+  getInitialsFromUserId 
+} from './helpers';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -78,6 +84,7 @@ interface PostCardProps {
   userProfiles?: Map<string, UserData>;
   currentUserProfile?: UserData | null;
   isPublicFeed?: boolean;
+  onUpdateUserProfiles?: (profiles: Map<string, UserData>) => void;
 }
 
 function PostCard({
@@ -94,6 +101,7 @@ function PostCard({
   userProfiles,
   currentUserProfile,
   isPublicFeed = false,
+  onUpdateUserProfiles: _onUpdateUserProfiles,
 }: PostCardProps) {
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState('');
@@ -121,7 +129,7 @@ function PostCard({
   useEffect(() => {
     if (!showComments) return;
     setLoadingComments(true);
-    communityService.getComments(post.id)
+    communityService.getCommentsSimple(post.id)
       .then((list) => {
         setComments(list);
         setCommentCount(list.length); // keep UI in sync when open
@@ -138,7 +146,7 @@ function PostCard({
     setCommentCount((c) => c + 1); // optimistic
 
     if (showComments) {
-      communityService.getComments(post.id)
+      communityService.getCommentsSimple(post.id)
         .then((list) => {
           setComments(list);
           setCommentCount(list.length);
@@ -152,7 +160,7 @@ function PostCard({
       await communityService.deleteComment(commentId);
       // Refresh comments
       if (showComments) {
-        const updatedComments = await communityService.getComments(post.id);
+        const updatedComments = await communityService.getCommentsSimple(post.id);
         setComments(updatedComments);
         setCommentCount(updatedComments.length);
       }
@@ -161,29 +169,13 @@ function PostCard({
     }
   };
 
-  const formatTime = (date: Date) => {
-    const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    if (diffInHours < 1) return 'Just now';
-    if (diffInHours === 1) return '1 hour ago';
-    if (diffInHours < 24) return `${diffInHours} hours ago`;
-    return date.toLocaleDateString();
-  };
-
   const getDisplayName = (authorId: string) => {
     if (authorId === currentUserId) return currentUserName || 'You';
     
     // First check the specific authorProfile prop
     if (authorProfile && authorProfile.uid === authorId) {
-      // Use displayName if available, otherwise fallback to firstName + lastName
       if (authorProfile.displayName && authorProfile.displayName.trim()) {
         return authorProfile.displayName;
-      }
-      if (authorProfile.firstName && authorProfile.lastName) {
-        return `${authorProfile.firstName} ${authorProfile.lastName}`;
-      }
-      if (authorProfile.firstName) {
-        return authorProfile.firstName;
       }
     }
     
@@ -193,60 +185,33 @@ function PostCard({
       if (userProfile.displayName && userProfile.displayName.trim()) {
         return userProfile.displayName;
       }
-      if (userProfile.firstName && userProfile.lastName) {
-        return `${userProfile.firstName} ${userProfile.lastName}`;
-      }
-      if (userProfile.firstName) {
-        return userProfile.firstName;
-      }
     }
     
     // Fallback to a cleaner user ID display
-    return `User ${authorId.slice(0, 8)}`;
+    return getFallbackUserDisplay(authorId);
   };
 
   const getInitials = (authorId: string) => {
     if (authorId === currentUserId && currentUserName) {
-      return currentUserName
-        .split(' ')
-        .map((n) => n[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2);
+      return getInitialsFromName(currentUserName);
     }
     
     // First check the specific authorProfile prop
     if (authorProfile && authorProfile.uid === authorId) {
-      if (authorProfile.firstName && authorProfile.lastName) {
-        return (authorProfile.firstName[0] + authorProfile.lastName[0]).toUpperCase();
-      }
       if (authorProfile.displayName) {
-        return authorProfile.displayName
-          .split(' ')
-          .map((n) => n[0])
-          .join('')
-          .toUpperCase()
-          .slice(0, 2);
+        return getInitialsFromName(authorProfile.displayName);
       }
     }
     
     // Then check the userProfiles Map
     const userProfile = userProfiles?.get(authorId);
     if (userProfile) {
-      if (userProfile.firstName && userProfile.lastName) {
-        return (userProfile.firstName[0] + userProfile.lastName[0]).toUpperCase();
-      }
       if (userProfile.displayName) {
-        return userProfile.displayName
-          .split(' ')
-          .map((n) => n[0])
-          .join('')
-          .toUpperCase()
-          .slice(0, 2);
+        return getInitialsFromName(userProfile.displayName);
       }
     }
     
-    return authorId.slice(0, 2).toUpperCase();
+    return getInitialsFromUserId(authorId);
   };
 
   const getAvatarUrl = (authorId: string) => {
@@ -526,11 +491,11 @@ function PostCard({
                         color: 'secondary.contrastText',
                       }}
                     >
-                      {getInitials(comment.authorId)}
+                      {comment.authorDisplayName?.charAt(0).toUpperCase() || '?'}
                     </Avatar>
                     <Box sx={{ flexGrow: 1 }}>
                       <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                        {getDisplayName(comment.authorId)}
+                        {comment.authorDisplayName}
                       </Typography>
                       <Typography variant="body2" sx={{ color: 'text.primary' }}>
                         {comment.content}
@@ -613,30 +578,33 @@ export const Community: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   
-  // Parse initial tab from URL parameter
-  const getInitialTab = () => {
-    const tabParam = searchParams.get('tab');
-    if (tabParam === '1') return 1; // Group Feed
-    if (tabParam === '2') return 2; // My Groups
-    return 0; // Default to Public Feed
-  };
+  // Parse initial tab from URL parameter - memoized to prevent recalculation
+  const initialTab = React.useMemo(() => {
+    return parseTabFromUrl(searchParams);
+  }, [searchParams]);
   
-  const [activeTab, setActiveTab] = useState(getInitialTab()); // 0=Public, 1=Group, 2=My Groups
+  const [activeTab, setActiveTab] = useState(initialTab); // 0=Public, 1=Group, 2=My Groups
   const [publicPosts, setPublicPosts] = useState<Post[]>([]);
   const [groupPosts, setGroupPosts] = useState<Post[]>([]); // For specific group in Group Feed tab
   const [allGroupPosts, setAllGroupPosts] = useState<Post[]>([]); // For My Groups tab
   
-  // Get the current posts based on active tab - THIS PREVENTS RACE CONDITIONS
-  const currentPosts = activeTab === 0 ? publicPosts : 
-                      activeTab === 1 ? groupPosts : 
-                      allGroupPosts;
+  // Pagination state
+  const [publicLastDoc, setPublicLastDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [groupLastDoc, setGroupLastDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [allGroupLastDoc, setAllGroupLastDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [publicHasMore, setPublicHasMore] = useState(true);
+  const [groupHasMore, setGroupHasMore] = useState(true);
+  const [allGroupHasMore, setAllGroupHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  
+  // Get the current posts based on active tab - memoized to prevent recalculation
+  const currentPosts = React.useMemo(() => {
+    return activeTab === 0 ? publicPosts : 
+           activeTab === 1 ? groupPosts : 
+           allGroupPosts;
+  }, [activeTab, publicPosts, groupPosts, allGroupPosts]);
   
   const [newPostDialog, setNewPostDialog] = useState(false);
-  const [newPostContent, setNewPostContent] = useState('');
-  const [files, setFiles] = useState<File[]>([]);
-  const [previews, setPreviews] = useState<string[]>([]);
-  const [uploadProgress, setUploadProgress] = useState<number[]>([]);
-  const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userProfiles, setUserProfiles] = useState<Map<string, UserData>>(new Map());
   const [currentUserProfile, setCurrentUserProfile] = useState<UserData | null>(null);
@@ -652,17 +620,26 @@ export const Community: React.FC = () => {
     postId: null,
   });
 
-  // Handle URL parameter changes for tab switching
+  // Callback to update user profiles from PostCard components
+  const handleUpdateUserProfiles = useCallback((newProfiles: Map<string, UserData>) => {
+    setUserProfiles(newProfiles);
+  }, []);
+
+  // Load current user profile once
   useEffect(() => {
-    const tabParam = searchParams.get('tab');
-    let newTab = 0; // Default to Public Feed
-    if (tabParam === '1') newTab = 1; // Group Feed
-    if (tabParam === '2') newTab = 2; // My Groups
-    
-    if (newTab !== activeTab) {
-      setActiveTab(newTab);
-    }
-  }, [searchParams, activeTab]);
+    const loadCurrentUserProfile = async () => {
+      if (!user || currentUserProfile) return;
+      try {
+        if (!user || typeof user !== 'object' || !('uid' in user)) return;
+        const up = await userService.getUserProfile((user as { uid: string }).uid);
+        setCurrentUserProfile(up);
+      } catch (e) {
+        console.error('Error loading current user profile:', e);
+      }
+    };
+
+    void loadCurrentUserProfile();
+  }, [user, currentUserProfile]);
 
   // Load posts (on mount / tab change)
   useEffect(() => {
@@ -691,44 +668,49 @@ export const Community: React.FC = () => {
           return;
         }
         
-        const fetchedPosts = await communityService.getPosts(feedType, groupId);
+        const result = await communityService.getPosts(feedType, groupId); // Use default page size from service
         
         // Set posts to the correct state based on which tab is active
         if (activeTab === 0) {
-          setPublicPosts(fetchedPosts);
+          setPublicPosts(result.posts);
+          setPublicLastDoc(result.lastDoc);
+          setPublicHasMore(result.hasMore);
         } else if (activeTab === 1) {
-          setGroupPosts(fetchedPosts);
+          setGroupPosts(result.posts);
+          setGroupLastDoc(result.lastDoc);
+          setGroupHasMore(result.hasMore);
         } else if (activeTab === 2) {
-          setAllGroupPosts(fetchedPosts);
+          setAllGroupPosts(result.posts);
+          setAllGroupLastDoc(result.lastDoc);
+          setAllGroupHasMore(result.hasMore);
         }
 
         // Load author profiles
-        const authorIds = Array.from(new Set(fetchedPosts.map((p) => p.authorId)));
-        // Merge new profiles into the existing userProfiles Map
-        const newProfiles = new Map(userProfiles);
-        await Promise.all(
-          authorIds.map(async (authorId) => {
-            if (!newProfiles.has(authorId)) {
-              try {
-                const profile = await userService.getUserProfile(authorId);
-                if (profile) newProfiles.set(authorId, profile);
-              } catch (e) {
-                console.error(`Error loading profile for ${authorId}:`, e);
+        const authorIds = Array.from(new Set(result.posts.map((p) => p.authorId)));
+        const profilePromises = authorIds.map(async (authorId) => {
+          try {
+            const profile = await userService.getUserProfile(authorId);
+            return profile ? [authorId, profile] as const : null;
+          } catch (e) {
+            console.error(`Error loading profile for ${authorId}:`, e);
+            return null;
+          }
+        });
+        
+        const profileResults = await Promise.all(profilePromises);
+        setUserProfiles((currentProfiles) => {
+          const newProfiles = new Map(currentProfiles);
+          profileResults.forEach((result) => {
+            if (result) {
+              const [authorId, profile] = result;
+              if (!newProfiles.has(authorId)) {
+                newProfiles.set(authorId, profile);
               }
             }
-          }),
-        );
-        setUserProfiles(newProfiles);
+          });
+          return newProfiles;
+        });
 
-        if (!currentUserProfile) {
-          try {
-            if (!user || typeof user !== 'object' || !('uid' in user)) return;
-            const up = await userService.getUserProfile((user as { uid: string }).uid);
-            setCurrentUserProfile(up);
-          } catch (e) {
-            console.error('Error loading current user profile:', e);
-          }
-        }
       } catch {
         setSnackbar({ open: true, message: 'Failed to load posts', severity: 'error' });
       } finally {
@@ -737,7 +719,88 @@ export const Community: React.FC = () => {
     };
 
     void loadPosts();
-  }, [activeTab, user, currentUserProfile, selectedGroupId]);
+  }, [activeTab, user, selectedGroupId]); // Removed currentUserProfile dependency
+
+  // Load More functions for pagination
+  const loadMorePosts = async () => {
+    if (!user || loadingMore) return;
+    
+    const lastDoc = activeTab === 0 ? publicLastDoc : 
+                   activeTab === 1 ? groupLastDoc : 
+                   allGroupLastDoc;
+    
+    const hasMore = activeTab === 0 ? publicHasMore : 
+                   activeTab === 1 ? groupHasMore : 
+                   allGroupHasMore;
+    
+    if (!hasMore || !lastDoc) return;
+    
+    setLoadingMore(true);
+    try {
+      let feedType: 'public' | 'group';
+      let groupId: string | undefined;
+      
+      if (activeTab === 0) {
+        feedType = 'public';
+        groupId = undefined;
+      } else if (activeTab === 1) {
+        feedType = 'group';
+        groupId = selectedGroupId;
+      } else {
+        feedType = 'group';
+        groupId = undefined;
+      }
+      
+      const result = await communityService.getPosts(feedType, groupId, 10, lastDoc);
+      
+      // Append new posts to existing posts
+      if (activeTab === 0) {
+        setPublicPosts(prev => [...prev, ...result.posts]);
+        setPublicLastDoc(result.lastDoc);
+        setPublicHasMore(result.hasMore);
+      } else if (activeTab === 1) {
+        setGroupPosts(prev => [...prev, ...result.posts]);
+        setGroupLastDoc(result.lastDoc);
+        setGroupHasMore(result.hasMore);
+      } else if (activeTab === 2) {
+        setAllGroupPosts(prev => [...prev, ...result.posts]);
+        setAllGroupLastDoc(result.lastDoc);
+        setAllGroupHasMore(result.hasMore);
+      }
+      
+      // Load author profiles for new posts
+      const newAuthorIds = Array.from(new Set(result.posts.map((p) => p.authorId)));
+      const profilePromises = newAuthorIds
+        .filter(authorId => !userProfiles.has(authorId)) // Only load profiles we don't have
+        .map(async (authorId) => {
+          try {
+            const profile = await userService.getUserProfile(authorId);
+            return profile ? [authorId, profile] as const : null;
+          } catch (e) {
+            console.error(`Error loading profile for ${authorId}:`, e);
+            return null;
+          }
+        });
+        
+      const profileResults = await Promise.all(profilePromises);
+      setUserProfiles((currentProfiles) => {
+        const newProfiles = new Map(currentProfiles);
+        profileResults.forEach((result) => {
+          if (result) {
+            const [authorId, profile] = result;
+            newProfiles.set(authorId, profile);
+          }
+        });
+        return newProfiles;
+      });
+      
+    } catch (error) {
+      console.error('Error loading more posts:', error);
+      setSnackbar({ open: true, message: 'Failed to load more posts', severity: 'error' });
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   // Load user groups when user logs in
   useEffect(() => {
@@ -762,16 +825,14 @@ export const Community: React.FC = () => {
   }, [user]);
 
   const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
+    // Prevent unnecessary state updates
+    if (newValue === activeTab) return;
+    
     setActiveTab(newValue);
     
     // Update URL to reflect tab change
-    if (newValue === 0) {
-      void navigate('/community', { replace: true }); // Public Feed - no tab parameter
-    } else if (newValue === 1) {
-      void navigate('/community?tab=1', { replace: true }); // Group Feed
-    } else if (newValue === 2) {
-      void navigate('/community?tab=2', { replace: true }); // My Groups
-    }
+    const path = newValue === 0 ? '/community' : `/community?tab=${newValue}`;
+    void navigate(path, { replace: true });
   };
 
   const handleLike = async (postId: string) => {
@@ -781,8 +842,8 @@ export const Community: React.FC = () => {
   await communityService.likePost(postId, (user as { uid: string }).uid);
       // Refresh both states to ensure consistency
       const [updatedPublicPosts, updatedGroupPosts] = await Promise.all([
-        communityService.getPosts('public'),
-        selectedGroupId ? communityService.getPosts('group', selectedGroupId) : Promise.resolve([])
+        communityService.getPostsSimple('public'),
+        selectedGroupId ? communityService.getPostsSimple('group', selectedGroupId) : Promise.resolve([])
       ]);
       setPublicPosts(updatedPublicPosts);
       setGroupPosts(updatedGroupPosts);
@@ -797,9 +858,9 @@ export const Community: React.FC = () => {
       await communityService.updatePost(postId, newContent);
       // Refresh all states to ensure consistency
       const [updatedPublicPosts, updatedGroupPosts, updatedAllGroupPosts] = await Promise.all([
-        communityService.getPosts('public'),
-        selectedGroupId ? communityService.getPosts('group', selectedGroupId) : Promise.resolve([]),
-        communityService.getPosts('group') // All group posts for My Groups tab
+        communityService.getPostsSimple('public'),
+        selectedGroupId ? communityService.getPostsSimple('group', selectedGroupId) : Promise.resolve([]),
+        communityService.getPostsSimple('group') // All group posts for My Groups tab
       ]);
       setPublicPosts(updatedPublicPosts);
       setGroupPosts(updatedGroupPosts);
@@ -816,9 +877,9 @@ export const Community: React.FC = () => {
       await communityService.deletePost(postId);
       // Refresh all states to ensure consistency
       const [updatedPublicPosts, updatedGroupPosts, updatedAllGroupPosts] = await Promise.all([
-        communityService.getPosts('public'),
-        selectedGroupId ? communityService.getPosts('group', selectedGroupId) : Promise.resolve([]),
-        communityService.getPosts('group') // All group posts for My Groups tab
+        communityService.getPostsSimple('public'),
+        selectedGroupId ? communityService.getPostsSimple('group', selectedGroupId) : Promise.resolve([]),
+        communityService.getPostsSimple('group') // All group posts for My Groups tab
       ]);
       setPublicPosts(updatedPublicPosts);
       setGroupPosts(updatedGroupPosts);
@@ -832,78 +893,37 @@ export const Community: React.FC = () => {
   const handleComment = async (postId: string, commentContent: string) => {
     if (!user) return;
     try {
-  if (!user || typeof user !== 'object' || !('uid' in user)) return;
-  await communityService.createComment(postId, (user as { uid: string }).uid, commentContent);
+      if (!user || typeof user !== 'object' || !('uid' in user)) return;
+      
+      // Determine the current user's display name - only use displayName now
+      let authorDisplayName = currentUserProfile?.displayName || (user && typeof user === 'object' && 'displayName' in user ? (user as { displayName?: string }).displayName : undefined);
+      
+      // Simple fallback if no display name is available
+      if (!authorDisplayName || !authorDisplayName.trim()) {
+        authorDisplayName = 'User'; // Final fallback
+      }
+      
+      await communityService.createComment(postId, (user as { uid: string }).uid, authorDisplayName, commentContent);
       setSnackbar({ open: true, message: 'Comment added successfully!', severity: 'success' });
     } catch {
       setSnackbar({ open: true, message: 'Failed to add comment', severity: 'error' });
     }
   };
 
-  const onPickFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = Array.from(e.target.files ?? []).slice(0, 4); // limit to 4 images
-    setFiles(f);
-    setPreviews(f.map((file) => URL.createObjectURL(file)));
-    setUploadProgress(new Array(f.length).fill(0));
+  // Callback for when a new post is created
+  const handlePostCreated = async () => {
+    // Refresh both states to ensure consistency
+    const [updatedPublicPosts, updatedGroupPosts] = await Promise.all([
+      communityService.getPostsSimple('public'),
+      selectedGroupId ? communityService.getPostsSimple('group', selectedGroupId) : Promise.resolve([])
+    ]);
+    setPublicPosts(updatedPublicPosts);
+    setGroupPosts(updatedGroupPosts);
   };
 
-  const clearComposer = () => {
-    setNewPostContent('');
-    setFiles([]);
-    setPreviews([]);
-    setUploadProgress([]);
-  };
-
-  const handleCreatePost = async () => {
-    if (!user) return;
-    if (!newPostContent.trim() && files.length === 0) return;
-    
-    // Validate group selection for group posts
-    if (activeTab === 1 && !selectedGroupId) {
-      setSnackbar({ open: true, message: 'Please select a group to post to', severity: 'error' });
-      return;
-    }
-
-    setUploading(true);
-    try {
-      const feedType = activeTab === 0 ? 'public' : 'group';
-      const groupId = activeTab === 1 ? selectedGroupId : undefined;
-
-      // Upload images in parallel and collect media descriptors
-      let media: { url: string; width?: number; height?: number; contentType?: string }[] = [];
-      if (!user || typeof user !== 'object' || !('uid' in user)) return;
-      if (files.length > 0) {
-        media = await Promise.all(
-          files.map((f, idx) =>
-            uploadPostImage((user as { uid: string }).uid, /* postId path key */ crypto.randomUUID(), f, (pct) => {
-              setUploadProgress((prev) => {
-                const next = [...prev];
-                next[idx] = pct;
-                return next;
-              });
-            })
-          )
-        );
-      }
-      await communityService.createPost((user as { uid: string }).uid, newPostContent, feedType, groupId, media);
-
-      clearComposer();
-      setNewPostDialog(false);
-
-      // Refresh both states to ensure consistency
-      const [updatedPublicPosts, updatedGroupPosts] = await Promise.all([
-        communityService.getPosts('public'),
-        selectedGroupId ? communityService.getPosts('group', selectedGroupId) : Promise.resolve([])
-      ]);
-      setPublicPosts(updatedPublicPosts);
-      setGroupPosts(updatedGroupPosts);
-      setSnackbar({ open: true, message: 'Post created successfully!', severity: 'success' });
-    } catch (e) {
-      console.error(e);
-      setSnackbar({ open: true, message: 'Failed to create post', severity: 'error' });
-    } finally {
-      setUploading(false);
-    }
+  // Callback to show snackbar messages
+  const handleShowSnackbar = (message: string, severity: 'success' | 'error') => {
+    setSnackbar({ open: true, message, severity });
   };
 
   if (!user) {
@@ -992,8 +1012,38 @@ export const Community: React.FC = () => {
                 userProfiles={userProfiles}
                 currentUserProfile={currentUserProfile}
                 isPublicFeed={true}
+                onUpdateUserProfiles={handleUpdateUserProfiles}
               />
             ))
+          )}
+          
+          {/* Load More Button for Public Posts */}
+          {!loading && currentPosts.length > 0 && activeTab === 0 && publicHasMore && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+              <Button
+                variant="outlined"
+                onClick={() => { void loadMorePosts(); }}
+                disabled={loadingMore}
+                sx={{
+                  minWidth: '200px',
+                  borderColor: 'primary.main',
+                  color: 'primary.main',
+                  '&:hover': {
+                    borderColor: 'primary.light',
+                    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+                  }
+                }}
+              >
+                {loadingMore ? (
+                  <>
+                    <CircularProgress size={20} sx={{ mr: 1 }} />
+                    Loading...
+                  </>
+                ) : (
+                  'Load More Posts'
+                )}
+              </Button>
+            </Box>
           )}
         </TabPanel>
 
@@ -1076,9 +1126,39 @@ export const Community: React.FC = () => {
                   userProfiles={userProfiles}
                   currentUserProfile={currentUserProfile}
                   isPublicFeed={false}
+                  onUpdateUserProfiles={handleUpdateUserProfiles}
                 />
               ))}
             </>
+          )}
+          
+          {/* Load More Button for Group Posts */}
+          {!loading && currentPosts.length > 0 && activeTab === 1 && selectedGroupId && groupHasMore && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+              <Button
+                variant="outlined"
+                onClick={() => { void loadMorePosts(); }}
+                disabled={loadingMore}
+                sx={{
+                  minWidth: '200px',
+                  borderColor: 'primary.main',
+                  color: 'primary.main',
+                  '&:hover': {
+                    borderColor: 'primary.light',
+                    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+                  }
+                }}
+              >
+                {loadingMore ? (
+                  <>
+                    <CircularProgress size={20} sx={{ mr: 1 }} />
+                    Loading...
+                  </>
+                ) : (
+                  'Load More Posts'
+                )}
+              </Button>
+            </Box>
           )}
         </TabPanel>
 
@@ -1089,119 +1169,18 @@ export const Community: React.FC = () => {
             currentUserName={currentUserProfile?.displayName || (user && typeof user === 'object' && 'displayName' in user ? (user as { displayName?: string }).displayName : undefined)}
           />
         </TabPanel>
-      {/* New Post Dialog (with images) */}
-      <Dialog
+      
+      {/* New Post Dialog Component */}
+      <NewPostDialog
         open={newPostDialog}
         onClose={() => setNewPostDialog(false)}
-        maxWidth="sm"
-        fullWidth
-        sx={{
-          '& .MuiDialog-paper': {
-            bgcolor: 'background.paper',
-            color: 'text.primary',
-            border: '1px solid',
-            borderColor: 'divider',
-          },
-        }}
-      >
-        <DialogTitle sx={{ color: 'text.primary', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          {activeTab === 0 
-            ? 'Create New Post' 
-            : `Post to ${userGroups.find(g => g.id === selectedGroupId)?.name || 'Group'}`
-          }
-          <IconButton size="small" onClick={() => setNewPostDialog(false)}>
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent>
-          <TextField
-            fullWidth
-            multiline
-            rows={4}
-            placeholder={
-              activeTab === 0 
-                ? "What's on your mind? Share with the public community..." 
-                : `Share something with ${userGroups.find(g => g.id === selectedGroupId)?.name || 'your group'}...`
-            }
-            value={newPostContent}
-            onChange={(e) => setNewPostContent(e.target.value)}
-            sx={{
-              mt: 1,
-              '& .MuiOutlinedInput-root': {
-                bgcolor: 'background.default',
-                color: 'text.primary',
-                '& fieldset': { borderColor: 'divider' },
-                '&:hover fieldset': { borderColor: 'primary.main' },
-                '&.Mui-focused fieldset': { borderColor: 'primary.main' },
-              },
-              '& .MuiInputBase-input::placeholder': { color: 'text.secondary', opacity: 1 },
-            }}
-          />
-
-          {/* Image picker + previews */}
-          <Box sx={{ display: 'flex', gap: 1, mt: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-            <Button variant="outlined" component="label" startIcon={<ImageIcon />}>
-              Add Images
-              <input hidden accept="image/*" multiple type="file" onChange={onPickFiles} />
-            </Button>
-            {!!files.length && (
-              <Typography variant="caption" color="text.secondary">
-                {files.length} image{files.length > 1 ? 's' : ''} selected
-              </Typography>
-            )}
-          </Box>
-
-          {previews.length > 0 && (
-            <Box
-              sx={{
-                mt: 1.5,
-                display: 'grid',
-                gap: 1,
-                gridTemplateColumns: {
-                  xs: previews.length === 1 ? '1fr' : 'repeat(2, 1fr)',
-                  sm: previews.length >= 3 ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)',
-                },
-              }}
-            >
-              {previews.map((src, i) => (
-                <Box
-                  key={i}
-                  sx={{
-                    position: 'relative',
-                    pt: '100%',
-                    borderRadius: 1,
-                    overflow: 'hidden',
-                    border: '1px solid',
-                    borderColor: 'divider',
-                  }}
-                >
-                  <img src={src} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-                  {uploading && (
-                    <Box sx={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
-                      <LinearProgress variant="determinate" value={uploadProgress[i] || 0} />
-                    </Box>
-                  )}
-                </Box>
-              ))}
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ bgcolor: 'background.paper' }}>
-          <Button
-            onClick={() => {
-              clearComposer();
-              setNewPostDialog(false);
-            }}
-            sx={{ color: 'text.secondary' }}
-            disabled={uploading}
-          >
-            Cancel
-          </Button>
-          <Button onClick={() => void handleCreatePost()} variant="contained" disabled={uploading || (!newPostContent.trim() && files.length === 0)}>
-            {uploading ? 'Posting…' : 'Post'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        activeTab={activeTab}
+        userGroups={userGroups}
+        selectedGroupId={selectedGroupId}
+        userId={user && typeof user === 'object' && 'uid' in user ? (user as { uid: string }).uid : ''}
+        onPostCreated={() => { void handlePostCreated(); }}
+        onShowSnackbar={handleShowSnackbar}
+      />
 
       {/* Delete Confirmation Dialog */}
       <Dialog

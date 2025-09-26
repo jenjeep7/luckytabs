@@ -50,7 +50,7 @@ export const LandingPage: React.FC = () => {
     }}>
       {/* Hero Section */}
       <Box sx={{ 
-        pt: { xs: 6 }, 
+        pt: { xs: 2 }, 
         px: { xs: 1, sm: 2 },
         textAlign: 'center'
       }}>
@@ -65,10 +65,10 @@ export const LandingPage: React.FC = () => {
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            mb: { xs: 3 },
+            mb: { xs: 0},
           }}>
             <img
-              src="/Tabsy New Logo.png"
+              src="/Tabsy8.png"
               alt="Tabsy Wins Logo"
               style={{
                 height: 'auto',

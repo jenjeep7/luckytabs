@@ -5,10 +5,11 @@ import FacebookIcon from '@mui/icons-material/Facebook';
 import InstagramIcon from '@mui/icons-material/Instagram';
 import TwitterIcon from '@mui/icons-material/Twitter';
 import YouTubeIcon from '@mui/icons-material/YouTube';
+import { useNavigate } from 'react-router-dom';
 import { getVersionInfo } from '../utils/version';
 
 // TikTok SVG Icon
-const TikTokIcon = (props: any) => (
+const TikTokIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
     width="24"
     height="24"
@@ -25,6 +26,7 @@ const TikTokIcon = (props: any) => (
 
 export const Footer = () => {
   const theme = useTheme();
+  const navigate = useNavigate();
 
   return <>  {/* Footer Section */}
       <Box 
@@ -122,7 +124,7 @@ export const Footer = () => {
             {`© 2025 Tabsy's Community. All rights reserved. For entertainment purposes only. Please play responsibly.`}
           </Typography>
           <Button 
-            href="/privacy-policy" 
+            onClick={() => void navigate('/privacy-policy')}
             sx={{ 
               color: theme.neon.colors.text.secondary, 
               textTransform: 'none',

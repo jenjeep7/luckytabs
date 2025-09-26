@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useUserProfile } from '../../context/UserProfileContext';
-import { useMetricThresholds, getBoxStatus, getRTPColor } from '../../hooks/useMetricThresholds';
+import { useMetricThresholds, getBoxStatus } from '../../hooks/useMetricThresholds';
 import {
   Box,
   Typography,
@@ -15,9 +15,10 @@ import { Delete as DeleteIcon } from '@mui/icons-material';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuthStateCompat } from '../../services/useAuthStateCompat';
-import { ConfirmRemoveDialog, EstimateRemainingDialog, ClaimedPrize } from './BoxDialogs';
-import { formatCurrency, formatCurrencyClean } from '../../utils/formatters';
+import { ConfirmRemoveDialog, EstimateRemainingDialog } from './BoxDialogs';
+import { formatCurrencyClean } from '../../utils/formatters';
 import { AdvancedAnalytics } from './AdvancedAnalytics';
+import { BoxItem, BoxShare, ClaimedPrize } from '../../services/boxService';
 import FlareSheetDisplay from '../../components/FlareSheetDisplay';
 import { Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -29,7 +30,6 @@ import {
   evPerTicket,
   rtpRemaining,
   Prize,
-  calculateCostToClear
 } from './helpers';
 import {
   trackBoxRemoved,
@@ -38,40 +38,10 @@ import {
   trackAdvancedAnalyticsViewed
 } from '../../utils/analytics';
 
-interface BoxShare {
-  sharedWith: string[]; // Array of user IDs or group IDs
-  sharedBy: string; // User ID who shared the box
-  sharedAt: Date;
-  shareType: 'user' | 'group';
-}
-
 interface WinningTicket {
   totalPrizes: number;
   claimedTotal: number;
   prize: string;
-}
-
-interface BoxItem {
-  id: string;
-  boxName: string;
-  pricePerTicket: string;
-  startingTickets?: number;
-  type: "wall" | "bar box";
-  locationId: string;
-  ownerId: string;
-  isActive?: boolean;
-  winningTickets?: WinningTicket[];
-  claimedPrizes?: ClaimedPrize[];
-  estimatedRemainingTickets?: number;
-  rows?: { rowNumber: number; estimatedTicketsRemaining: number }[];
-  rowEstimates?: {
-    row1: number;
-    row2: number;
-    row3: number;
-    row4: number;
-  };
-  shares?: BoxShare[]; // Array of share configurations
-  [key: string]: unknown;
 }
 
 interface BoxComponentProps {
@@ -147,13 +117,7 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
     return box?.claimedPrizes || [];
   }, [localClaimedPrizes, boxes]);
 
-  // Helper function to determine EV color based on neon theme system
-  // Cyan: RTP > custom good threshold (Excellent)
-  // Amber: RTP >= custom decent threshold and <= custom good threshold (Decent)
-  // Pink: RTP < custom decent threshold (Poor)
-  const getEvColor = (_evValue: number, rtpValue: number, isPercentage = true): string => {
-    return getRTPColor(rtpValue, metricThresholds, theme, isPercentage);
-  };
+
 
   // Helper function to get EV status text based on custom thresholds
   const getEvStatus = (evValue: number, rtpValue: number): StatusType => {
@@ -917,7 +881,6 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
                       <AdvancedAnalytics 
                         box={{ ...box, winningTickets: getEffectiveWinningTickets(box) }}
                         remainingTickets={Number(remainingTicketsInput[box.id])}
-                        getEvColor={getEvColor}
                       />
                     </AccordionDetails>
                   </Accordion>

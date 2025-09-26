@@ -19,6 +19,14 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 
+// Interface for claimed prizes on wall boxes  
+export interface ClaimedPrize {
+  prizeAmount: number;
+  row: number; // 1-4 for rows
+  positionInRow: number; // 0-100 percentage position in the row
+  claimedAt: Date;
+}
+
 export interface BoxShare {
   sharedWith: string[]; // Array of user IDs or group IDs
   sharedBy: string; // User ID who shared the box
@@ -30,6 +38,7 @@ export interface BoxItem {
   id: string;
   boxName: string;
   pricePerTicket: string;
+  startingTickets?: number;
   type: "wall" | "bar box";
   locationId: string;
   ownerId: string;
@@ -40,12 +49,21 @@ export interface BoxItem {
     claimedTotal: number;
     prize: string;
   }>;
+  claimedPrizes?: ClaimedPrize[];
   estimatedRemainingTickets?: number;
   estimatedTicketsUpdated?: Date | { toDate?: () => Date };
   createdAt?: Date | { toDate?: () => Date };
   lastUpdated?: Date | { toDate?: () => Date };
   shares?: BoxShare[]; // New field for sharing functionality
   flareSheetUrl?: string; // URL to the flare sheet image
+  rows?: { rowNumber: number; estimatedTicketsRemaining: number }[];
+  rowEstimates?: {
+    row1: number;
+    row2: number;
+    row3: number;
+    row4: number;
+  };
+  [key: string]: unknown;
 }
 
 class BoxService {

@@ -70,6 +70,19 @@ export const WinLossChart: React.FC<WinLossChartProps> = ({ historicalData }) =>
     });
   })();
 
+  // Compute gradient split for green above zero, red below zero
+  const yValues = chartData.map(d => d.cumulativeTotal);
+  const minY = Math.min(0, ...yValues);
+  const maxY = Math.max(0, ...yValues);
+  
+  // Where does 0 sit between min and max? (0 = top, 1 = bottom of gradient)
+  const zeroOffset = maxY === minY ? 0.5 : (maxY - 0) / (maxY - minY);
+  const clamp = (n: number) => Math.max(0, Math.min(1, n));
+  // Small zone around zero to blend (tweak for sharper/softer transition)
+  const blend = 0.015;
+  const stopA = clamp(zeroOffset - blend);
+  const stopB = clamp(zeroOffset + blend);
+
   // Custom tooltip component
   const CustomTooltip = ({ active, payload, label }: {
     active?: boolean;
@@ -157,6 +170,18 @@ export const WinLossChart: React.FC<WinLossChartProps> = ({ historicalData }) =>
                 bottom: 5 
               }}
             >
+              <defs>
+                <linearGradient id="posNegGradient" x1="0" y1="0" x2="0" y2="1">
+                  {/* Green from top down to just above zero */}
+                  <stop offset="0%" stopColor={theme.palette.success.main} />
+                  <stop offset={`${stopA * 100}%`} stopColor={theme.palette.success.main} />
+                  {/* Blend zone around zero */}
+                  <stop offset={`${stopB * 100}%`} stopColor={theme.palette.error.main} />
+                  {/* Red from just below zero to bottom */}
+                  <stop offset="100%" stopColor={theme.palette.error.main} />
+                </linearGradient>
+              </defs>
+
               <CartesianGrid 
                 strokeDasharray="3 3" 
                 stroke={theme.palette.divider}
@@ -171,6 +196,8 @@ export const WinLossChart: React.FC<WinLossChartProps> = ({ historicalData }) =>
                 stroke={theme.palette.text.secondary}
                 fontSize={12}
                 tickFormatter={(value: number) => `$${Math.abs(value)}`}
+                // keep the domain consistent with gradient math
+                domain={[minY, maxY]}
               />
               <Tooltip content={<CustomTooltip />} />
               
@@ -183,33 +210,58 @@ export const WinLossChart: React.FC<WinLossChartProps> = ({ historicalData }) =>
                 strokeDasharray="5 5"
                 dot={false}
                 activeDot={false}
+                isAnimationActive={false}
               />
               
-              {/* Main cumulative total line - green when positive, red when negative */}
+              {/* Gradient-colored main line */}
               <Line
                 type="monotone"
                 dataKey="cumulativeTotal"
-                stroke={chartData.length > 0 && chartData[chartData.length - 1].cumulativeTotal >= 0 
-                  ? theme.palette.success.main 
-                  : theme.palette.error.main}
+                stroke="url(#posNegGradient)"
                 strokeWidth={3}
+                dot={false}
+                activeDot={false}
+              />
+              
+              {/* Positive value dots */}
+              <Line
+                type="monotone"
+                dataKey={(entry: ChartDataPoint) => entry.cumulativeTotal >= 0 ? entry.cumulativeTotal : null}
+                stroke="transparent"
+                strokeWidth={0}
+                connectNulls={false}
                 dot={{
                   fill: theme.palette.background.paper,
-                  stroke: chartData.length > 0 && chartData[chartData.length - 1].cumulativeTotal >= 0 
-                    ? theme.palette.success.main 
-                    : theme.palette.error.main,
+                  stroke: theme.palette.success.main,
                   strokeWidth: 2,
                   r: 3,
                 }}
                 activeDot={{
-                  r: 5,
-                  stroke: chartData.length > 0 && chartData[chartData.length - 1].cumulativeTotal >= 0 
-                    ? theme.palette.success.main 
-                    : theme.palette.error.main,
+                  fill: theme.palette.success.main,
+                  stroke: theme.palette.success.main,
                   strokeWidth: 2,
-                  fill: chartData.length > 0 && chartData[chartData.length - 1].cumulativeTotal >= 0 
-                    ? theme.palette.success.main 
-                    : theme.palette.error.main,
+                  r: 5,
+                }}
+              />
+              
+              {/* Negative value dots */}
+              <Line
+                type="monotone"
+                dataKey={(entry: ChartDataPoint) => entry.cumulativeTotal < 0 ? entry.cumulativeTotal : null}
+                stroke="transparent"
+                strokeWidth={0}
+                connectNulls={false}
+                dot={{
+                  fill: theme.palette.background.paper,
+                  stroke: theme.palette.error.main,
+                  strokeWidth: 2,
+                  r: 3,
+                }}
+                activeDot={{
+                  fill: theme.palette.error.main,
+                  stroke: theme.palette.error.main,
+                  strokeWidth: 2,
+                  r: 5,
                 }}
               />
             </LineChart>

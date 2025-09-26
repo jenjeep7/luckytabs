@@ -20,14 +20,7 @@ import {
   ToggleButtonGroup,
   TextField,
 } from '@mui/material';
-
-// Interface for claimed prizes on wall boxes
-export interface ClaimedPrize {
-  prizeAmount: number;
-  row: number; // 1-4 for rows
-  positionInRow: number; // 0-100 percentage position in the row
-  claimedAt: Date;
-}
+import { ClaimedPrize } from '../../services/boxService';
 
 interface ConfirmRemoveDialogProps {
   open: boolean;
