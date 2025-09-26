@@ -46,6 +46,7 @@ import ShareBoxDialog from "./ShareBoxDialog";
 import { useAuthStateCompat } from '../../services/useAuthStateCompat';
 import { statusColors, getNeonHeaderStyle } from '../../utils/neonUtils';
 import { useTheme } from '@mui/material/styles';
+import { FloatingChatBot } from '../../components/FloatingChatBot';
 
 interface Location {
   id: string;
@@ -1347,6 +1348,11 @@ export const Play: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Floating AI Chat Bot */}
+      <FloatingChatBot 
+        boxes={boxView === 'my' ? myBoxes : groupBoxes}
+      />
       </Box>
     </Box>
   );
