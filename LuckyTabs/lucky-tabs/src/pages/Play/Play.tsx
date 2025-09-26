@@ -31,7 +31,7 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../firebase";
 import { CreateBoxForm } from "./AddBox";
 import NeonToggle from "../../components/NeonToggle";
-import NeonStatusPill from "../../components/NeonStatusPill";
+import CrystalBall from "../../components/CrystalBall";
 import { trackHomePageVisit } from "../../utils/analytics";
 import { EditBoxForm } from "./EditBox";
 import { BoxComponent } from "./BoxComponent";
@@ -864,7 +864,7 @@ export const Play: React.FC = () => {
                       ? (box.estimatedTicketsUpdated as { toDate: () => Date }).toDate()
                       : box.estimatedTicketsUpdated);
                 lastUpdated = dateObj instanceof Date && !isNaN(dateObj.getTime())
-                  ? dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                  ? dateObj.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                   : '';
               }
               return (
@@ -890,7 +890,7 @@ export const Play: React.FC = () => {
                       {box.flareSheetUrl && (
                         <Box sx={{ 
                           width: '80px', 
-                          height: '80px',
+                          height: '100px',
                           flexShrink: 0,
                           display: 'flex',
                           alignItems: 'center',
@@ -927,27 +927,27 @@ export const Play: React.FC = () => {
                                 <>by {box.ownerName}</>
                               )}
                             </Typography>
+                            {lastUpdated && (
+                              <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.7rem', mt: 0.5 }}>
+                                Updated: {lastUpdated}
+                              </Typography>
+                            )}
                           </Box>
                           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 70 }}>
                             {evStatus !== 'No Data' && (
-                              <NeonStatusPill
-                                status={evStatus === 'Good' ? 'good' : evStatus === 'Decent' ? 'decent' : 'poor'}
-                                label={evStatus}
-                                size="small"
-                                sx={{ mb: 0.5 }}
+                              <CrystalBall
+                                percent={getBoxRTP(box)}
+                                size={56}
+                                color={evStatus === 'Good' ? statusColors.good : evStatus === 'Decent' ? statusColors.decent : statusColors.poor}
+                                showBase
                               />
                             )}
                           </Box>
                         </Box>
                         
-                        {/* Bottom section with timestamp and share button */}
-                        {(lastUpdated || boxView === 'my') && (
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
-                            {lastUpdated && (
-                              <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.7rem' }}>
-                                updated: {lastUpdated}
-                              </Typography>
-                            )}
+                        {/* Bottom section with share button */}
+                        {boxView === 'my' && (
+                          <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mt: 1 }}>
                             {boxView === 'my' && (
                               <Box sx={{ display: 'flex', gap: 0.5 }}>
                                 <IconButton
@@ -1094,7 +1094,7 @@ export const Play: React.FC = () => {
                           ? (box.estimatedTicketsUpdated as { toDate: () => Date }).toDate()
                           : box.estimatedTicketsUpdated);
                     lastUpdated = dateObj instanceof Date && !isNaN(dateObj.getTime())
-                      ? dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                      ? dateObj.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                       : '';
                   }
                   return (
@@ -1120,7 +1120,7 @@ export const Play: React.FC = () => {
                           {box.flareSheetUrl && (
                             <Box sx={{ 
                               width: '80px', 
-                              height: '80px',
+                              height: '100px',
                               flexShrink: 0,
                               display: 'flex',
                               alignItems: 'center',
@@ -1157,25 +1157,24 @@ export const Play: React.FC = () => {
                                     <>by {box.ownerName}</>
                                   )}
                                 </Typography>
+                                {lastUpdated && (
+                                  <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.7rem', mt: 0.5 }}>
+                                    Updated: {lastUpdated}
+                                  </Typography>
+                                )}
                               </Box>
                               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 70 }}>
-                                <NeonStatusPill
-                                  status={evStatus === 'Good' ? 'good' : evStatus === 'Decent' ? 'decent' : 'poor'}
-                                  label={evStatus}
-                                  size="small"
-                                  sx={{ mb: 0.5 }}
+                                <CrystalBall
+                                  percent={getBoxRTP(box)}
+                                  size={56}
+                                  color={evStatus === 'Good' ? statusColors.good : evStatus === 'Decent' ? statusColors.decent : statusColors.poor}
                                 />
                               </Box>
                             </Box>
                             
-                            {/* Bottom section with timestamp and share button */}
-                            {(lastUpdated || boxView === 'my') && (
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
-                                {lastUpdated && (
-                                  <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.7rem' }}>
-                                    Updated: {lastUpdated}
-                                  </Typography>
-                                )}
+                            {/* Bottom section with share button */}
+                            {boxView === 'my' && (
+                              <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mt: 1 }}>
                                 {boxView === 'my' && (
                                   <Box sx={{ display: 'flex', gap: 0.5 }}>
                                     <IconButton
