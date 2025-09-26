@@ -48,7 +48,6 @@ export interface AdvancedMetrics {
     evHigh: number;
     isEstimateSensitive: boolean;
   };
-  goodnessScore: number;
   // NEW METRICS FROM FEEDBACK
   evPerDollar: number;
   probabilityOfProfit: {
@@ -61,6 +60,16 @@ export interface AdvancedMetrics {
     over50: { budget20: number; budget50: number; budget100: number };
     top2Prizes: { budget20: number; budget50: number; budget100: number };
   };
+  // ADDITIONAL REQUESTED METRICS
+  liveHitRate: number;
+  expectedTicketsToFirstWin: number;
+  anyWinOdds: {
+    next1: number;
+    next5: number;
+    next10: number;
+    next20: number;
+  };
+  prizeSurplusRatio: number;
 }
 
 // EV Calculation Functions
@@ -69,34 +78,12 @@ export function evPerTicket(p: number, R: number, prizes: Prize[]): number {
   return (Prem / R) - p; // dollars per ticket
 }
 
-export function evBand(p: number, R: number, prizes: Prize[], pct = 0.10) {
-  const Prem = prizes.reduce((s, t) => s + t.value * t.remaining, 0);
-  const low  = (Prem / Math.ceil(R * (1 + pct))) - p;
-  const mid  = (Prem / R) - p;
-  const high = (Prem / Math.max(1, Math.floor(R * (1 - pct)))) - p;
-  return { low, mid, high };
-}
-
 export function rtpRemaining(p: number, R: number, prizes: Prize[]): number {
   const Prem = prizes.reduce((s, t) => s + t.value * t.remaining, 0);
   return (Prem / (p * R)) * 100; // percentage
 }
 
 // Existing functions
-export const calculateRemainingPrizes = (box: BoxItem): number => {
-  if (!box.winningTickets || !Array.isArray(box.winningTickets)) {
-    return 0;
-  }
-
-  return box.winningTickets.reduce((total: number, ticket: WinningTicket) => {
-    const totalPrizes = Number(ticket.totalPrizes) || 0;
-    const claimedTotal = Number(ticket.claimedTotal) || 0;
-    const prize = Number(ticket.prize) || 0;
-    const remaining = totalPrizes - claimedTotal;
-    return total + (remaining * prize);
-  }, 0);
-};
-
 export const calculateRemainingWinningTickets = (box: BoxItem): number => {
   if (!box.winningTickets || !Array.isArray(box.winningTickets)) {
     return 0;
@@ -217,6 +204,68 @@ const hypergeometricProbability = (totalTickets: number, winnersRemaining: numbe
   }
   return Math.min(1, probability);
 };
+
+/** Safe product for hypergeometric without huge combinations:
+ *  P(no win in k) = Π_{i=0..k-1} (N-K-i) / (N-i)
+ */
+export function probNoWinNextK(N: number, K: number, k: number): number {
+  if (k <= 0 || K <= 0) return 1;
+  if (k > N) k = N;
+  let p = 1;
+  for (let i = 0; i < k; i++) {
+    p *= (N - K - i) / (N - i);
+    if (p <= 0) return 0;
+  }
+  return Math.max(0, Math.min(1, p));
+}
+
+export function probAtLeastOneWinNextK(N: number, K: number, k: number): number {
+  return 1 - probNoWinNextK(N, K, k);
+}
+
+export function liveHitRate(N: number, K: number): number {
+  if (N <= 0) return 0;
+  return K / N;
+}
+
+export function expectedTicketsToFirstWin(N: number, K: number): number {
+  if (K <= 0) return Infinity; // no winners left
+  return (N + 1) / (K + 1);
+}
+
+export function liveRTP(
+  tiers: Array<{value: number, remaining: number}>,
+  N: number,
+  ticketPrice: number
+): number {
+  if (N <= 0 || ticketPrice <= 0) return 0;
+  const remainingValue = tiers.reduce((s, t) => s + t.value * t.remaining, 0);
+  return remainingValue / (N * ticketPrice); // e.g., 1.08 = 108%
+}
+
+/** Big-win versions (prize >= minPrize) */
+export function remainingCountAtLeast(
+  tiers: Array<{value: number, remaining: number}>,
+  minPrize: number
+): number {
+  return tiers.reduce((s, t) => s + (t.value >= minPrize ? t.remaining : 0), 0);
+}
+
+export function probAtLeastOneBigWinNextK(
+  N: number,
+  tiers: Array<{value: number, remaining: number}>,
+  k: number,
+  minPrize: number
+): number {
+  const Kbig = remainingCountAtLeast(tiers, minPrize);
+  return probAtLeastOneWinNextK(N, Kbig, k);
+}
+
+/** Optional: Prize Surplus Ratio using counts (needs starting N0, K0) */
+export function prizeSurplusRatio(N: number, K: number, N0: number, K0: number): number {
+  if (N <= 0 || N0 <= 0 || K0 <= 0) return 0;
+  return (K / N) / (K0 / N0);
+}
 
 // Combination function C(n, k) = n! / (k! * (n-k)!)
 const combination = (n: number, k: number): number => {
@@ -373,40 +422,9 @@ export const calculateSensitivity = (box: BoxItem, remainingTickets: number): { 
   return { evLow, evHigh, isEstimateSensitive };
 };
 
-// 9. Goodness Score
-export const calculateGoodnessScore = (box: BoxItem, remainingTickets: number): number => {
-  const evPerTicket = calculateEVPerTicket(box, remainingTickets);
-  const topPrizeOdds = calculateTopPrizeOdds(box, remainingTickets);
-  const profitOdds = calculateProfitTicketOdds(box, remainingTickets);
-  const risk = calculateRiskPerTicket(box, remainingTickets);
-  const sensitivity = calculateSensitivity(box, remainingTickets);
-  
-  // Normalize EV to 0-1 scale (assume range of -10 to +10)
-  const evNormalized = Math.max(0, Math.min(1, (evPerTicket + 10) / 20));
-  
-  // Normalize risk (assume max risk of $50)
-  const riskNormalized = Math.min(1, risk / 50);
-  
-  // Stability score (higher if not estimate sensitive)
-  const stabilityScore = sensitivity.isEstimateSensitive ? 0 : 1;
-  
-  // Weighted combination
-  const w1 = 0.5; // EV weight
-  const w2 = 0.2; // Top prize odds weight
-  const w3 = 0.2; // Profit odds weight
-  const w4 = 0.05; // Risk penalty weight
-  const w5 = 0.05; // Stability weight
-  
-  return (w1 * evNormalized) + 
-         (w2 * topPrizeOdds.next10) + 
-         (w3 * profitOdds.next5) - 
-         (w4 * riskNormalized) + 
-         (w5 * stabilityScore);
-};
-
 // NEW METRICS FROM FEEDBACK
 
-// 10. EV per Dollar (multiple)
+// 9. EV per Dollar (multiple)
 export const calculateEVPerDollar = (box: BoxItem, remainingTickets: number): number => {
   const pricePerTicket = Number(box.pricePerTicket) || 0;
   const totalRemainingPrizeValue = calculateTotalRemainingPrizeValue(box);
@@ -416,7 +434,7 @@ export const calculateEVPerDollar = (box: BoxItem, remainingTickets: number): nu
   return totalRemainingPrizeValue / (remainingTickets * pricePerTicket);
 };
 
-// 11. Error function approximation for normal distribution
+// 10. Error function approximation for normal distribution
 const erf = (x: number): number => {
   // Abramowitz and Stegun approximation
   const a1 =  0.254829592;
@@ -435,7 +453,7 @@ const erf = (x: number): number => {
   return sign * y;
 };
 
-// 12. Probability of Profit using normal approximation
+// 11. Probability of Profit using normal approximation
 export const calculateProbabilityOfProfit = (box: BoxItem, remainingTickets: number): { budget20: number; budget50: number; budget100: number } => {
   const pricePerTicket = Number(box.pricePerTicket) || 0;
   const evPerTicket = calculateEVPerTicket(box, remainingTickets);
@@ -469,7 +487,7 @@ export const calculateProbabilityOfProfit = (box: BoxItem, remainingTickets: num
   };
 };
 
-// 13. Value/Risk Ratio (Sharpe-like ratio)
+// 12. Value/Risk Ratio (Sharpe-like ratio)
 export const calculateValueRiskRatio = (box: BoxItem, remainingTickets: number): number => {
   const evPerTicket = calculateEVPerTicket(box, remainingTickets);
   const risk = calculateRiskPerTicket(box, remainingTickets);
@@ -479,7 +497,7 @@ export const calculateValueRiskRatio = (box: BoxItem, remainingTickets: number):
   return evPerTicket / risk;
 };
 
-// 14. Big Hit Odds (probability of hitting prizes >= threshold)
+// 13. Big Hit Odds (probability of hitting prizes >= threshold)
 export const calculateBigHitOdds = (box: BoxItem, remainingTickets: number): { 
   over50: { budget20: number; budget50: number; budget100: number }; 
   top2Prizes: { budget20: number; budget50: number; budget100: number }; 
@@ -549,6 +567,68 @@ export const calculateBigHitOdds = (box: BoxItem, remainingTickets: number): {
   };
 };
 
+// 14. Live Hit Rate (chance next ticket wins anything)
+export const calculateLiveHitRate = (box: BoxItem, remainingTickets: number): number => {
+  if (!box.winningTickets || remainingTickets <= 0) return 0;
+  
+  const remainingWinningTickets = calculateRemainingWinningTickets(box);
+  return liveHitRate(remainingTickets, remainingWinningTickets);
+};
+
+// 15. Expected Tickets to First Win
+export const calculateExpectedTicketsToFirstWin = (box: BoxItem, remainingTickets: number): number => {
+  if (!box.winningTickets || remainingTickets <= 0) return Infinity;
+  
+  const remainingWinningTickets = calculateRemainingWinningTickets(box);
+  return expectedTicketsToFirstWin(remainingTickets, remainingWinningTickets);
+};
+
+// 16. Any Win Odds (chance of hitting any prize in next k pulls)
+export const calculateAnyWinOdds = (box: BoxItem, remainingTickets: number): { 
+  next1: number; 
+  next5: number; 
+  next10: number; 
+  next20: number; 
+} => {
+  if (!box.winningTickets || remainingTickets <= 0) {
+    return { next1: 0, next5: 0, next10: 0, next20: 0 };
+  }
+
+  const remainingWinningTickets = calculateRemainingWinningTickets(box);
+
+  return {
+    next1: probAtLeastOneWinNextK(remainingTickets, remainingWinningTickets, 1),
+    next5: probAtLeastOneWinNextK(remainingTickets, remainingWinningTickets, Math.min(5, remainingTickets)),
+    next10: probAtLeastOneWinNextK(remainingTickets, remainingWinningTickets, Math.min(10, remainingTickets)),
+    next20: probAtLeastOneWinNextK(remainingTickets, remainingWinningTickets, Math.min(20, remainingTickets))
+  };
+};
+
+// 17. Prize Surplus Ratio (requires original box stats - simplified version)
+export const calculatePrizeSurplusRatio = (box: BoxItem, remainingTickets: number): number => {
+  if (!box.winningTickets || remainingTickets <= 0) return 0;
+  
+  // Calculate current values
+  const remainingWinningTickets = calculateRemainingWinningTickets(box);
+  
+  // Estimate original ratio (this would ideally be stored with the box)
+  // For now, assume original box had similar win rate - this could be enhanced
+  // by storing original stats when box is created
+  const totalOriginalTickets = (box.winningTickets || [])
+    .reduce((sum, ticket) => sum + Number(ticket.totalPrizes), 0);
+  
+  const originalWinningTickets = totalOriginalTickets;
+  
+  // Estimate original total tickets (could be enhanced with actual data)
+  // Using a rough estimate based on common pull-tab ratios
+  const estimatedOriginalTotal = Math.max(totalOriginalTickets * 5, remainingTickets + totalOriginalTickets);
+  const originalRatio = originalWinningTickets / estimatedOriginalTotal;
+  
+  if (originalRatio <= 0) return 1;
+  
+  return prizeSurplusRatio(remainingTickets, remainingWinningTickets, estimatedOriginalTotal, originalWinningTickets);
+};
+
 // Main function to calculate all advanced metrics
 export const calculateAdvancedMetrics = (box: BoxItem, remainingTickets: number): AdvancedMetrics => {
   const evPerTicket = calculateEVPerTicket(box, remainingTickets);
@@ -559,13 +639,18 @@ export const calculateAdvancedMetrics = (box: BoxItem, remainingTickets: number)
   const payoutConcentration = calculatePayoutConcentration(box);
   const riskPerTicket = calculateRiskPerTicket(box, remainingTickets);
   const sensitivity = calculateSensitivity(box, remainingTickets);
-  const goodnessScore = calculateGoodnessScore(box, remainingTickets);
   
   // NEW METRICS
   const evPerDollar = calculateEVPerDollar(box, remainingTickets);
   const probabilityOfProfit = calculateProbabilityOfProfit(box, remainingTickets);
   const valueRiskRatio = calculateValueRiskRatio(box, remainingTickets);
   const bigHitOdds = calculateBigHitOdds(box, remainingTickets);
+
+  // ADDITIONAL REQUESTED METRICS
+  const liveHitRate = calculateLiveHitRate(box, remainingTickets);
+  const expectedTicketsToFirstWin = calculateExpectedTicketsToFirstWin(box, remainingTickets);
+  const anyWinOdds = calculateAnyWinOdds(box, remainingTickets);
+  const prizeSurplusRatio = calculatePrizeSurplusRatio(box, remainingTickets);
 
   return {
     evPerTicket,
@@ -577,10 +662,13 @@ export const calculateAdvancedMetrics = (box: BoxItem, remainingTickets: number)
     payoutConcentration,
     riskPerTicket,
     sensitivity,
-    goodnessScore,
     evPerDollar,
     probabilityOfProfit,
     valueRiskRatio,
-    bigHitOdds
+    bigHitOdds,
+    liveHitRate,
+    expectedTicketsToFirstWin,
+    anyWinOdds,
+    prizeSurplusRatio
   };
 };

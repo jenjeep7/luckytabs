@@ -933,7 +933,7 @@ export const Play: React.FC = () => {
                               </Typography>
                             )}
                           </Box>
-                          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 70 }}>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 50 }}>
                             {evStatus !== 'No Data' && (
                               <CrystalBall
                                 percent={getBoxRTP(box)}
@@ -1163,10 +1163,11 @@ export const Play: React.FC = () => {
                                   </Typography>
                                 )}
                               </Box>
-                              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 70 }}>
+                              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 50 }}>
                                 <CrystalBall
                                   percent={getBoxRTP(box)}
                                   size={56}
+                                  showBase
                                   color={evStatus === 'Good' ? statusColors.good : evStatus === 'Decent' ? statusColors.decent : statusColors.poor}
                                 />
                               </Box>

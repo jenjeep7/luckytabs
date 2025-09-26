@@ -29,14 +29,6 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
     return theme.neon.colors.pink; // High risk with losses
   };
   
-  // Helper function to get neon colors based on goodness score
-  const getNeonColorForGoodness = (goodnessValue: number) => {
-    if (goodnessValue >= 0.8) return theme.neon.colors.green; // Excellent
-    if (goodnessValue >= 0.6) return theme.neon.colors.cyan; // Good
-    if (goodnessValue >= 0.4) return theme.neon.colors.amber; // Average
-    return theme.neon.colors.pink; // Poor
-  };
-  
   const [payoutTooltipOpen, setPayoutTooltipOpen] = React.useState(false);
   const handlePayoutTooltipToggle = () => setPayoutTooltipOpen((open) => !open);
   const handlePayoutTooltipClose = () => setPayoutTooltipOpen(false);
@@ -49,12 +41,6 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
   const [profitOddsTooltipOpen, setProfitOddsTooltipOpen] = React.useState(false);
   const handleProfitOddsTooltipToggle = () => setProfitOddsTooltipOpen((open) => !open);
   const handleProfitOddsTooltipClose = () => setProfitOddsTooltipOpen(false);
-  const [evTooltipOpen, setEvTooltipOpen] = React.useState(false);
-  const handleEvTooltipToggle = () => setEvTooltipOpen((open) => !open);
-  const handleEvTooltipClose = () => setEvTooltipOpen(false);
-  const [goodnessTooltipOpen, setGoodnessTooltipOpen] = React.useState(false);
-  const handleGoodnessTooltipToggle = () => setGoodnessTooltipOpen((open) => !open);
-  const handleGoodnessTooltipClose = () => setGoodnessTooltipOpen(false);
   const [evPerDollarTooltipOpen, setEvPerDollarTooltipOpen] = React.useState(false);
   const handleEvPerDollarTooltipToggle = () => setEvPerDollarTooltipOpen((open) => !open);
   const handleEvPerDollarTooltipClose = () => setEvPerDollarTooltipOpen(false);
@@ -70,6 +56,15 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
   const [bigHit100TooltipOpen, setBigHit100TooltipOpen] = React.useState(false);
   const handleBigHit100TooltipToggle = () => setBigHit100TooltipOpen((open) => !open);
   const handleBigHit100TooltipClose = () => setBigHit100TooltipOpen(false);
+  const [liveHitRateTooltipOpen, setLiveHitRateTooltipOpen] = React.useState(false);
+  const handleLiveHitRateTooltipToggle = () => setLiveHitRateTooltipOpen((open) => !open);
+  const handleLiveHitRateTooltipClose = () => setLiveHitRateTooltipOpen(false);
+  const [etfwTooltipOpen, setEtfwTooltipOpen] = React.useState(false);
+  const handleEtfwTooltipToggle = () => setEtfwTooltipOpen((open) => !open);
+  const handleEtfwTooltipClose = () => setEtfwTooltipOpen(false);
+  const [prizeSurplusTooltipOpen, setPrizeSurplusTooltipOpen] = React.useState(false);
+  const handlePrizeSurplusTooltipToggle = () => setPrizeSurplusTooltipOpen((open) => !open);
+  const handlePrizeSurplusTooltipClose = () => setPrizeSurplusTooltipOpen(false);
   if (!box || !remainingTickets) return null;
   const metrics = calculateAdvancedMetrics(box, remainingTickets);
   // Calculate profit ticket odds for next 1, 10, and 20 pulls
@@ -107,63 +102,6 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
             gridTemplateColumns: 'repeat(2, 1fr)',
             gap: 2 
           }}>
-            <Card 
-              variant="outlined" 
-              sx={{ 
-                ...theme.neon.effects.boxGlow(theme.neon.colors.cyan, 0.15),
-                ...theme.neon.effects.hoverTransform,
-                background: `linear-gradient(135deg, 
-                  rgba(125,249,255,0.05) 0%, 
-                  rgba(18,20,24,0.95) 50%, 
-                  rgba(125,249,255,0.03) 100%)`,
-                borderColor: 'rgba(125,249,255,0.2)'
-              }}
-            >
-              <CardContent sx={{ p: 1.5, textAlign: 'center' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, justifyContent: 'center', mb: 0.5 }}>
-                  <Typography variant="caption" sx={{ fontSize: '0.7rem', color: theme.neon.colors.text.secondary }}>
-                    EV/Ticket
-                  </Typography>
-                  <Tooltip
-                    title={
-                      <Box>
-                        <Typography variant="subtitle2" sx={{ mb: 1 }}>Expected Value per Ticket</Typography>
-                        <Typography variant="body2" sx={{ mb: 1 }}>This shows the average profit or loss per ticket if you played many times.</Typography>
-                        <Typography variant="body2" sx={{ mb: 1 }}>
-                          <strong>Positive (+):</strong> Good! You expect to make money on average<br/>
-                          <strong>Negative (-):</strong> Bad! You expect to lose money on average<br/>
-                          <strong>Zero (0):</strong> Break-even, no profit or loss expected
-                        </Typography>
-                        <Typography variant="body2"><em>Example: +$0.25 means you&apos;d expect to profit 25¢ per ticket over many pulls</em></Typography>
-                      </Box>
-                    }
-                    arrow
-                    placement="top"
-                    open={evTooltipOpen}
-                    onClose={handleEvTooltipClose}
-                    disableFocusListener
-                    disableHoverListener
-                    disableTouchListener
-                  >
-                    <IconButton size="small" sx={{ p: 0.25, color: 'white' }} onClick={handleEvTooltipToggle}>
-                      <InfoIcon sx={{ fontSize: '0.9rem' }} />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
-                <Typography 
-                  variant="h6" 
-                  sx={{ 
-                    color: getNeonColorForEV(metrics.evPerTicket),
-                    fontWeight: 'bold',
-                    fontSize: '1.1rem',
-                    ...theme.neon.effects.textGlow(getNeonColorForEV(metrics.evPerTicket), 0.4)
-                  }}
-                >
-                  {metrics.evPerTicket >= 0 ? '+' : ''}${metrics.evPerTicket.toFixed(2)}
-                </Typography>
-              </CardContent>
-            </Card>
-
             <Card 
               variant="outlined" 
               sx={{ 
@@ -285,63 +223,208 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
                 </Typography>
               </CardContent>
             </Card>
+          </Box>
+        </Box>
 
+        {/* Live Metrics */}
+        <Box>
+          <Typography 
+            variant="subtitle1" 
+            sx={{ 
+              fontWeight: 'bold', 
+              mb: 2, 
+              textAlign: 'center',
+              ...theme.neon.effects.textGlow(theme.neon.colors.green, 0.6),
+              fontSize: '1.2rem'
+            }}
+          >
+            🎯 Live Metrics
+          </Typography>
+          <Box sx={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: 2 
+          }}>
             <Card 
               variant="outlined" 
               sx={{ 
-                ...theme.neon.effects.boxGlow(theme.neon.colors.purple, 0.15),
+                ...theme.neon.effects.boxGlow(theme.neon.colors.green, 0.15),
                 ...theme.neon.effects.hoverTransform,
                 background: `linear-gradient(135deg, 
-                  rgba(106,90,205,0.05) 0%, 
+                  rgba(0,230,118,0.05) 0%, 
                   rgba(18,20,24,0.95) 50%, 
-                  rgba(106,90,205,0.03) 100%)`,
-                borderColor: 'rgba(106,90,205,0.2)'
+                  rgba(0,230,118,0.03) 100%)`,
+                borderColor: 'rgba(0,230,118,0.2)'
               }}
             >
               <CardContent sx={{ p: 1.5, textAlign: 'center' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, justifyContent: 'center', mb: 0.5 }}>
                   <Typography variant="caption" sx={{ fontSize: '0.7rem', color: theme.neon.colors.text.secondary }}>
-                    Goodness
+                    Win Odds (Next 5)
                   </Typography>
                   <Tooltip
                     title={
                       <Box>
-                        <Typography variant="subtitle2" sx={{ mb: 1 }}>Goodness Score</Typography>
-                        <Typography variant="body2" sx={{ mb: 1 }}>A quick summary of how favorable this box is for players, combining expected value, odds, risk, and stability.</Typography>
+                        <Typography variant="subtitle2" sx={{ mb: 1 }}>Chance of ≥1 Win in Next 5 Pulls</Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>Your probability of hitting at least one prize of any amount in the next 5 tickets.</Typography>
                         <Typography variant="body2" sx={{ mb: 1 }}>
-                          <strong>80–100:</strong> Excellent (very favorable box)<br/>
-                          <strong>60–79:</strong> Good (worth considering)<br/>
-                          <strong>40–59:</strong> Average (neutral)<br/>
-                          <strong>0–39:</strong> Poor (unfavorable, high risk or low payout)
+                          <strong>All Win Odds:</strong><br/>
+                          • Next 1: {(metrics.anyWinOdds.next1 * 100).toFixed(1)}% (Live Hit Rate)<br/>
+                          • Next 5: {(metrics.anyWinOdds.next5 * 100).toFixed(1)}% (Featured)<br/>
+                          • Next 10: {(metrics.anyWinOdds.next10 * 100).toFixed(1)}%<br/>
+                          • Next 20: {(metrics.anyWinOdds.next20 * 100).toFixed(1)}%
                         </Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          Uses hypergeometric probability accounting for drawing without replacement.
+                        </Typography>
+                        <Typography variant="body2"><em>Next 5 is the sweet spot for budget planning - not too conservative, not too aggressive.</em></Typography>
                       </Box>
                     }
                     arrow
                     placement="top"
-                    open={goodnessTooltipOpen}
-                    onClose={handleGoodnessTooltipClose}
+                    open={liveHitRateTooltipOpen}
+                    onClose={handleLiveHitRateTooltipClose}
                     disableFocusListener
                     disableHoverListener
                     disableTouchListener
                   >
-                    <IconButton size="small" sx={{ p: 0.25, color: 'white' }} onClick={handleGoodnessTooltipToggle}>
+                    <IconButton size="small" sx={{ p: 0.25, color: 'white' }} onClick={handleLiveHitRateTooltipToggle}>
                       <InfoIcon sx={{ fontSize: '0.9rem' }} />
                     </IconButton>
                   </Tooltip>
                 </Box>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    color: getNeonColorForGoodness(metrics.goodnessScore),
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    color: metrics.anyWinOdds.next5 > 0.8 ? theme.neon.colors.green : metrics.anyWinOdds.next5 > 0.6 ? theme.neon.colors.cyan : theme.neon.colors.amber,
                     fontWeight: 'bold',
                     fontSize: '1.1rem',
-                    ...theme.neon.effects.textGlow(getNeonColorForGoodness(metrics.goodnessScore), 0.4)
+                    ...theme.neon.effects.textGlow(
+                      metrics.anyWinOdds.next5 > 0.8 ? theme.neon.colors.green : metrics.anyWinOdds.next5 > 0.6 ? theme.neon.colors.cyan : theme.neon.colors.amber, 
+                      0.4
+                    )
                   }}
                 >
-                  {(metrics.goodnessScore * 100).toFixed(0)}/100
+                  {(metrics.anyWinOdds.next5 * 100).toFixed(1)}%
                 </Typography>
               </CardContent>
             </Card>
+
+            <Card 
+              variant="outlined" 
+              sx={{ 
+                ...theme.neon.effects.boxGlow(theme.neon.colors.amber, 0.15),
+                ...theme.neon.effects.hoverTransform,
+                background: `linear-gradient(135deg, 
+                  rgba(255,193,7,0.05) 0%, 
+                  rgba(18,20,24,0.95) 50%, 
+                  rgba(255,193,7,0.03) 100%)`,
+                borderColor: 'rgba(255,193,7,0.2)'
+              }}
+            >
+              <CardContent sx={{ p: 1.5, textAlign: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, justifyContent: 'center', mb: 0.5 }}>
+                  <Typography variant="caption" sx={{ fontSize: '0.7rem', color: theme.neon.colors.text.secondary }}>
+                    Tickets to Win
+                  </Typography>
+                  <Tooltip
+                    title={
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ mb: 1 }}>Expected Tickets to First Win (ETW)</Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>How many tickets, on average, until the next win?</Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          Uses negative-hypergeometric mean formula: ETW = (N + 1) / (K + 1)
+                        </Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          <strong>Lower is better!</strong> Super intuitive for users.
+                        </Typography>
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          <strong>Example:</strong> 4.2 means you&apos;d expect to pull about 4-5 tickets before hitting your first winner.
+                        </Typography>
+                        <Typography variant="body2"><em>{`This gives you a gut-check number: "How many duds before I hit something?"`}</em></Typography>
+                      </Box>
+                    }
+                    arrow
+                    placement="top"
+                    open={etfwTooltipOpen}
+                    onClose={handleEtfwTooltipClose}
+                    disableFocusListener
+                    disableHoverListener
+                    disableTouchListener
+                  >
+                    <IconButton size="small" sx={{ p: 0.25, color: 'white' }} onClick={handleEtfwTooltipToggle}>
+                      <InfoIcon sx={{ fontSize: '0.9rem' }} />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    color: metrics.expectedTicketsToFirstWin <= 3 ? theme.neon.colors.green : metrics.expectedTicketsToFirstWin <= 6 ? theme.neon.colors.cyan : theme.neon.colors.amber,
+                    fontWeight: 'bold',
+                    fontSize: '1.1rem',
+                    ...theme.neon.effects.textGlow(
+                      metrics.expectedTicketsToFirstWin <= 3 ? theme.neon.colors.green : metrics.expectedTicketsToFirstWin <= 6 ? theme.neon.colors.cyan : theme.neon.colors.amber, 
+                      0.4
+                    )
+                  }}
+                >
+                  {metrics.expectedTicketsToFirstWin === Infinity ? '∞' : metrics.expectedTicketsToFirstWin.toFixed(1)}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Box>
+        </Box>
+
+        {/* Prize Surplus Ratio */}
+        <Box>
+          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', my: 2, textAlign: 'center' }}>{`📈 Prize Density Analysis`}</Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'background.paper', px: 2, py: 1, borderRadius: 1, boxShadow: 1, minWidth: 200 }}>
+              <Typography variant="caption" color="text.secondary">{`Prize Surplus Ratio:`}</Typography>
+              <Tooltip
+                title={
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ mb: 1 }}>{`Prize Surplus Ratio`}</Typography>
+                    <Typography variant="body2" sx={{ mb: 1 }}>{`Are prizes 'overrepresented' compared to tickets left vs. how the box started?`}</Typography>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      <strong>How it works:</strong> PSR = (Current Winners / Current Tickets) / (Original Winners / Original Tickets)
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      <strong>Reading the ratio:</strong><br/>
+                      • 1.0 = Same density as when box started<br/>
+                      • &gt;1.0 = Higher concentration of winners than original (good!)<br/>
+                      • &lt;1.0 = Lower concentration, winners picked off already
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      <strong>Strategy:</strong> Values above 1.0 suggest the box is proportionally richer in winners than when it started.
+                    </Typography>
+                    <Typography variant="body2"><em>{`This tells you if early players already "cherry-picked" the good tickets or if winners are still dense.`}</em></Typography>
+                  </Box>
+                }
+                arrow
+                placement="top"
+                open={prizeSurplusTooltipOpen}
+                onClose={handlePrizeSurplusTooltipClose}
+                disableFocusListener
+                disableHoverListener
+                disableTouchListener
+              >
+                <IconButton size="small" sx={{ p: 0.25 }} onClick={handlePrizeSurplusTooltipToggle}>
+                  <InfoIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  color: metrics.prizeSurplusRatio >= 1.2 ? theme.neon.colors.green : 
+                        metrics.prizeSurplusRatio >= 0.9 ? theme.neon.colors.cyan : theme.neon.colors.amber,
+                  fontWeight: 'bold'
+                }}
+              >
+                {metrics.prizeSurplusRatio.toFixed(2)}x
+              </Typography>
+            </Box>
           </Box>
         </Box>
 
@@ -420,9 +503,9 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
           </Box>
         </Box>
 
-        {/* Big Hit Analysis */}
+        {/* Advanced Big Hit Analysis */}
         <Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', my: 1, textAlign: 'center' }}>{`🎯 Big Hit Analysis`}</Typography>
+          <Typography variant="subtitle1" sx={{ fontWeight: 'bold', my: 1, textAlign: 'center' }}>{`🎯 Advanced Big Hit Analysis`}</Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
             <Card variant="outlined" sx={{ flex: '1 1 300px' }}>
               <CardContent sx={{ p: 2 }}>
@@ -583,6 +666,9 @@ export const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ box, remai
                         </Typography>
                         <Typography variant="body2" sx={{ mb: 1 }}>
                           <strong>Strategy:</strong> Higher percentages mean better short-term chances for hitting the biggest remaining prizes. Great for players who want to target the most valuable tickets.
+                        </Typography>
+                        <Typography variant="body2" sx={{ mb: 1, fontStyle: 'italic', color: 'info.main' }}>
+                          <strong>Advanced Options:</strong> See the Advanced Big Hit Analysis section below for $50+ prize odds and top-2 prize targeting.
                         </Typography>
                         <Typography variant="body2"><em>Use this to decide if it&apos;s worth making a focused play on the biggest prizes left.</em></Typography>
                       </Box>
