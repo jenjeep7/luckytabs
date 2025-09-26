@@ -19,14 +19,7 @@ import { doc, setDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "../../firebase";
 import { useState, useRef, useEffect } from "react";
-import { useAuthStateCompat } from "../../services/useAuthStateCompat";
 import heic2any from "heic2any";
-import { userService, UserData } from "../../services/userService";
-
-// Type guard for Firebase User
-function isFirebaseUser(u: unknown): u is { uid: string } {
-  return !!u && typeof u === 'object' && 'uid' in u && typeof (u as { uid?: unknown }).uid === 'string';
-}
 
 type WinningTicket = {
   prize: string;
@@ -46,9 +39,6 @@ type BoxType = {
 };
 
 export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onClose: () => void; onBoxUpdated?: () => void }) => {
-  const [user] = useAuthStateCompat();
-  const [userProfile, setUserProfile] = useState<UserData | null>(null);
-  
   // Existing state
   const [type, setType] = useState<"wall" | "bar box">(box.type);
   const [boxName, setBoxName] = useState<string>(box.boxName);
@@ -68,15 +58,6 @@ export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onCl
   const [originalWinningTickets] = useState<WinningTicket[]>(box.winningTickets || []);
   const ocrProcessedRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Check if user has pro plan
-  useEffect(() => {
-    if (isFirebaseUser(user)) {
-      userService.getUserProfile(user.uid).then(setUserProfile).catch(console.error);
-    }
-  }, [user]);
-
-  const isProUser = userProfile?.plan === "pro";
 
   // Convert HEIC files to JPEG
   const convertHeicToJpeg = async (file: File): Promise<File> => {
@@ -193,11 +174,6 @@ export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onCl
 
   // Parse new image with OCR
   const parseImageWithOcr = async (file: File): Promise<void> => {
-    if (!isProUser) {
-      setParseError("OCR feature is only available for Pro users.");
-      return;
-    }
-
     try {
       setParsing(true);
       setParseError(null);
@@ -230,7 +206,7 @@ export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onCl
       const processedFile = await convertHeicToJpeg(file);
 
       // Check if user wants OCR processing
-      if (enableOcr && isProUser) {
+      if (enableOcr) {
         await parseImageWithOcr(processedFile);
       }
 
@@ -412,23 +388,21 @@ export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onCl
               alt="Current flare sheet"
               sx={{ objectFit: 'contain' }}
             />
-              {/* OCR Toggle for Pro Users */}
+              {/* OCR Toggle for All Users */}
        
           </Card>
         )}
-       {isProUser && (
-          <FormControlLabel
-            control={
-              <Switch 
-                checked={enableOcr} 
-                onChange={(e) => setEnableOcr(e.target.checked)}
-                color="primary"
-              />
-            }
-            label="Use Auto Fill to estimate claimed prizes by uploading a new image."
-            sx={{ mb: 2 }}
-          />
-        )}
+        <FormControlLabel
+          control={
+            <Switch 
+              checked={enableOcr} 
+              onChange={(e) => setEnableOcr(e.target.checked)}
+              color="primary"
+            />
+          }
+          label="Use Auto Fill to estimate claimed prizes by uploading a new image."
+          sx={{ mb: 2 }}
+        />
         {/* Image Upload */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center' }}>
           <Button
@@ -472,7 +446,7 @@ export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onCl
           </Button>
           
           {/* Retry OCR button */}
-          {parseError && flareSheetImage && enableOcr && isProUser && (
+          {parseError && flareSheetImage && enableOcr && (
             <Button
               variant="outlined"
               color="secondary"

@@ -133,7 +133,7 @@ export const boxAdvisor = onRequest(
           name: box.name,
           price: box.price_per_ticket,
           ev: Number(box.ev.toFixed(2)),
-          rtp: Number(box.rtp.toFixed(1)),
+          rtp: Number((box.rtp ?? 0).toFixed(1)), // now already percent
           risk: Number(box.risk.toFixed(2)),
           p1: Number(box.p_win_next1.toFixed(3)),
           p5: Number(box.p_win_next5.toFixed(3))

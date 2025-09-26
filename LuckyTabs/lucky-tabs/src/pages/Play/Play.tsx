@@ -1349,10 +1349,12 @@ export const Play: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Floating AI Chat Bot */}
-      <FloatingChatBot 
-        boxes={boxView === 'my' ? myBoxes : groupBoxes}
-      />
+      {/* Floating AI Chat Bot - Pro Users Only */}
+      {userData?.plan === 'pro' && (
+        <FloatingChatBot 
+          boxes={boxView === 'my' ? myBoxes : groupBoxes}
+        />
+      )}
       </Box>
     </Box>
   );

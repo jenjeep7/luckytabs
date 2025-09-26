@@ -176,21 +176,6 @@ export const calculateOneInXChances = (remainingTicketsInput: { [boxId: string]:
 
 // NEW ADVANCED METRICS FUNCTIONS
 
-// Hypergeometric probability: P(at least 1 win in N draws)
-const hypergeometricProbability = (totalTickets: number, winnersRemaining: number, draws: number): number => {
-  if (totalTickets <= 0 || winnersRemaining <= 0 || draws <= 0) return 0;
-  if (winnersRemaining >= totalTickets) return 1;
-  if (draws >= totalTickets) return winnersRemaining > 0 ? 1 : 0;
-  
-  // P(at least 1) = 1 - P(0 wins) = 1 - C(R-K, N) / C(R, N)
-  // For computational stability, we'll use a different approach
-  let probability = 0;
-  for (let wins = 1; wins <= Math.min(draws, winnersRemaining); wins++) {
-    probability += combination(winnersRemaining, wins) * combination(totalTickets - winnersRemaining, draws - wins) / combination(totalTickets, draws);
-  }
-  return Math.min(1, probability);
-};
-
 /** Safe product for hypergeometric without huge combinations:
  *  P(no win in k) = Π_{i=0..k-1} (N-K-i) / (N-i)
  */
@@ -253,19 +238,6 @@ export function prizeSurplusRatio(N: number, K: number, N0: number, K0: number):
   return (K / N) / (K0 / N0);
 }
 
-// Combination function C(n, k) = n! / (k! * (n-k)!)
-const combination = (n: number, k: number): number => {
-  if (k > n || k < 0) return 0;
-  if (k === 0 || k === n) return 1;
-  
-  // Use multiplicative approach to avoid large factorials
-  let result = 1;
-  for (let i = 0; i < k; i++) {
-    result = result * (n - i) / (i + 1);
-  }
-  return result;
-};
-
 // 1. EV per ticket
 export const calculateEVPerTicket = (box: BoxItem, remainingTickets: number): number => {
   const pricePerTicket = Number(box.pricePerTicket) || 0;
@@ -283,7 +255,7 @@ export const calculateRTPRemaining = (box: BoxItem, remainingTickets: number): n
   
   if (remainingTickets <= 0 || pricePerTicket <= 0) return 0;
   
-  return totalRemainingPrizeValue / (pricePerTicket * remainingTickets);
+  return (totalRemainingPrizeValue / (pricePerTicket * remainingTickets)) * 100;
 };
 
 // 3. Cost to clear vs payout left
@@ -324,9 +296,9 @@ export const calculateTopPrizeOdds = (box: BoxItem, remainingTickets: number): {
   const topPrizeTickets = topPrizes.reduce((sum, p) => sum + p.remaining, 0);
 
   return {
-    next1: hypergeometricProbability(remainingTickets, topPrizeTickets, 1),
-    next5: hypergeometricProbability(remainingTickets, topPrizeTickets, Math.min(5, remainingTickets)),
-    next10: hypergeometricProbability(remainingTickets, topPrizeTickets, Math.min(10, remainingTickets))
+    next1: probAtLeastOneWinNextK(remainingTickets, topPrizeTickets, 1),
+    next5: probAtLeastOneWinNextK(remainingTickets, topPrizeTickets, Math.min(5, remainingTickets)),
+    next10: probAtLeastOneWinNextK(remainingTickets, topPrizeTickets, Math.min(10, remainingTickets))
   };
 };
 
@@ -343,9 +315,9 @@ export const calculateProfitTicketOdds = (box: BoxItem, remainingTickets: number
     .reduce((sum, ticket) => sum + (Number(ticket.totalPrizes) - Number(ticket.claimedTotal)), 0);
 
   return {
-    next1: hypergeometricProbability(remainingTickets, profitTickets, 1),
-    next5: hypergeometricProbability(remainingTickets, profitTickets, Math.min(5, remainingTickets)),
-    next10: hypergeometricProbability(remainingTickets, profitTickets, Math.min(10, remainingTickets))
+    next1: probAtLeastOneWinNextK(remainingTickets, profitTickets, 1),
+    next5: probAtLeastOneWinNextK(remainingTickets, profitTickets, Math.min(5, remainingTickets)),
+    next10: probAtLeastOneWinNextK(remainingTickets, profitTickets, Math.min(10, remainingTickets))
   };
 };
 
@@ -504,7 +476,7 @@ export const calculateBigHitOdds = (box: BoxItem, remainingTickets: number): {
 
     const calculateForBudget = (budget: number): number => {
       const k = Math.floor(budget / pricePerTicket);
-      return hypergeometricProbability(remainingTickets, bigTickets, k);
+      return probAtLeastOneWinNextK(remainingTickets, bigTickets, k);
     };
 
     return {
@@ -537,7 +509,7 @@ export const calculateBigHitOdds = (box: BoxItem, remainingTickets: number): {
 
     const calculateForBudget = (budget: number): number => {
       const k = Math.floor(budget / pricePerTicket);
-      return hypergeometricProbability(remainingTickets, top2Tickets, k);
+      return probAtLeastOneWinNextK(remainingTickets, top2Tickets, k);
     };
 
     return {

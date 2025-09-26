@@ -857,7 +857,7 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
                 )}
                 
                 {/* Advanced Metrics Section in Accordion (Pro users only) */}
-                {remainingTicketsInput[box.id] && firebaseUser && userProfile?.plan === 'pro' && (
+                {remainingTicketsInput[box.id] && firebaseUser &&  (
                   <Accordion 
                     sx={{ mt: 2, maxWidth: 800, mx: 'auto' }} 
                     defaultExpanded={false}
