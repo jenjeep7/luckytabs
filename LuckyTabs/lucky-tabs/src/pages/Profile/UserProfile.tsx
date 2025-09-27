@@ -94,8 +94,10 @@ export const UserProfile: React.FC = () => {
         });
       } else {
         // Create new user profile if it doesn't exist
-        const displayName = user.displayName || 'Anonymous User';
-        const displayNameParts = typeof user.displayName === 'string' ? user.displayName.split(' ') : ['Anonymous', 'User'];
+        const rawDisplayName = user.displayName || user.email?.split('@')[0] || 'Anonymous User';
+        // Limit display name to 12 characters to match username requirements
+        const displayName = typeof rawDisplayName === 'string' ? rawDisplayName.substring(0, 12) : 'Anonymous User';
+        const displayNameParts = typeof displayName === 'string' ? displayName.split(' ') : ['Anonymous', 'User'];
         await userService.createUserProfile(
           user.uid,
           user.email || '',
@@ -370,27 +372,33 @@ export const UserProfile: React.FC = () => {
           <Grid size={{ xs: 12, md: 8 }}>
             <Card>
               <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, width: '100%' }}>
                   <Avatar
                     src={userData.avatar}
-                    sx={{ width: 80, height: 80, mr: 3 }}
+                    sx={{ width: 80, height: 80, mr: 3, flexShrink: 0 }}
                   >
                   </Avatar>
-                  <Box sx={{ flexGrow: 1 }}>
-                    <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                  <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                    <Typography 
+                      variant="h6" 
+                      sx={{ 
+                        fontWeight: 600, 
+                        wordBreak: 'break-word',
+                        overflowWrap: 'break-word',
+                        hyphens: 'auto',
+                        fontSize: { xs: '1.1rem', sm: '1.25rem' }
+                      }}
+                    >
                       {userData.displayName}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {userData.email}
                     </Typography>
                   </Box>
                   {/* Show IconButton on mobile, outlined button on desktop */}
-                  <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+                  <Box sx={{ display: { xs: 'flex', md: 'none' }, flexShrink: 0, ml: 1 }}>
                     <IconButton color="primary" onClick={handleEditClick} aria-label="Edit Profile">
                       <Edit />
                     </IconButton>
                   </Box>
-                  <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+                  <Box sx={{ display: { xs: 'none', md: 'flex' }, flexShrink: 0, ml: 1 }}>
                     <Button
                       variant="outlined"
                       startIcon={<Edit />}
@@ -401,6 +409,13 @@ export const UserProfile: React.FC = () => {
                     </Button>
                   </Box>
                 </Box>
+
+                {/* Email address moved below */}
+                {/* <Box sx={{ mb: 2, pl: { xs: 0, sm: 11.5 } }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-word' }}>
+                    {userData.email}
+                  </Typography>
+                </Box> */}
 
                 <Divider sx={{ my: 2 }} />
 
