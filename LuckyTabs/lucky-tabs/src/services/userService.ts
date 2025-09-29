@@ -353,6 +353,64 @@ class UserService {
       throw error;
     }
   }
+
+  // Check if username is available (unique)
+  async isUsernameAvailable(username: string): Promise<boolean> {
+    try {
+      if (!username.trim()) return false;
+      
+      const usersRef = collection(db, 'users');
+      const snapshot = await getDocs(usersRef);
+      
+      const usernameLower = username.toLowerCase().trim();
+      
+      // Check if any user already has this username (case-insensitive)
+      const existingUser = snapshot.docs.find(doc => {
+        const data = doc.data();
+        const existingUsername = (data.displayName as string || '').toLowerCase();
+        const existingUsernameField = (data.username as string || '').toLowerCase();
+        return existingUsername === usernameLower || existingUsernameField === usernameLower;
+      });
+      
+      return !existingUser;
+    } catch (error) {
+      console.error('Error checking username availability:', error);
+      throw error;
+    }
+  }
+
+  // Validate username format
+  validateUsernameFormat(username: string): { valid: boolean; message?: string } {
+    if (!username.trim()) {
+      return { valid: false, message: 'Username is required' };
+    }
+    
+    if (username.length < 3) {
+      return { valid: false, message: 'Username must be at least 3 characters' };
+    }
+    
+    if (username.length > 12) {
+      return { valid: false, message: 'Username must be 12 characters or less' };
+    }
+    
+    // Check if it looks like an email
+    if (username.includes('@')) {
+      return { valid: false, message: 'Username cannot be an email address' };
+    }
+    
+    // Only allow letters, numbers, underscores, and hyphens
+    const validCharsRegex = /^[a-zA-Z0-9_-]+$/;
+    if (!validCharsRegex.test(username)) {
+      return { valid: false, message: 'Username can only contain letters, numbers, underscores, and hyphens' };
+    }
+    
+    // Don't allow usernames that start with numbers or special characters
+    if (!/^[a-zA-Z]/.test(username)) {
+      return { valid: false, message: 'Username must start with a letter' };
+    }
+    
+    return { valid: true };
+  }
 }
 
 export const userService = new UserService();

@@ -52,10 +52,20 @@ const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
           fullWidth
           label="Display Name"
           value={editForm.displayName}
-          onChange={(e) => setEditForm((prev) => ({ ...prev, displayName: e.target.value }))}
+          onChange={(e) => {
+            const value = e.target.value;
+            if (value.length <= 12) {
+              setEditForm((prev) => ({ ...prev, displayName: value }));
+            }
+          }}
           required
           error={!editForm.displayName.trim()}
-          helperText={!editForm.displayName.trim() ? 'Display name is required' : ''}
+          helperText={
+            !editForm.displayName.trim() 
+              ? 'Display name is required' 
+              : `${editForm.displayName.length}/12 characters`
+          }
+          slotProps={{ htmlInput: { maxLength: 12 } }}
         />
       </Box>
     </DialogContent>
