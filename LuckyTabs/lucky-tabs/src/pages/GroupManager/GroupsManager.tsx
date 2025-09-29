@@ -50,6 +50,15 @@ export const GroupsManager: React.FC<GroupsManagerProps> = ({ currentUserId, cur
     }
   };
 
+  const handleLeaveGroup = async (groupId: string) => {
+    try {
+      await groupService.removeMember(groupId, currentUserId);
+      await loadGroups(); // Refresh the list
+    } catch (error) {
+      alert('Failed to leave group. Please try again.');
+    }
+  };
+
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -70,6 +79,7 @@ export const GroupsManager: React.FC<GroupsManagerProps> = ({ currentUserId, cur
         currentUserId={currentUserId}
         onGroupClick={() => undefined} // Not needed anymore since cards handle everything
         onDeleteGroup={(groupId) => { void handleDeleteGroup(groupId); }}
+        onLeaveGroup={(groupId) => { void handleLeaveGroup(groupId); }}
       />
 
       {/* Create Group Dialog */}
