@@ -11,10 +11,17 @@ import {
   Chip,
   Divider,
   TextField,
-  Autocomplete
+  Autocomplete,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle
 } from '@mui/material';
 import {
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  ExitToApp as LeaveIcon
 } from '@mui/icons-material';
 import { GroupData, GroupMember, groupService } from '../../services/groupService';
 
@@ -24,18 +31,21 @@ interface GroupsListProps {
   currentUserId: string;
   onGroupClick: (group: GroupData) => void;
   onDeleteGroup: (groupId: string) => void;
+  onLeaveGroup: (groupId: string) => void;
 }
 
 interface GroupCardProps {
   group: GroupData;
   currentUserId: string;
   onDeleteGroup: (groupId: string) => void;
+  onLeaveGroup: (groupId: string) => void;
 }
 
 const GroupCard: React.FC<GroupCardProps> = ({
   group,
   currentUserId,
-  onDeleteGroup
+  onDeleteGroup,
+  onLeaveGroup
 }) => {
   const [members, setMembers] = useState<GroupMember[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(true);
@@ -43,8 +53,10 @@ const GroupCard: React.FC<GroupCardProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
   const [addingMember, setAddingMember] = useState(false);
+  const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
 
   const isCreator = group.createdBy === currentUserId;
+  const isMemberButNotCreator = !isCreator && group.members.includes(currentUserId);
 
   // Load group members
   useEffect(() => {
@@ -153,17 +165,37 @@ const GroupCard: React.FC<GroupCardProps> = ({
               {isCreator && (
                 <Chip size="small" label="You created this" color="primary" variant="outlined" />
               )}
+              {isMemberButNotCreator && (
+                <Chip size="small" label="You're a member" color="secondary" variant="outlined" />
+              )}
             </Box>
           </Box>
-          {isCreator && (
-            <IconButton
-              color="error"
-              onClick={() => onDeleteGroup(group.id)}
-              size="small"
-            >
-              <DeleteIcon />
-            </IconButton>
-          )}
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            {isMemberButNotCreator && (
+              <Button
+                variant="outlined"
+                color="warning"
+                size="small"
+                startIcon={<LeaveIcon />}
+                onClick={() => setLeaveDialogOpen(true)}
+                sx={{ 
+                  fontSize: '0.75rem',
+                  textTransform: 'none'
+                }}
+              >
+                Leave
+              </Button>
+            )}
+            {isCreator && (
+              <IconButton
+                color="error"
+                onClick={() => onDeleteGroup(group.id)}
+                size="small"
+              >
+                <DeleteIcon />
+              </IconButton>
+            )}
+          </Box>
         </Box>
 
         <Divider sx={{ my: 2 }} />
@@ -268,6 +300,34 @@ const GroupCard: React.FC<GroupCardProps> = ({
             />
           </>
         )}
+
+        {/* Leave Group Confirmation Dialog */}
+        <Dialog
+          open={leaveDialogOpen}
+          onClose={() => setLeaveDialogOpen(false)}
+        >
+          <DialogTitle>Leave Group</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Are you sure you want to leave &quot;{group.name}&quot;? You&apos;ll need to be re-invited by the group creator to join again.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setLeaveDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => {
+                onLeaveGroup(group.id);
+                setLeaveDialogOpen(false);
+              }}
+              color="warning"
+              variant="contained"
+            >
+              Leave Group
+            </Button>
+          </DialogActions>
+        </Dialog>
       </CardContent>
     </Card>
   );
@@ -278,7 +338,8 @@ export const GroupsList: React.FC<GroupsListProps> = ({
   loading,
   currentUserId,
   onGroupClick: _onGroupClick,
-  onDeleteGroup
+  onDeleteGroup,
+  onLeaveGroup
 }) => {
   if (loading) {
     return (
@@ -304,6 +365,7 @@ export const GroupsList: React.FC<GroupsListProps> = ({
           group={group}
           currentUserId={currentUserId}
           onDeleteGroup={onDeleteGroup}
+          onLeaveGroup={onLeaveGroup}
         />
       ))}
     </Box>
