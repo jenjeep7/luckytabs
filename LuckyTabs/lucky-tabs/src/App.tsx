@@ -2,7 +2,6 @@
 import { useMemo } from 'react';
 // import { BrowserRouter } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline, useMediaQuery } from '@mui/material';
-import { User } from 'firebase/auth';
 import { getDesignTokens } from './theme';
 import AppRoutes from './AppRoutes';
 import { UserProfileProvider } from './context/UserProfileContext';

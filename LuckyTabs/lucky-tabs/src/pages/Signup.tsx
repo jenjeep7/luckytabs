@@ -129,9 +129,13 @@ const Signup: React.FC = () => {
         plan: 'free',
       });
 
-      // Send email verification
+      // Send email verification with custom domain branding
       if (confirmedUser && confirmedUser.email) {
-        await sendEmailVerification(confirmedUser);
+        const actionCodeSettings = {
+          url: 'https://tabsywins.com/login', // Custom domain for better email deliverability
+          handleCodeInApp: false, // Handle verification via email link, not in-app
+        };
+        await sendEmailVerification(confirmedUser, actionCodeSettings);
         setVerificationSent(true);
       }
 
@@ -250,7 +254,7 @@ const Signup: React.FC = () => {
                   message: 'Password must contain at least one lowercase letter and one uppercase letter or number'
                 }
               })} 
-              required 
+              required
               size="small"
               error={!!errors.password}
               helperText={errors.password?.message || 'At least 6 characters with mixed case'}

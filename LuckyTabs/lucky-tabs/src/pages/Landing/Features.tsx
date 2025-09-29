@@ -6,8 +6,7 @@ import {
   Grid,
   Typography,
   Paper,
-  useTheme,
-  Link as MuiLink
+  useTheme
 } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 

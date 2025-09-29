@@ -80,7 +80,9 @@ const EmailVerificationGuard: React.FC<{ children: React.ReactNode }> = ({ child
           </Typography>
           <Typography variant="body1" sx={{ mb: 3 }}>
             {`Please check your inbox and click the verification link to activate your account.`}<br />
-            {`You cannot use Tabsy until your email is verified.`}
+          </Typography>
+          <Typography variant="body1" sx={{ mb: 3 }}>
+           <strong>{`* If you don't see the email, please check your spam or junk folder.`}</strong>
           </Typography>
           <Button
             variant="contained"
@@ -109,7 +111,11 @@ const EmailVerificationGuard: React.FC<{ children: React.ReactNode }> = ({ child
             onClick={() => {
               void (async () => {
                 if (isFirebaseUser(user)) {
-                  await sendEmailVerification(user);
+                  const actionCodeSettings = {
+                    url: 'https://tabsywins.com/login', // Custom domain for better email deliverability
+                    handleCodeInApp: false, // Handle verification via email link, not in-app
+                  };
+                  await sendEmailVerification(user, actionCodeSettings);
                   alert(`Verification email sent! Please check your inbox.`);
                 }
               })();
@@ -129,7 +135,7 @@ const EmailVerificationGuard: React.FC<{ children: React.ReactNode }> = ({ child
 
 export default function AppRoutes() {
   // Always call the hook (React rule)
-  const [user, loading, error] = useAuthStateCompat();
+  const [user, loading] = useAuthStateCompat();
 
   // Show loading while auth state is being determined
   if (loading) {
