@@ -13,14 +13,18 @@ import {
   Autocomplete,
   Chip,
 } from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { 
   AttachMoney as MoneyIcon, 
   Place as PlaceIcon,
-  TrendingUp as WinIcon,
-  TrendingDown as LossIcon
+  CalendarToday as CalendarIcon
 } from '@mui/icons-material';
-import { collection, addDoc, serverTimestamp, getDocs } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '../../firebase';
+import dayjs, { Dayjs } from 'dayjs';
+import WinLossToggle, { WinLossValue } from '../../components/WinLossToggle';
 
 interface Location {
   id: string;
@@ -53,9 +57,10 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
   onTransactionAdded,
   userId,
 }) => {
-  const [resultType, setResultType] = useState<'win' | 'loss'>('win');
+  const [resultType, setResultType] = useState<WinLossValue>('win');
   const [amount, setAmount] = useState<string>('');
   const [description, setDescription] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<Dayjs | null>(dayjs());
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -88,12 +93,17 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
       return;
     }
 
+    if (!selectedDate) {
+      setError('Please select a date');
+      return;
+    }
+
     setIsLoading(true);
     setError('');
 
     try {
-      const now = new Date();
-      const weekStart = getStartOfWeek(now);
+      const transactionDate = selectedDate.toDate();
+      const weekStart = getStartOfWeek(transactionDate);
       const activityDescription = description.trim() || 'Gambling activity';
       
       // Calculate the net result (negative for loss, positive for win)
@@ -108,7 +118,8 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
         description: activityDescription,
         location: selectedLocation?.name || '',
         locationId: selectedLocation?.id || '',
-        createdAt: serverTimestamp(),
+        createdAt: serverTimestamp(), // When the record was created in the system
+        transactionDate: Timestamp.fromDate(transactionDate), // Store as Firestore Timestamp
         weekStart: weekStart.toISOString(),
       });
 
@@ -125,6 +136,7 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
   const handleClose = () => {
     setAmount('');
     setDescription('');
+    setSelectedDate(dayjs());
     setSelectedLocation(null);
     setResultType('win');
     setError('');
@@ -153,79 +165,45 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
             Did you win or lose money from your gambling activity? Enter the total amount.
           </Typography>
+  {/* Date Field */}
+          <Box sx={{ mb: 3 }}>
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <DatePicker
+                label="Date of Activity"
+                value={selectedDate}
+                onChange={(newValue) => setSelectedDate(newValue)}
+                maxDate={dayjs()}
+                slots={{
+                  textField: TextField,
+                }}
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    required: true,
+                    helperText: "When did this gambling activity occur?",
+                    InputProps: {
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <CalendarIcon />
+                        </InputAdornment>
+                      ),
+                    },
+                  },
+                }}
+              />
+            </LocalizationProvider>
+          </Box>
 
           {/* Win/Loss Toggle */}
-          <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center' }}>
-            <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
-              <Button
-                onClick={() => setResultType('win')}
-                startIcon={<WinIcon />}
-                size="small"
-                disableRipple
-                sx={{
-                  flex: 1,
-                  color: '#00C853 !important',
-                  backgroundColor: resultType === 'win' ? 'rgba(0, 200, 83, 0.15) !important' : 'transparent !important',
-                  border: resultType === 'win' ? '3px solid #00C853 !important' : '2px solid #00C853 !important',
-                  fontWeight: resultType === 'win' ? 800 : 600,
-                  textTransform: 'none',
-                  boxShadow: resultType === 'win' ? '0 0 0 1px rgba(0, 200, 83, 0.3)' : 'none',
-                  '&:hover': {
-                    backgroundColor: 'rgba(0, 200, 83, 0.08) !important',
-                    border: '2px solid #00C853 !important',
-                  },
-                  '&:active': {
-                    backgroundColor: 'rgba(0, 200, 83, 0.12) !important',
-                  },
-                  '&:focus': {
-                    backgroundColor: resultType === 'win' ? 'rgba(0, 200, 83, 0.15) !important' : 'transparent !important',
-                  },
-                  // Override all possible Material-UI states
-                  '&.Mui-focusVisible': {
-                    backgroundColor: resultType === 'win' ? 'rgba(0, 200, 83, 0.15) !important' : 'transparent !important',
-                  },
-                  '&.MuiButton-root': {
-                    backgroundColor: resultType === 'win' ? 'rgba(0, 200, 83, 0.15) !important' : 'transparent !important',
-                  }
-                }}
-              >
-                I Won Money
-              </Button>
-              <Button
-                onClick={() => setResultType('loss')}
-                startIcon={<LossIcon />}
-                size="small"
-                disableRipple
-                sx={{
-                  flex: 1,
-                  color: '#F44336 !important',
-                  backgroundColor: resultType === 'loss' ? 'rgba(244, 67, 54, 0.15) !important' : 'transparent !important',
-                  border: resultType === 'loss' ? '3px solid #F44336 !important' : '2px solid #F44336 !important',
-                  fontWeight: resultType === 'loss' ? 800 : 600,
-                  textTransform: 'none',
-                  boxShadow: resultType === 'loss' ? '0 0 0 1px rgba(244, 67, 54, 0.3)' : 'none',
-                  '&:hover': {
-                    backgroundColor: 'rgba(244, 67, 54, 0.08) !important',
-                    border: '2px solid #F44336 !important',
-                  },
-                  '&:active': {
-                    backgroundColor: 'rgba(244, 67, 54, 0.12) !important',
-                  },
-                  '&:focus': {
-                    backgroundColor: resultType === 'loss' ? 'rgba(244, 67, 54, 0.15) !important' : 'transparent !important',
-                  },
-                  // Override all possible Material-UI states
-                  '&.Mui-focusVisible': {
-                    backgroundColor: resultType === 'loss' ? 'rgba(244, 67, 54, 0.15) !important' : 'transparent !important',
-                  },
-                  '&.MuiButton-root': {
-                    backgroundColor: resultType === 'loss' ? 'rgba(244, 67, 54, 0.15) !important' : 'transparent !important',
-                  }
-                }}
-              >
-                I Lost Money
-              </Button>
-            </Box>
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              What happened?
+            </Typography>
+            <WinLossToggle 
+              value={resultType}
+              onChange={setResultType}
+              fullWidth
+            />
           </Box>
 
           {/* Amount Field */}
@@ -268,6 +246,7 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
             />
           </Box>
 
+        
           {/* Result Preview */}
           {amount && (
             <Box sx={{ 
@@ -297,25 +276,6 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
               </Typography>
             </Box>
           )}
-
-          {/* Quick Amount Buttons */}
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              Quick amounts:
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-              {[20, 50, 100, 200].map((quickAmount) => (
-                <Chip
-                  key={quickAmount}
-                  label={`$${quickAmount}`}
-                  onClick={() => setAmount(quickAmount.toString())}
-                  clickable
-                  variant="outlined"
-                  size="small"
-                />
-              ))}
-            </Box>
-          </Box>
 
           {/* Description Field */}
           <Box sx={{ mb: 3 }}>
@@ -392,7 +352,7 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
         <Button
           onClick={() => { void handleSave(); }}
           variant="contained"
-          disabled={isLoading || !amount}
+          disabled={isLoading || !amount || !selectedDate}
           sx={{ 
             backgroundColor: resultType === 'win' ? 'success.main' : 'error.main',
             color: 'white',

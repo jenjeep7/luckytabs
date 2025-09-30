@@ -48,10 +48,11 @@ export const HistoricalData: React.FC<HistoricalDataProps> = ({
     setSelectedWeek(null);
   };
 
-  const formatTransactionDate = (createdAt: Timestamp | null) => {
-    if (!createdAt) return 'Unknown date';
-    const date = createdAt.toDate();
-    return date.toLocaleDateString('en-US', {
+  const formatTransactionDate = (transaction: { transactionDate?: Timestamp | null; createdAt: Timestamp | null }) => {
+    const effectiveDate = transaction.transactionDate?.toDate() || 
+      (transaction.createdAt ? transaction.createdAt.toDate() : null);
+    if (!effectiveDate) return 'Unknown date';
+    return effectiveDate.toLocaleDateString('en-US', {
       weekday: 'short',
       month: 'short',
       day: 'numeric',
@@ -229,8 +230,10 @@ export const HistoricalData: React.FC<HistoricalDataProps> = ({
             <List>
               {selectedWeek.transactions
                 .sort((a, b) => {
-                  if (!a.createdAt || !b.createdAt) return 0;
-                  return b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime();
+                  const dateA = a.transactionDate?.toDate() || (a.createdAt ? a.createdAt.toDate() : null);
+                  const dateB = b.transactionDate?.toDate() || (b.createdAt ? b.createdAt.toDate() : null);
+                  if (!dateA || !dateB) return 0;
+                  return dateB.getTime() - dateA.getTime();
                 })
                 .map((transaction, index) => (
                   <React.Fragment key={transaction.id}>
@@ -278,7 +281,7 @@ export const HistoricalData: React.FC<HistoricalDataProps> = ({
                         secondary={
                           <span style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
                             <Typography variant="body2" color="text.secondary" component="span">
-                              {formatTransactionDate(transaction.createdAt)}
+                              {formatTransactionDate(transaction)}
                             </Typography>
                             {transaction.location && (
                               <Typography variant="body2" color="text.secondary" component="span">

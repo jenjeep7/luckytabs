@@ -27,7 +27,7 @@ interface GroupedTransaction {
   netResult: number;
   description?: string;
   location?: string;
-  createdAt: Date;
+  effectiveDate: Date; // When the gambling activity actually occurred
   isProfit: boolean;
   isEven: boolean;
 }
@@ -57,17 +57,40 @@ export const WeeklyOverview: React.FC<WeeklyOverviewProps> = ({
     const grouped: GroupedTransaction[] = [];
     const processed = new Set<string>();
 
-    const validTransactions = transactions.filter(t => t.createdAt);
+    const validTransactions = transactions.filter(t => {
+      try {
+        const effectiveDate = t.transactionDate?.toDate() || 
+          (t.createdAt ? t.createdAt.toDate() : null);
+        return effectiveDate && !isNaN(effectiveDate.getTime());
+      } catch (error) {
+        console.warn('Invalid transaction date:', t, error);
+        return false;
+      }
+    });
     
     for (const transaction of validTransactions) {
-      if (processed.has(transaction.id) || !transaction.createdAt) continue;
+      if (processed.has(transaction.id)) continue;
+      
+      // Use transactionDate if available, otherwise fall back to createdAt
+      const effectiveDate = transaction.transactionDate?.toDate() || 
+        (transaction.createdAt ? transaction.createdAt.toDate() : null);
+      if (!effectiveDate || isNaN(effectiveDate.getTime())) continue;
 
-      const transactionTime = transaction.createdAt.toDate();
+      const transactionTime = effectiveDate;
       const relatedTransactions = validTransactions.filter(t => {
-        if (!t.createdAt || processed.has(t.id)) return false;
+        if (processed.has(t.id)) return false;
         
-        const timeDiff = Math.abs(t.createdAt.toDate().getTime() - transactionTime.getTime());
-        return timeDiff <= 60000; // Within 1 minute
+        try {
+          const otherEffectiveDate = t.transactionDate?.toDate() || 
+            (t.createdAt ? t.createdAt.toDate() : null);
+          if (!otherEffectiveDate || isNaN(otherEffectiveDate.getTime())) return false;
+          
+          const timeDiff = Math.abs(otherEffectiveDate.getTime() - transactionTime.getTime());
+          return timeDiff <= 60000; // Within 1 minute
+        } catch (error) {
+          console.warn('Error comparing transaction dates:', t, error);
+          return false;
+        }
       });
 
       // Mark all related transactions as processed
@@ -119,13 +142,13 @@ export const WeeklyOverview: React.FC<WeeklyOverviewProps> = ({
         netResult,
         description,
         location,
-        createdAt: transactionTime,
+        effectiveDate: transactionTime, // When the gambling activity actually occurred
         isProfit: netResult > 0,
         isEven: netResult === 0,
       });
     }
 
-    return grouped.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return grouped.sort((a, b) => b.effectiveDate.getTime() - a.effectiveDate.getTime());
   };
 
   const groupedTransactions = groupTransactions(weeklyData.transactions);
@@ -246,7 +269,7 @@ export const WeeklyOverview: React.FC<WeeklyOverviewProps> = ({
                         </Box>
                         
                         <Typography variant="caption" color="text.secondary" noWrap>
-                          {formatDate(transaction.createdAt)} {formatTime(transaction.createdAt)}
+                          {formatDate(transaction.effectiveDate)} {formatTime(transaction.effectiveDate)}
                           {transaction.location && ` • ${transaction.location}`}
                         </Typography>
                       </Box>
