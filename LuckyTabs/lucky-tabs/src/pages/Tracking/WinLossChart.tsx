@@ -14,6 +14,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  ReferenceLine,
 } from 'recharts';
 import { HistoricalWeek } from './useTrackingData';
 import { formatCurrency } from '../../utils/formatters';
@@ -29,115 +30,113 @@ interface ChartDataPoint {
   totalSpent: number;
   totalWon: number;
   weekStart: Date;
+  isCross?: boolean;
 }
+
+// Add a shaped item the chart will consume
+type ChartRow = ChartDataPoint & {
+  // master y
+  y: number;
+  // split series
+  pos?: number;  // >= 0 or crossing
+  neg?: number;  // <= 0 or crossing
+};
 
 export const WinLossChart: React.FC<WinLossChartProps> = ({ historicalData }) => {
   const theme = useTheme();
 
-  function formatWeekLabel(date: Date): string {
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    });
-  }
+  const formatWeekLabel = (date: Date) =>
+    date && !isNaN(date.getTime())
+      ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      : 'Invalid Date';
 
-  // Prepare chart data - show all data from current year starting with first entry
-  const chartData: ChartDataPoint[] = (() => {
-    if (historicalData.length === 0) return [];
-    
+  // 1) Build base cumulative series (oldest -> newest) for current year
+  const baseData = React.useMemo<ChartDataPoint[]>(() => {
+    if (!historicalData?.length) return [];
     const currentYear = new Date().getFullYear();
-    
-    // Filter to current year data and sort oldest to newest
-    const currentYearData = [...historicalData]
-      .filter(week => week.weekStart.getFullYear() === currentYear)
-      .reverse(); // oldest to newest
-    
-    if (currentYearData.length === 0) return [];
-    
-    // Calculate cumulative total from the first entry of the year
-    let runningTotal = 0;
-    
-    return currentYearData.map((week) => {
-      runningTotal += week.netResult;
+
+    const rows = [...historicalData]
+      .filter(w => w.weekStart && !isNaN(w.weekStart.getTime()) && w.weekStart.getFullYear() === currentYear)
+      .reverse(); // oldest first
+
+    if (!rows.length) return [];
+
+    let running = 0;
+    return rows.map(w => {
+      running += w.netResult;
       return {
-        weekLabel: formatWeekLabel(week.weekStart),
-        netResult: week.netResult,
-        cumulativeTotal: runningTotal,
-        totalSpent: week.totalSpent,
-        totalWon: week.totalWon,
-        weekStart: week.weekStart,
+        weekLabel: formatWeekLabel(w.weekStart),
+        netResult: w.netResult,
+        cumulativeTotal: running,
+        totalSpent: w.totalSpent,
+        totalWon: w.totalWon,
+        weekStart: w.weekStart,
       };
     });
-  })();
+  }, [historicalData]);
 
-  // Compute gradient split for green above zero, red below zero
-  const yValues = chartData.map(d => d.cumulativeTotal);
-  const minY = Math.min(0, ...yValues);
-  const maxY = Math.max(0, ...yValues);
-  
-  // Where does 0 sit between min and max? (0 = top, 1 = bottom of gradient)
-  const zeroOffset = maxY === minY ? 0.5 : (maxY - 0) / (maxY - minY);
-  const clamp = (n: number) => Math.max(0, Math.min(1, n));
-  // Small zone around zero to blend (tweak for sharper/softer transition)
-  const blend = 0.015;
-  const stopA = clamp(zeroOffset - blend);
-  const stopB = clamp(zeroOffset + blend);
-
-  // Custom tooltip component
-  const CustomTooltip = ({ active, payload, label }: {
-    active?: boolean;
-    payload?: Array<{
-      payload: ChartDataPoint;
-    }>;
-    label?: string;
-  }) => {
-    if (active && payload && payload.length > 0) {
-      const data = payload[0].payload;
-      return (
-        <Box
-          sx={{
-            backgroundColor: 'background.paper',
-            border: 1,
-            borderColor: 'divider',
-            p: 2,
-            boxShadow: 2,
-          }}
-        >
-          <Typography variant="subtitle2" sx={{ mb: 1 }}>
-            Week of {label}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            This Week: {data.netResult >= 0 ? '+' : ''}{formatCurrency(Math.abs(data.netResult))}
-          </Typography>
-          <Typography 
-            variant="body2" 
-            sx={{ 
-              fontWeight: 'bold',
-              color: data.cumulativeTotal >= 0 ? 'success.main' : 'error.main',
-              mb: 1
-            }}
-          >
-            Total: {data.cumulativeTotal >= 0 ? '+' : ''}{formatCurrency(Math.abs(data.cumulativeTotal))}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Spent: {formatCurrency(data.totalSpent)}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Won: {formatCurrency(data.totalWon)}
-          </Typography>
-        </Box>
-      );
+  // 2) Insert crossing points where sign changes, then split into pos/neg
+  const chartData = React.useMemo<ChartRow[]>(() => {
+    if (baseData.length <= 1) {
+      return baseData.map(d => ({
+        ...d,
+        y: d.cumulativeTotal,
+        pos: d.cumulativeTotal >= 0 ? d.cumulativeTotal : undefined,
+        neg: d.cumulativeTotal <= 0 ? d.cumulativeTotal : undefined,
+      }));
     }
-    return null;
-  };
 
-  if (chartData.length === 0) {
+    const out: ChartDataPoint[] = [baseData[0]];
+    for (let i = 1; i < baseData.length; i++) {
+      const prev = baseData[i - 1];
+      const curr = baseData[i];
+      const p = prev.cumulativeTotal;
+      const c = curr.cumulativeTotal;
+
+      // sign switch and neither exactly zero
+      if (p !== 0 && c !== 0 && Math.sign(p) !== Math.sign(c)) {
+        const t = -p / (c - p); // linear interpolation fraction
+        const t0 = prev.weekStart.getTime();
+        const t1 = curr.weekStart.getTime();
+        const crossDate = new Date(t0 + t * (t1 - t0));
+
+        out.push({
+          weekLabel: `${formatWeekLabel(crossDate)} ✕`,
+          netResult: 0,
+          cumulativeTotal: 0,
+          totalSpent: prev.totalSpent,
+          totalWon: prev.totalWon,
+          weekStart: crossDate,
+          isCross: true,
+        });
+      }
+      out.push(curr);
+    }
+
+    // Now split to pos/neg, including the crossing in BOTH
+    return out.map(d => {
+      const y = d.cumulativeTotal;
+      const isCross = d.isCross === true;
+      const row: ChartRow = {
+        ...d,
+        y,
+        pos: (y > 0 || isCross) ? y : undefined,
+        neg: (y < 0 || isCross) ? y : undefined,
+      };
+      // If y === 0 and not a synthetic cross (i.e., a real zero data point), include in both as well
+      if (y === 0 && !isCross) {
+        row.pos = 0;
+        row.neg = 0;
+      }
+      return row;
+    });
+  }, [baseData]);
+
+  if (!chartData.length) {
     return (
       <Card>
         <CardContent sx={{ textAlign: 'center', py: 4 }}>
-          <Typography color="text.secondary">
-            No data available for chart
-          </Typography>
+          <Typography color="text.secondary">No data available for chart</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
             Start tracking your gambling activity to see trends over time
           </Typography>
@@ -146,127 +145,99 @@ export const WinLossChart: React.FC<WinLossChartProps> = ({ historicalData }) =>
     );
   }
 
+  // Domain that always includes 0
+  const ys = chartData.map(d => d.y);
+  const minY = Math.min(0, ...ys);
+  const maxY = Math.max(0, ...ys);
+
+  // Tooltip uses the master y/fields, not pos/neg
+  const CustomTooltip = ({ active, payload, label }: {
+    active?: boolean;
+    payload?: Array<{ payload: ChartRow }>;
+    label?: string;
+  }) => {
+    if (active && payload && payload[0]) {
+      const d = payload[0].payload;
+      return (
+        <Box sx={{ backgroundColor: 'background.paper', border: 1, borderColor: 'divider', p: 2, boxShadow: 2 }}>
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>Week of {label}</Typography>
+          <Typography variant="body2" color="text.secondary">
+            This Week: {d.netResult >= 0 ? '+' : ''}{formatCurrency(Math.abs(d.netResult || 0))}
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{ fontWeight: 'bold', color: d.y >= 0 ? 'success.main' : 'error.main', mb: 1 }}
+          >
+            Total: {d.y >= 0 ? '+' : ''}{formatCurrency(Math.abs(d.y))}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">Spent: {formatCurrency(d.totalSpent || 0)}</Typography>
+          <Typography variant="body2" color="text.secondary">Won: {formatCurrency(d.totalWon || 0)}</Typography>
+        </Box>
+      );
+    }
+    return null;
+  };
+
   return (
-    <Card sx={{ borderRadius: 0 }}  >
+    <Card sx={{ borderRadius: 0 }}>
       <CardContent>
         <Typography variant="body1" gutterBottom>
           {new Date().getFullYear()} Cumulative Win/Loss
         </Typography>
-        <Box sx={{ 
-          width: '100%', 
-          height: { xs: 180, sm: 220 },
-          '& .recharts-tooltip-wrapper': {
-            zIndex: 1000
-          }
-        }}>
+        <Box sx={{ width: '100%', height: { xs: 180, sm: 220 }, '& .recharts-tooltip-wrapper': { zIndex: 1000 } }}>
           <ResponsiveContainer>
-            <LineChart 
-              data={chartData} 
-              margin={{ 
-                top: 20, 
-                right: 30, 
-                left: 20, 
-                bottom: 5 
-              }}
-            >
-              <defs>
-                <linearGradient id="posNegGradient" x1="0" y1="0" x2="0" y2="1">
-                  {/* Green from top down to just above zero */}
-                  <stop offset="0%" stopColor={theme.palette.success.main} />
-                  <stop offset={`${stopA * 100}%`} stopColor={theme.palette.success.main} />
-                  {/* Blend zone around zero */}
-                  <stop offset={`${stopB * 100}%`} stopColor={theme.palette.error.main} />
-                  {/* Red from just below zero to bottom */}
-                  <stop offset="100%" stopColor={theme.palette.error.main} />
-                </linearGradient>
-              </defs>
-
-              <CartesianGrid 
-                strokeDasharray="3 3" 
-                stroke={theme.palette.divider}
-                opacity={0.3}
-              />
-              <XAxis 
-                dataKey="weekLabel"
+            <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} opacity={0.3} />
+              <XAxis dataKey="weekLabel" stroke={theme.palette.text.secondary} fontSize={12} />
+              <YAxis
                 stroke={theme.palette.text.secondary}
                 fontSize={12}
-              />
-              <YAxis 
-                stroke={theme.palette.text.secondary}
-                fontSize={12}
+                // if you want absolute values on the axis, keep this; otherwise use value => `$${value}`
                 tickFormatter={(value: number) => `$${Math.abs(value)}`}
-                // keep the domain consistent with gradient math
                 domain={[minY, maxY]}
               />
               <Tooltip content={<CustomTooltip />} />
-              
-              {/* Zero line for reference */}
+              <ReferenceLine y={0} stroke={theme.palette.divider} strokeDasharray="5 5" strokeWidth={2} />
+
+              {/* faint context line */}
               <Line
                 type="monotone"
-                dataKey={() => 0}
-                stroke={theme.palette.divider}
-                strokeWidth={2}
-                strokeDasharray="5 5"
+                dataKey="y"
+                stroke={theme.palette.text.disabled}
+                strokeWidth={1}
                 dot={false}
                 activeDot={false}
+                opacity={0.3}
                 isAnimationActive={false}
               />
-              
-              {/* Gradient-colored main line */}
+
+              {/* green (>=0 and crossing) */}
               <Line
                 type="monotone"
-                dataKey="cumulativeTotal"
-                stroke="url(#posNegGradient)"
+                dataKey="pos"
+                stroke={theme.palette.success.main}
                 strokeWidth={3}
                 dot={false}
                 activeDot={false}
+                isAnimationActive={false}
+                connectNulls={false}
               />
-              
-              {/* Positive value dots */}
+
+              {/* red (<=0 and crossing) */}
               <Line
                 type="monotone"
-                dataKey={(entry: ChartDataPoint) => entry.cumulativeTotal >= 0 ? entry.cumulativeTotal : null}
-                stroke="transparent"
-                strokeWidth={0}
+                dataKey="neg"
+                stroke={theme.palette.error.main}
+                strokeWidth={3}
+                dot={false}
+                activeDot={false}
+                isAnimationActive={false}
                 connectNulls={false}
-                dot={{
-                  fill: theme.palette.background.paper,
-                  stroke: theme.palette.success.main,
-                  strokeWidth: 2,
-                  r: 3,
-                }}
-                activeDot={{
-                  fill: theme.palette.success.main,
-                  stroke: theme.palette.success.main,
-                  strokeWidth: 2,
-                  r: 5,
-                }}
-              />
-              
-              {/* Negative value dots */}
-              <Line
-                type="monotone"
-                dataKey={(entry: ChartDataPoint) => entry.cumulativeTotal < 0 ? entry.cumulativeTotal : null}
-                stroke="transparent"
-                strokeWidth={0}
-                connectNulls={false}
-                dot={{
-                  fill: theme.palette.background.paper,
-                  stroke: theme.palette.error.main,
-                  strokeWidth: 2,
-                  r: 3,
-                }}
-                activeDot={{
-                  fill: theme.palette.error.main,
-                  stroke: theme.palette.error.main,
-                  strokeWidth: 2,
-                  r: 5,
-                }}
               />
             </LineChart>
           </ResponsiveContainer>
         </Box>
-        <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
           Showing profit/loss from your first entry this year.
         </Typography>
       </CardContent>

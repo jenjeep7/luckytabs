@@ -11,16 +11,21 @@ import {
   Alert,
   InputAdornment,
   Autocomplete,
-  Chip,
 } from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { 
   AttachMoney as MoneyIcon, 
   Place as PlaceIcon,
-  TrendingUp as WinIcon,
-  TrendingDown as LossIcon
+  CalendarToday as CalendarIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material';
-import { collection, addDoc, serverTimestamp, getDocs } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, getDocs, Timestamp, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
+import dayjs, { Dayjs } from 'dayjs';
+import WinLossToggle, { WinLossValue } from '../../components/WinLossToggle';
+import { Transaction } from './useTrackingData';
 
 interface Location {
   id: string;
@@ -35,6 +40,9 @@ interface TransactionManagerProps {
   onClose: () => void;
   onTransactionAdded: () => void;
   userId: string;
+  editingTransaction?: Transaction | null;
+  mode?: 'create' | 'edit';
+  onDelete?: (transaction: Transaction) => void;
 }
 
 // Helper function to get start of week (Monday)
@@ -52,14 +60,52 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
   onClose,
   onTransactionAdded,
   userId,
+  editingTransaction = null,
+  mode = 'create',
+  onDelete,
 }) => {
-  const [resultType, setResultType] = useState<'win' | 'loss'>('win');
+  const [resultType, setResultType] = useState<WinLossValue>('win');
   const [amount, setAmount] = useState<string>('');
   const [description, setDescription] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<Dayjs | null>(dayjs());
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
+
+  // Populate form when editing
+  useEffect(() => {
+    if (editingTransaction && mode === 'edit') {
+      // Determine result type from transaction
+      const isWin = editingTransaction.netAmount !== undefined 
+        ? editingTransaction.netAmount >= 0 
+        : editingTransaction.type === 'win';
+      
+      setResultType(isWin ? 'win' : 'loss');
+      setAmount(editingTransaction.amount.toString());
+      setDescription(editingTransaction.description || '');
+      
+      // Set date from transactionDate or createdAt
+      const effectiveDate = editingTransaction.transactionDate?.toDate() || 
+        (editingTransaction.createdAt ? editingTransaction.createdAt.toDate() : null);
+      setSelectedDate(effectiveDate ? dayjs(effectiveDate) : dayjs());
+      
+      // Find and set location if it exists
+      if (editingTransaction.location) {
+        const foundLocation = locations.find(loc => loc.name === editingTransaction.location);
+        setSelectedLocation(foundLocation || null);
+      } else {
+        setSelectedLocation(null);
+      }
+    } else {
+      // Reset form for create mode
+      setResultType('win');
+      setAmount('');
+      setDescription('');
+      setSelectedDate(dayjs());
+      setSelectedLocation(null);
+    }
+  }, [editingTransaction, mode, locations]);
 
   // Fetch locations when dialog opens
   useEffect(() => {
@@ -88,35 +134,78 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
       return;
     }
 
+    if (!selectedDate) {
+      setError('Please select a date');
+      return;
+    }
+
     setIsLoading(true);
     setError('');
 
     try {
-      const now = new Date();
-      const weekStart = getStartOfWeek(now);
-      const activityDescription = description.trim() || 'Gambling activity';
+      const transactionDate = selectedDate.toDate();
+      const weekStart = getStartOfWeek(transactionDate);
+      const activityDescription = description.trim();
       
       // Calculate the net result (negative for loss, positive for win)
       const netAmount = resultType === 'win' ? amountValue : -amountValue;
       
-      // Create a single transaction with the net result
-      await addDoc(collection(db, 'transactions'), {
-        userId,
-        type: resultType,
-        amount: amountValue, // Store the absolute amount
-        netAmount: netAmount, // Store the net result
-        description: activityDescription,
-        location: selectedLocation?.name || '',
-        locationId: selectedLocation?.id || '',
-        createdAt: serverTimestamp(),
-        weekStart: weekStart.toISOString(),
-      });
+      if (mode === 'edit' && editingTransaction) {
+        // Update existing transaction
+        const transactionRef = doc(db, 'transactions', editingTransaction.id);
+        await updateDoc(transactionRef, {
+          type: resultType,
+          amount: amountValue,
+          netAmount: netAmount,
+          description: activityDescription,
+          location: selectedLocation?.name || '',
+          locationId: selectedLocation?.id || '',
+          transactionDate: Timestamp.fromDate(transactionDate),
+          weekStart: weekStart.toISOString(),
+        });
+      } else {
+        // Create a new transaction
+        await addDoc(collection(db, 'transactions'), {
+          userId,
+          type: resultType,
+          amount: amountValue,
+          netAmount: netAmount,
+          description: activityDescription,
+          location: selectedLocation?.name || '',
+          locationId: selectedLocation?.id || '',
+          createdAt: serverTimestamp(),
+          transactionDate: Timestamp.fromDate(transactionDate),
+          weekStart: weekStart.toISOString(),
+        });
+      }
 
       onTransactionAdded();
       handleClose();
     } catch (err) {
       console.error('Error saving transaction:', err);
-      setError('Failed to save transaction. Please try again.');
+      setError(`Failed to ${mode === 'edit' ? 'update' : 'save'} transaction. Please try again.`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!editingTransaction || !onDelete) return;
+    
+    if (!window.confirm('Are you sure you want to delete this transaction? This action cannot be undone.')) {
+      return;
+    }
+    
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      await deleteDoc(doc(db, 'transactions', editingTransaction.id));
+      onDelete(editingTransaction);
+      handleClose();
+    } catch (err) {
+      console.error('Error deleting transaction:', err);
+      setError('Failed to delete transaction. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -125,6 +214,7 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
   const handleClose = () => {
     setAmount('');
     setDescription('');
+    setSelectedDate(dayjs());
     setSelectedLocation(null);
     setResultType('win');
     setError('');
@@ -146,86 +236,55 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
       }}
     >
       <DialogTitle sx={{ textAlign: 'center' }}>
-        Track Gambling Result
+        {mode === 'edit' ? 'Edit Transaction' : 'Track Gambling Result'}
       </DialogTitle>
       <DialogContent>
         <Box sx={{ pt: 2 }}>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Did you win or lose money from your gambling activity? Enter the total amount.
+            {mode === 'edit' 
+              ? 'Update the details of this gambling transaction.' 
+              : 'Did you win or lose money from your gambling activity? Enter the total amount.'
+            }
           </Typography>
+  {/* Date Field */}
+          <Box sx={{ mb: 3 }}>
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <DatePicker
+                label="Date of Activity"
+                value={selectedDate}
+                onChange={(newValue) => setSelectedDate(newValue)}
+                maxDate={dayjs()}
+                slots={{
+                  textField: TextField,
+                }}
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    required: true,
+                    helperText: "When did this gambling activity occur?",
+                    InputProps: {
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <CalendarIcon />
+                        </InputAdornment>
+                      ),
+                    },
+                  },
+                }}
+              />
+            </LocalizationProvider>
+          </Box>
 
           {/* Win/Loss Toggle */}
-          <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center' }}>
-            <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
-              <Button
-                onClick={() => setResultType('win')}
-                startIcon={<WinIcon />}
-                size="small"
-                disableRipple
-                sx={{
-                  flex: 1,
-                  color: '#00C853 !important',
-                  backgroundColor: resultType === 'win' ? 'rgba(0, 200, 83, 0.15) !important' : 'transparent !important',
-                  border: resultType === 'win' ? '3px solid #00C853 !important' : '2px solid #00C853 !important',
-                  fontWeight: resultType === 'win' ? 800 : 600,
-                  textTransform: 'none',
-                  boxShadow: resultType === 'win' ? '0 0 0 1px rgba(0, 200, 83, 0.3)' : 'none',
-                  '&:hover': {
-                    backgroundColor: 'rgba(0, 200, 83, 0.08) !important',
-                    border: '2px solid #00C853 !important',
-                  },
-                  '&:active': {
-                    backgroundColor: 'rgba(0, 200, 83, 0.12) !important',
-                  },
-                  '&:focus': {
-                    backgroundColor: resultType === 'win' ? 'rgba(0, 200, 83, 0.15) !important' : 'transparent !important',
-                  },
-                  // Override all possible Material-UI states
-                  '&.Mui-focusVisible': {
-                    backgroundColor: resultType === 'win' ? 'rgba(0, 200, 83, 0.15) !important' : 'transparent !important',
-                  },
-                  '&.MuiButton-root': {
-                    backgroundColor: resultType === 'win' ? 'rgba(0, 200, 83, 0.15) !important' : 'transparent !important',
-                  }
-                }}
-              >
-                I Won Money
-              </Button>
-              <Button
-                onClick={() => setResultType('loss')}
-                startIcon={<LossIcon />}
-                size="small"
-                disableRipple
-                sx={{
-                  flex: 1,
-                  color: '#F44336 !important',
-                  backgroundColor: resultType === 'loss' ? 'rgba(244, 67, 54, 0.15) !important' : 'transparent !important',
-                  border: resultType === 'loss' ? '3px solid #F44336 !important' : '2px solid #F44336 !important',
-                  fontWeight: resultType === 'loss' ? 800 : 600,
-                  textTransform: 'none',
-                  boxShadow: resultType === 'loss' ? '0 0 0 1px rgba(244, 67, 54, 0.3)' : 'none',
-                  '&:hover': {
-                    backgroundColor: 'rgba(244, 67, 54, 0.08) !important',
-                    border: '2px solid #F44336 !important',
-                  },
-                  '&:active': {
-                    backgroundColor: 'rgba(244, 67, 54, 0.12) !important',
-                  },
-                  '&:focus': {
-                    backgroundColor: resultType === 'loss' ? 'rgba(244, 67, 54, 0.15) !important' : 'transparent !important',
-                  },
-                  // Override all possible Material-UI states
-                  '&.Mui-focusVisible': {
-                    backgroundColor: resultType === 'loss' ? 'rgba(244, 67, 54, 0.15) !important' : 'transparent !important',
-                  },
-                  '&.MuiButton-root': {
-                    backgroundColor: resultType === 'loss' ? 'rgba(244, 67, 54, 0.15) !important' : 'transparent !important',
-                  }
-                }}
-              >
-                I Lost Money
-              </Button>
-            </Box>
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              What happened?
+            </Typography>
+            <WinLossToggle 
+              value={resultType}
+              onChange={setResultType}
+              fullWidth
+            />
           </Box>
 
           {/* Amount Field */}
@@ -268,6 +327,7 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
             />
           </Box>
 
+        
           {/* Result Preview */}
           {amount && (
             <Box sx={{ 
@@ -297,25 +357,6 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
               </Typography>
             </Box>
           )}
-
-          {/* Quick Amount Buttons */}
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              Quick amounts:
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-              {[20, 50, 100, 200].map((quickAmount) => (
-                <Chip
-                  key={quickAmount}
-                  label={`$${quickAmount}`}
-                  onClick={() => setAmount(quickAmount.toString())}
-                  clickable
-                  variant="outlined"
-                  size="small"
-                />
-              ))}
-            </Box>
-          </Box>
 
           {/* Description Field */}
           <Box sx={{ mb: 3 }}>
@@ -373,7 +414,7 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
           )}
         </Box>
       </DialogContent>
-      <DialogActions>
+      <DialogActions sx={{ flexDirection: mode === 'edit' ? 'row' : 'row', gap: 1 }}>
         <Button 
           onClick={handleClose} 
           variant="outlined"
@@ -389,10 +430,35 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
         >
           Cancel
         </Button>
+        {mode === 'edit' && onDelete && (
+          <Button
+            onClick={() => { void handleDelete(); }}
+            variant="outlined"
+            color="error"
+            disabled={isLoading}
+            startIcon={<DeleteIcon />}
+            sx={{ 
+              borderColor: 'error.main',
+              color: 'error.main',
+              '&:hover': {
+                borderColor: 'error.dark',
+                backgroundColor: 'error.main',
+                color: 'white'
+              },
+              '&:disabled': {
+                borderColor: 'action.disabledBackground',
+                color: 'action.disabled'
+              }
+            }}
+          >
+            Delete
+          </Button>
+        )}
         <Button
           onClick={() => { void handleSave(); }}
           variant="contained"
-          disabled={isLoading || !amount}
+          size='small'
+          disabled={isLoading || !amount || !selectedDate}
           sx={{ 
             backgroundColor: resultType === 'win' ? 'success.main' : 'error.main',
             color: 'white',
@@ -405,7 +471,10 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
             }
           }}
         >
-          {isLoading ? 'Adding...' : `Record ${resultType === 'win' ? 'Win' : 'Loss'}`}
+          {isLoading 
+            ? (mode === 'edit' ? 'Updating...' : 'Adding...') 
+            : (mode === 'edit' ? 'Update Transaction' : `Record ${resultType === 'win' ? 'Win' : 'Loss'}`)
+          }
         </Button>
       </DialogActions>
     </Dialog>

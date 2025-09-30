@@ -19,6 +19,7 @@ export interface Transaction {
   description?: string;
   location?: string;
   createdAt: Timestamp | null;
+  transactionDate?: Timestamp | null; // When the gambling activity actually occurred
   weekStart: Timestamp | null;
 }
 
@@ -127,9 +128,19 @@ export const useTrackingData = (userId: string | undefined) => {
 
         // Process current week data
         const currentWeekTransactions = transactions.filter(transaction => {
-          if (!transaction.createdAt) return false; // Skip transactions without timestamps
-          const transactionDate = transaction.createdAt.toDate();
-          return transactionDate >= weekStart && transactionDate <= weekEnd;
+          try {
+            // Use transactionDate if available, otherwise fall back to createdAt
+            const effectiveDate = transaction.transactionDate?.toDate() || 
+              (transaction.createdAt ? transaction.createdAt.toDate() : null);
+            if (!effectiveDate || isNaN(effectiveDate.getTime())) {
+              console.warn('Skipping transaction with invalid date in current week filter:', transaction);
+              return false; // Skip transactions without valid timestamps
+            }
+            return effectiveDate >= weekStart && effectiveDate <= weekEnd;
+          } catch (error) {
+            console.error('Error processing transaction date in current week filter:', transaction, error);
+            return false;
+          }
         });
 
         // Calculate totals supporting both old (bet/win) and new (win/loss with netAmount) formats
@@ -170,18 +181,27 @@ export const useTrackingData = (userId: string | undefined) => {
         const weeklyGroups = new Map<string, Transaction[]>();
         
         transactions.forEach(transaction => {
-          if (!transaction.createdAt) return; // Skip transactions without timestamps
-          const transactionDate = transaction.createdAt.toDate();
-          const weekStartDate = getStartOfWeek(transactionDate);
-          // Use a more reliable key that doesn't depend on timezone
-          const weekStartKey = `${weekStartDate.getFullYear()}-${weekStartDate.getMonth()}-${weekStartDate.getDate()}`;
-          
-          if (!weeklyGroups.has(weekStartKey)) {
-            weeklyGroups.set(weekStartKey, []);
-          }
-          const weekGroup = weeklyGroups.get(weekStartKey);
-          if (weekGroup) {
-            weekGroup.push(transaction);
+          try {
+            // Use transactionDate if available, otherwise fall back to createdAt
+            const effectiveDate = transaction.transactionDate?.toDate() || 
+              (transaction.createdAt ? transaction.createdAt.toDate() : null);
+            if (!effectiveDate || isNaN(effectiveDate.getTime())) {
+              console.warn('Skipping transaction with invalid date:', transaction);
+              return; // Skip transactions without valid timestamps
+            }
+            const weekStartDate = getStartOfWeek(effectiveDate);
+            // Use a more reliable key that doesn't depend on timezone
+            const weekStartKey = `${weekStartDate.getFullYear()}-${weekStartDate.getMonth()}-${weekStartDate.getDate()}`;
+            
+            if (!weeklyGroups.has(weekStartKey)) {
+              weeklyGroups.set(weekStartKey, []);
+            }
+            const weekGroup = weeklyGroups.get(weekStartKey);
+            if (weekGroup) {
+              weekGroup.push(transaction);
+            }
+          } catch (error) {
+            console.error('Error processing transaction date:', transaction, error);
           }
         });
 
@@ -190,6 +210,13 @@ export const useTrackingData = (userId: string | undefined) => {
             // Parse the key back to get the week start date
             const [year, month, date] = weekStartKey.split('-').map(Number);
             const weekStartDate = new Date(year, month, date);
+            
+            // Validate the parsed date
+            if (isNaN(weekStartDate.getTime())) {
+              console.warn('Invalid week start date parsed from key:', weekStartKey);
+              return null;
+            }
+            
             const weekEndDate = getEndOfWeek(weekStartDate);
             
             // Calculate totals supporting both old (bet/win) and new (win/loss with netAmount) formats
@@ -224,6 +251,7 @@ export const useTrackingData = (userId: string | undefined) => {
               transactions: weekTransactions,
             };
           })
+          .filter((week): week is HistoricalWeek => week !== null)
           .sort((a, b) => b.weekStart.getTime() - a.weekStart.getTime());
 
         // Ensure current week is always included, even if it has no transactions

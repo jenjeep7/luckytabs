@@ -800,9 +800,16 @@ export const Play: React.FC = () => {
                 display: 'grid', 
                 gridTemplateColumns: {
                   xs: '1fr',
+                  sm: 'repeat(auto-fit, minmax(320px, 1fr))',
+                  lg: 'repeat(auto-fit, minmax(350px, 1fr))',
                 },
                 gap: 1.5,
-                mb: 2
+                mb: 2,
+                maxWidth: {
+                  lg: '1400px',
+                  xl: '1600px'
+                },
+                mx: 'auto'
               }}>
                 {wallBoxes.map((box) => {
               const pricePerTicket = parseFloat(box.pricePerTicket);
@@ -1030,9 +1037,16 @@ export const Play: React.FC = () => {
                 display: 'grid', 
                 gridTemplateColumns: {
                   xs: '1fr',
+                  sm: 'repeat(auto-fit, minmax(320px, 1fr))',
+                  lg: 'repeat(auto-fit, minmax(350px, 1fr))',
                 },
                 gap: 1.5,
-                mb: 2
+                mb: 2,
+                maxWidth: {
+                  lg: '1400px',
+                  xl: '1600px'
+                },
+                mx: 'auto'
               }}>
                 {barBoxes.map((box) => {
                   const pricePerTicket = parseFloat(box.pricePerTicket);
