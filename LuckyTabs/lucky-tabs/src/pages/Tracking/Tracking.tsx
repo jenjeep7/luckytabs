@@ -52,7 +52,7 @@ function TabPanel(props: TabPanelProps) {
 
 export const Tracking: React.FC = () => {
   const [user, loading] = useAuthStateCompat();
-  const [tabValue, setTabValue] = useState(0);
+  const [tabValue, setTabValue] = useState(0); // Default to History tab (now index 0)
   const [budgetManagerOpen, setBudgetManagerOpen] = useState(false);
   const [transactionManagerOpen, setTransactionManagerOpen] = useState(false);
   const {
@@ -111,7 +111,13 @@ export const Tracking: React.FC = () => {
   };
 
   return (
-    <Box sx={{ py: { xs: 1, sm: 3 }, pt: {xs: 3}, maxWidth: '100%' }}>
+    <Box sx={{ 
+      py: { xs: 1, sm: 3 }, 
+      pt: {xs: 3}, 
+      maxWidth: '100%',
+      backgroundColor: 'black',
+      minHeight: '100vh'
+    }}>
       <Box sx={{ 
         display: 'flex', 
         justifyContent: 'center',
@@ -164,9 +170,9 @@ export const Tracking: React.FC = () => {
       </Box>
 
       {/* Quick Stats Cards */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 2 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0, mb: 0 }}>
         {/* Smaller Net Result Card */}
-        <Card sx={{ width: '100%' }}>
+        <Card sx={{ width: '100%', borderRadius: 0 }}>
           <CardContent sx={{ textAlign: 'center', py: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 0.5 }}>
               <MoneyIcon sx={{ mr: 0.5, fontSize: '1.2rem', color: currentWeekStats.netResult < 0 ? 'error.main' : 'success.main' }} />
@@ -175,7 +181,7 @@ export const Tracking: React.FC = () => {
               </Typography>
             </Box>
             <Typography 
-              variant="h5" 
+              variant="body1" 
               component="div" 
               color={currentWeekStats.netResult < 0 ? "error.main" : "success.main"}
               sx={{ mb: 0.5 }}
@@ -273,7 +279,7 @@ export const Tracking: React.FC = () => {
             }}
           >
             <Tab 
-              label="This Week" 
+              label="History" 
               sx={{ 
                 color: 'text.primary',
                 flex: 1,
@@ -284,7 +290,7 @@ export const Tracking: React.FC = () => {
               }}
             />
             <Tab 
-              label="History" 
+              label="This Week" 
               sx={{ 
                 color: 'text.primary',
                 flex: 1,
@@ -299,16 +305,16 @@ export const Tracking: React.FC = () => {
         
         <Box sx={{ width: '100%', backgroundColor: 'background.paper', borderRadius: '0 0 4px 4px' }}>
           <TabPanel value={tabValue} index={0}>
-            <WeeklyOverview 
-              weeklyData={currentWeekStats}
-              userBudget={userBudget}
+            <HistoricalData 
+              historicalData={historicalData || []}
               onRefresh={handleRefreshData}
             />
           </TabPanel>
           
           <TabPanel value={tabValue} index={1}>
-            <HistoricalData 
-              historicalData={historicalData || []}
+            <WeeklyOverview 
+              weeklyData={currentWeekStats}
+              userBudget={userBudget}
               onRefresh={handleRefreshData}
             />
           </TabPanel>

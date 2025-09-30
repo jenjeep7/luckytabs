@@ -1,5 +1,80 @@
-import { logEvent, setUserProperties } from 'firebase/analytics';
+import { logEvent, setUserProperties, isSupported, setUserId } from 'firebase/analytics';
 import { analytics } from '../firebase';
+import { APP_VERSION } from './version';
+import { getLastTouchAttribution } from './analytics-attribution';
+
+// Get app version from package.json
+const packageVersion = process.env.REACT_APP_VERSION || '1.1.0';
+
+// Helper function to add version info to all events
+const addVersionInfo = (params: Record<string, string | number | boolean> = {}) => {
+  return {
+    ...params,
+    app_version: APP_VERSION,
+    package_version: packageVersion,
+    build_timestamp: process.env.REACT_APP_BUILD_DATE || new Date().toISOString(),
+    platform: 'web'
+  };
+};
+
+export function initAnalyticsDefaults(env: 'prod' | 'staging' | 'dev' = 'prod') {
+  if (!analytics) return;
+
+  // Set default parameters that will be included with every event
+  const attribution = getLastTouchAttribution();
+  
+  // Note: setDefaultEventParameters may not be available in all Firebase versions
+  // Using manual parameter addition instead
+  console.log('Setting analytics defaults:', {
+    app_version: APP_VERSION,
+    package_version: packageVersion,
+    platform: 'web',
+    env,
+    device_type: getDeviceType(),
+    ...attribution
+  });
+
+  setUserProperties(analytics, {
+    device_type: getDeviceType(),
+    app_version: APP_VERSION,
+    platform: 'web'
+  });
+
+  console.log('✅ Analytics defaults initialized');
+}
+
+export const initializeAnalyticsWithVersion = async () => {
+  try {
+    // Wait for Firebase Analytics to be ready
+    const supported = await isSupported();
+    if (!supported) {
+      console.log('Analytics not supported in this environment');
+      return;
+    }
+    
+    if (!analytics) {
+      console.warn('Analytics not initialized');
+      return;
+    }
+    
+    // Initialize defaults
+    initAnalyticsDefaults();
+    
+    console.log('🔧 Initializing analytics with enhanced tracking');
+    
+    // Log initialization event
+    logEvent(analytics, 'app_open', {
+      first_open_time: Date.now()
+    });
+    
+    console.log('✅ Analytics initialized with enhanced tracking');
+  } catch (error) {
+    console.error('❌ Failed to initialize analytics:', error);
+  }
+};
+
+// Initialize analytics with version tracking when the module loads
+void initializeAnalyticsWithVersion();
 
 // Custom event names for your lottery app
 export const AnalyticsEvents = {
@@ -8,6 +83,9 @@ export const AnalyticsEvents = {
   BOX_EDITED: 'box_edited',
   BOX_REMOVED: 'box_removed',
   BOX_SHARED: 'box_shared',
+  BOX_STARTED: 'box_started',
+  BOX_CONFIGURED: 'box_configured',
+  BOX_PUBLISHED: 'box_published',
   
   // Ticket operations
   TICKETS_ESTIMATED: 'tickets_estimated',
@@ -18,16 +96,26 @@ export const AnalyticsEvents = {
   ADVANCED_ANALYTICS_VIEWED: 'advanced_analytics_viewed',
   FLARE_SHEET_UPLOADED: 'flare_sheet_uploaded',
   DATA_EXPORTED: 'data_exported',
+  FEATURE_USE: 'feature_use',
   
   // Page tracking
   PAGE_VIEW: 'page_view',
+  PAGE_ENGAGEMENT: 'page_engagement',
   HOME_PAGE_VISITED: 'home_page_visited',
   LANDING_PAGE_VISITED: 'landing_page_visited',
+  SCROLL_DEPTH: 'scroll_depth',
   
   // User engagement
   LOGIN: 'login',
   SIGNUP: 'sign_up',
   PROFILE_UPDATED: 'profile_updated',
+  
+  // Onboarding & Funnel
+  ONBOARDING_STARTED: 'onboarding_started',
+  ONBOARDING_STEP: 'onboarding_step',
+  ONBOARDING_COMPLETED: 'onboarding_completed',
+  EMAIL_VERIFICATION_SENT: 'email_verification_sent',
+  EMAIL_VERIFIED: 'email_verified',
   
   // Subscription events
   SUBSCRIPTION_UPGRADED: 'subscription_upgraded',
@@ -37,7 +125,20 @@ export const AnalyticsEvents = {
   
   // Location operations
   LOCATION_CREATED: 'location_created',
-  LOCATION_SELECTED: 'location_selected'
+  LOCATION_SELECTED: 'location_selected',
+  
+  // Conversion & Engagement
+  CTA_CLICK: 'cta_click',
+  INVITE_SENT: 'invite_sent',
+  INVITE_ACCEPTED: 'invite_accepted',
+  
+  // Technical & Performance
+  UI_ERROR: 'ui_error',
+  API_CALL: 'api_call',
+  WEB_VITAL: 'web_vital',
+  
+  // App Events
+  APP_OPEN: 'app_open'
 } as const;
 
 // Helper function to get device type
@@ -64,8 +165,7 @@ export const trackBoxCreated = (boxData: {
       box_type: boxData.type,
       price_per_ticket: boxData.pricePerTicket,
       user_plan: boxData.userPlan,
-      starting_tickets: boxData.startingTickets || null,
-      device_type: getDeviceType(),
+      starting_tickets: boxData.startingTickets || 0,
       timestamp: Date.now()
     });
   }
@@ -172,8 +272,7 @@ export const trackProFeatureAttemptByFreeUser = (feature: string) => {
 export const trackUserLogin = (method: string) => {
   if (analytics) {
     logEvent(analytics, AnalyticsEvents.LOGIN, {
-      method: method,
-      device_type: getDeviceType()
+      method: method
     });
   }
 };
@@ -181,8 +280,7 @@ export const trackUserLogin = (method: string) => {
 export const trackUserSignup = (method: string) => {
   if (analytics) {
     logEvent(analytics, AnalyticsEvents.SIGNUP, {
-      method: method,
-      device_type: getDeviceType()
+      method: method
     });
   }
 };
@@ -203,22 +301,37 @@ export const trackFlareSheetUploaded = (data: {
 };
 
 // Set user properties for segmentation
-export const setUserAnalyticsProperties = (userData: {
+export const setUserAnalyticsProperties = (user: {
   userId: string;
   plan: string;
   totalBoxesCreated?: number;
   signupDate?: string;
   preferredBoxType?: 'wall' | 'bar box';
 }) => {
-  if (analytics) {
-    setUserProperties(analytics, {
-      user_id: userData.userId,
-      subscription_plan: userData.plan,
-      total_boxes_created: userData.totalBoxesCreated || 0,
-      user_since: userData.signupDate || '',
-      preferred_box_type: userData.preferredBoxType || 'unknown',
-      device_type: getDeviceType()
-    });
+  try {
+    if (!analytics) {
+      console.warn('Analytics not initialized');
+      return;
+    }
+
+    const versionInfo = addVersionInfo({});
+    
+    const properties = {
+      user_id: user.userId,
+      subscription_plan: user.plan,
+      total_boxes_created: user.totalBoxesCreated || 0,
+      signup_date: user.signupDate || new Date().toISOString().split('T')[0],
+      preferred_box_type: user.preferredBoxType || 'wall',
+      ...versionInfo
+    };
+    
+    console.log('Setting user properties with version info:', properties);
+    
+    setUserProperties(analytics, properties);
+    
+    console.log('✅ User properties set with version tracking');
+  } catch (error) {
+    console.error('❌ Failed to set user properties:', error);
   }
 };
 
@@ -238,7 +351,6 @@ export const trackPageView = (pageName: string, additionalParams?: Record<string
   if (analytics) {
     logEvent(analytics, AnalyticsEvents.PAGE_VIEW, {
       page_name: pageName,
-      device_type: getDeviceType(),
       timestamp: Date.now(),
       ...additionalParams
     });
@@ -266,4 +378,135 @@ export const trackLandingPageVisit = (source?: string, medium?: string) => {
       page_name: 'landing'
     });
   }
+};
+
+// ========== ENHANCED ANALYTICS FUNCTIONS ==========
+
+// User Identity Management
+export function bindUserIdentity(uid?: string | null) {
+  if (!analytics) return;
+  setUserId(analytics, uid || null);
+}
+
+// Onboarding & Funnel Tracking
+export const trackOnboardingStep = (stepIndex: number, stepName: string) => {
+  if (!analytics) return;
+  logEvent(analytics, 'onboarding_step', { 
+    step_index: stepIndex, 
+    step_name: stepName 
+  });
+};
+
+export const trackOnboardingCompleted = () => {
+  if (!analytics) return;
+  logEvent(analytics, 'onboarding_completed', {});
+};
+
+export const trackEmailVerificationSent = () => {
+  if (!analytics) return;
+  logEvent(analytics, 'email_verification_sent', {});
+};
+
+export const trackEmailVerified = () => {
+  if (!analytics) return;
+  logEvent(analytics, 'email_verified', {});
+};
+
+// Enhanced Box Funnel Tracking
+export const trackBoxStarted = (boxType: 'wall' | 'bar box') => {
+  if (!analytics) return;
+  logEvent(analytics, 'box_started', { box_type: boxType });
+};
+
+export const trackBoxConfigured = (boxType: 'wall' | 'bar box', settingsCount: number) => {
+  if (!analytics) return;
+  logEvent(analytics, 'box_configured', { 
+    box_type: boxType, 
+    settings_count: settingsCount 
+  });
+};
+
+export const trackBoxPublished = (boxType: 'wall' | 'bar box') => {
+  if (!analytics) return;
+  logEvent(analytics, 'box_published', { box_type: boxType });
+};
+
+// Feature Usage & Access Control
+export const trackFeatureUse = (feature: string, access: 'allowed'|'blocked', reason?: string) => {
+  if (!analytics) return;
+  logEvent(analytics, 'feature_use', { 
+    feature_name: feature, 
+    access, 
+    reason: reason || '' 
+  });
+};
+
+// CTA & Conversion Tracking
+export const trackCtaClick = (id: string, location: string, variant?: string) => {
+  if (!analytics) return;
+  logEvent(analytics, 'cta_click', { 
+    cta_id: id, 
+    cta_location: location, 
+    cta_variant: variant || 'default' 
+  });
+};
+
+// Error & Performance Tracking
+export const trackUiError = (where: string, code: string, fatal = false) => {
+  if (!analytics) return;
+  logEvent(analytics, 'ui_error', { where, code, fatal });
+};
+
+export const trackApiCall = (name: string, status: number, durationMs: number) => {
+  if (!analytics) return;
+  logEvent(analytics, 'api_call', { 
+    name, 
+    status, 
+    duration_ms: durationMs, 
+    ok: status >= 200 && status < 300 
+  });
+};
+
+// Scroll Depth Tracking
+export function initScrollDepth() {
+  if (!analytics) return;
+  
+  let maxDepth = 0;
+  const thresholds = [25, 50, 75, 100];
+  
+  const onScroll = () => {
+    const scrolled = window.scrollY + window.innerHeight;
+    const total = document.documentElement.scrollHeight;
+    const depth = Math.round((scrolled / total) * 100);
+    
+    if (depth > maxDepth) {
+      const newThreshold = thresholds.find(t => t > maxDepth && t <= depth);
+      if (newThreshold && analytics) {
+        maxDepth = newThreshold;
+        logEvent(analytics, 'scroll_depth', { 
+          depth_percent: newThreshold, 
+          page_location: window.location.href 
+        });
+      }
+    }
+  };
+  
+  window.addEventListener('scroll', onScroll, { passive: true });
+  
+  // Return cleanup function
+  return () => window.removeEventListener('scroll', onScroll);
+}
+
+// Invite & Sharing Tracking
+export const trackInviteSent = (method: string, recipientCount: number) => {
+  if (!analytics) return;
+  logEvent(analytics, 'invite_sent', { 
+    method, 
+    recipient_count: recipientCount 
+  });
+};
+
+export const trackInviteAccepted = (method: string) => {
+  if (!analytics) return;
+  logEvent(analytics, 'invite_accepted', { method });
 };

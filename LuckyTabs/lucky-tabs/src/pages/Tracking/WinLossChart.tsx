@@ -99,7 +99,6 @@ export const WinLossChart: React.FC<WinLossChartProps> = ({ historicalData }) =>
             backgroundColor: 'background.paper',
             border: 1,
             borderColor: 'divider',
-            borderRadius: 1,
             p: 2,
             boxShadow: 2,
           }}
@@ -148,7 +147,7 @@ export const WinLossChart: React.FC<WinLossChartProps> = ({ historicalData }) =>
   }
 
   return (
-    <Card>
+    <Card sx={{ borderRadius: 0 }}  >
       <CardContent>
         <Typography variant="body1" gutterBottom>
           {new Date().getFullYear()} Cumulative Win/Loss

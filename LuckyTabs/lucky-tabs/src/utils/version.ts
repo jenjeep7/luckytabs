@@ -1,5 +1,5 @@
 // App version management
-export const APP_VERSION = '1.2.2'; // Update this with each significant deploy
+export const APP_VERSION = '1.2.2'; // Last updated: 2025-09-29T10:34:18.195Z // Last updated: 2025-09-29T10:34:18.115Z // Last updated: 2025-09-29T10:14:59.201Z // Last updated: 2025-09-29T10:14:59.120Z // Last updated: 2025-09-29T10:02:58.347Z // Last updated: 2025-09-29T10:02:58.267Z // Last updated: 2025-09-29T10:02:50.687Z // Last updated: 2025-09-29T09:55:48.641Z // Update this with each significant deploy
 
 // Check if user has the latest version
 export const checkVersion = () => {
