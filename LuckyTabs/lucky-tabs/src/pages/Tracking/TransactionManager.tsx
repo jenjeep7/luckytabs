@@ -25,6 +25,7 @@ import { collection, addDoc, serverTimestamp, getDocs, Timestamp, doc, updateDoc
 import { db } from '../../firebase';
 import dayjs, { Dayjs } from 'dayjs';
 import WinLossToggle, { WinLossValue } from '../../components/WinLossToggle';
+import { ConfirmationDialog } from '../../components/ConfirmationDialog';
 import { Transaction } from './useTrackingData';
 
 interface Location {
@@ -72,6 +73,7 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
   const [locations, setLocations] = useState<Location[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Populate form when editing
   useEffect(() => {
@@ -189,13 +191,14 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
     }
   };
 
+  const handleDeleteConfirm = () => {
+    setShowDeleteConfirm(true);
+  };
+
   const handleDelete = async () => {
     if (!editingTransaction || !onDelete) return;
     
-    if (!window.confirm('Are you sure you want to delete this transaction? This action cannot be undone.')) {
-      return;
-    }
-    
+    setShowDeleteConfirm(false);
     setIsLoading(true);
     setError('');
     
@@ -261,6 +264,7 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
                   textField: {
                     fullWidth: true,
                     required: true,
+                    size: "small",
                     helperText: "When did this gambling activity occur?",
                     InputProps: {
                       startAdornment: (
@@ -296,6 +300,7 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
               fullWidth
               required
               type="number"
+              size="small"
               slotProps={{
                 htmlInput: {
                   min: 0,
@@ -367,6 +372,7 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
               fullWidth
               multiline
               rows={2}
+              size="small"
               helperText="Describe the gambling activity (e.g., 'Pull tabs at Joe's Bar', 'Lottery ticket')"
             />
           </Box>
@@ -382,6 +388,7 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
                 <TextField
                   {...params}
                   label="Location (Optional)"
+                  size="small"
                   helperText="Select where this gambling activity took place"
                   slotProps={{
                     input: {
@@ -422,6 +429,7 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
           sx={{ 
             borderColor: 'primary.main',
             color: 'primary.main',
+            borderRadius: 3,
             '&:hover': {
               borderColor: 'primary.dark',
               backgroundColor: 'action.hover'
@@ -432,17 +440,17 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
         </Button>
         {mode === 'edit' && onDelete && (
           <Button
-            onClick={() => { void handleDelete(); }}
+            onClick={handleDeleteConfirm}
             variant="outlined"
-            color="error"
             disabled={isLoading}
             startIcon={<DeleteIcon />}
             sx={{ 
-              borderColor: 'error.main',
-              color: 'error.main',
+              borderColor: 'white',
+              borderRadius: 3,
+              color: 'white',
               '&:hover': {
-                borderColor: 'error.dark',
-                backgroundColor: 'error.main',
+                borderColor: 'white',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
                 color: 'white'
               },
               '&:disabled': {
@@ -477,6 +485,17 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
           }
         </Button>
       </DialogActions>
+      
+      {/* Delete Confirmation Dialog */}
+      <ConfirmationDialog
+        open={showDeleteConfirm}
+        title="Delete Transaction"
+        message="Are you sure you want to delete this transaction? This action cannot be undone."
+        confirmText="Delete"
+        confirmColor="error"
+        onConfirm={() => { void handleDelete(); }}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </Dialog>
   );
 };
