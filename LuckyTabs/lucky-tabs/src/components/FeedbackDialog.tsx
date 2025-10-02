@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
@@ -19,6 +18,7 @@ import {
 } from '@mui/material';
 import { Feedback, Send } from '@mui/icons-material';
 import { useAuthStateCompat } from '../services/useAuthStateCompat';
+import SafeDialog from './SafeDialog';
 import { feedbackService } from '../services/feedbackService';
 
 interface FeedbackDialogProps {
@@ -98,7 +98,7 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose })
   };
 
   return (
-    <Dialog
+    <SafeDialog
       open={open}
       onClose={handleClose}
       maxWidth="sm"
@@ -193,6 +193,6 @@ export const FeedbackDialog: React.FC<FeedbackDialogProps> = ({ open, onClose })
           </Button>
         </DialogActions>
       )}
-    </Dialog>
+    </SafeDialog>
   );
 };

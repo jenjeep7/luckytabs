@@ -7,7 +7,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
@@ -26,6 +25,7 @@ import {
   ClickAwayListener,
 } from '@mui/material';
 import { LocationOn as LocationIcon } from '@mui/icons-material';
+import SafeDialog from '../../components/SafeDialog';
 import { getGoogleMapsLoader } from '../../utils/googleMapsLoader';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase';
@@ -355,7 +355,7 @@ export const LocationManager: React.FC<LocationManagerProps> = ({
   };
 
   return (
-    <Dialog 
+    <SafeDialog 
       open={open} 
       onClose={onClose} 
       maxWidth="md" 
@@ -540,6 +540,6 @@ export const LocationManager: React.FC<LocationManagerProps> = ({
       <DialogActions>
         <Button onClick={onClose} color="inherit" variant="outlined">Close</Button>
       </DialogActions>
-    </Dialog>
+    </SafeDialog>
   );
 };

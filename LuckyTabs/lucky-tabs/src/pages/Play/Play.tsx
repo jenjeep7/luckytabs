@@ -12,7 +12,6 @@ import {
   Select,
   MenuItem,
   Button,
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogContentText,
@@ -24,6 +23,7 @@ import {
 } from "@mui/material";
 import CloseIcon from '@mui/icons-material/Close';
 import PlaceIcon from '@mui/icons-material/Place';
+import SafeDialog from '../../components/SafeDialog';
 import ShareIcon from '@mui/icons-material/Share';
 import Edit from '@mui/icons-material/Edit';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
@@ -662,7 +662,7 @@ export const Play: React.FC = () => {
       )}
 
       {/* Create Box Modal */}
-  <Dialog open={openCreateBox} onClose={handleCloseCreateBox} fullScreen>
+  <SafeDialog open={openCreateBox} onClose={handleCloseCreateBox} fullScreen>
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           {replaceMode ? `Replace Box: ${boxToReplace?.boxName || 'Unknown'}` : 'Create New Box'}
           <IconButton onClick={handleCloseCreateBox}>
@@ -680,10 +680,10 @@ export const Play: React.FC = () => {
             />
           )}
         </DialogContent>
-      </Dialog>
+      </SafeDialog>
 
       {/* Edit Box Modal */}
-      <Dialog open={!!editFormBox} onClose={() => setEditFormBox(null)} fullScreen>
+      <SafeDialog open={!!editFormBox} onClose={() => setEditFormBox(null)} fullScreen>
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           Edit Box
           <IconButton onClick={() => setEditFormBox(null)}>
@@ -699,7 +699,7 @@ export const Play: React.FC = () => {
             />
           )}
         </DialogContent>
-      </Dialog>
+      </SafeDialog>
 
       {/* Display Box Dashboard */}
       {selectedLocation && (
@@ -1255,7 +1255,7 @@ export const Play: React.FC = () => {
       )}
 
       {/* Full-Screen Box Details Dialog */}
-      <Dialog 
+      <SafeDialog 
         open={!!editBox}
         onClose={() => {
           void refreshBoxes(); // Refresh boxes to get updated estimated tickets
@@ -1311,7 +1311,7 @@ export const Play: React.FC = () => {
             </Box>
           )}
         </DialogContent>
-      </Dialog>
+      </SafeDialog>
 
       {/* Location Manager Dialog */}
       <LocationManager
@@ -1340,7 +1340,7 @@ export const Play: React.FC = () => {
       )}
 
       {/* Replace Box Confirmation Dialog */}
-      <Dialog
+      <SafeDialog
         open={replaceConfirmOpen}
         onClose={handleCancelReplace}
         maxWidth="sm"
@@ -1360,7 +1360,7 @@ export const Play: React.FC = () => {
             Replace Box
           </Button>
         </DialogActions>
-      </Dialog>
+      </SafeDialog>
       </Box>
     </Box>
   );

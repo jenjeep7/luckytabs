@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  Box,
   Button,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   TextField,
   Typography,
-  Box,
   Alert,
   Stack,
-  useTheme
+  useTheme,
 } from '@mui/material';
+import SafeDialog from '../../components/SafeDialog';
 import { Settings } from '@mui/icons-material';
 import { MetricThresholds } from '../../hooks/useMetricThresholds';
 
@@ -76,7 +76,7 @@ export const MetricThresholdsSettings: React.FC<MetricThresholdsSettingsProps> =
   };
 
   return (
-    <Dialog 
+    <SafeDialog 
       open={open} 
       onClose={onClose} 
       maxWidth="md" 
@@ -124,12 +124,12 @@ export const MetricThresholdsSettings: React.FC<MetricThresholdsSettingsProps> =
                     '&:hover fieldset': {
                       borderColor: theme.neon.colors.green,
                       borderWidth: '2px',
-                      ...theme.neon.effects.boxGlow(theme.neon.colors.green, 0.2),
+                      ...(theme.neon.effects.boxGlow(theme.neon.colors.green, 0.2) as Record<string, unknown>),
                     },
                     '&.Mui-focused fieldset': {
                       borderColor: theme.neon.colors.green,
                       borderWidth: '2px',
-                      ...theme.neon.effects.boxGlow(theme.neon.colors.green, 0.4),
+                      ...(theme.neon.effects.boxGlow(theme.neon.colors.green, 0.4) as Record<string, unknown>),
                     },
                   },
                 },
@@ -137,7 +137,7 @@ export const MetricThresholdsSettings: React.FC<MetricThresholdsSettingsProps> =
                   '&:not(.Mui-error)': {
                     color: theme.neon.colors.green,
                     fontWeight: 600,
-                    ...theme.neon.effects.textGlow(theme.neon.colors.green, 0.3),
+                    ...(theme.neon.effects.textGlow(theme.neon.colors.green, 0.3) as Record<string, unknown>),
                   },
                 },
               }}
@@ -162,12 +162,12 @@ export const MetricThresholdsSettings: React.FC<MetricThresholdsSettingsProps> =
                     '&:hover fieldset': {
                       borderColor: theme.neon.colors.amber,
                       borderWidth: '2px',
-                      ...theme.neon.effects.boxGlow(theme.neon.colors.amber, 0.2),
+                      ...(theme.neon.effects.boxGlow(theme.neon.colors.amber, 0.2) as Record<string, unknown>),
                     },
                     '&.Mui-focused fieldset': {
                       borderColor: theme.neon.colors.amber,
                       borderWidth: '2px',
-                      ...theme.neon.effects.boxGlow(theme.neon.colors.amber, 0.4),
+                      ...(theme.neon.effects.boxGlow(theme.neon.colors.amber, 0.4) as Record<string, unknown>),
                     },
                   },
                 },
@@ -175,7 +175,7 @@ export const MetricThresholdsSettings: React.FC<MetricThresholdsSettingsProps> =
                   '&:not(.Mui-error)': {
                     color: theme.neon.colors.amber,
                     fontWeight: 600,
-                    ...theme.neon.effects.textGlow(theme.neon.colors.amber, 0.3),
+                    ...(theme.neon.effects.textGlow(theme.neon.colors.amber, 0.3) as Record<string, unknown>),
                   },
                 },
               }}
@@ -196,6 +196,6 @@ export const MetricThresholdsSettings: React.FC<MetricThresholdsSettingsProps> =
           {saving ? 'Saving...' : 'Save Settings'}
         </Button>
       </DialogActions>
-    </Dialog>
+    </SafeDialog>
   );
 };

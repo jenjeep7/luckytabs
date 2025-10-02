@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
@@ -17,6 +16,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { groupService, GroupData } from '../../services/groupService';
+import SafeDialog from '../../components/SafeDialog';
 import { boxService, BoxShare } from '../../services/boxService';
 
 interface ShareBoxDialogProps {
@@ -146,7 +146,7 @@ const ShareBoxDialog: React.FC<ShareBoxDialogProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <SafeDialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>Share &ldquo;{boxName}&rdquo; with Groups</DialogTitle>
       <DialogContent>
         {error && (
@@ -242,7 +242,7 @@ const ShareBoxDialog: React.FC<ShareBoxDialogProps> = ({
           )}
         </Button>
       </DialogActions>
-    </Dialog>
+    </SafeDialog>
   );
 };
 

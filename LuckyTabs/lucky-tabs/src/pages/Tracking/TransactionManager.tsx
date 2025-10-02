@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
@@ -26,6 +25,7 @@ import { db } from '../../firebase';
 import dayjs, { Dayjs } from 'dayjs';
 import WinLossToggle, { WinLossValue } from '../../components/WinLossToggle';
 import { ConfirmationDialog } from '../../components/ConfirmationDialog';
+import SafeDialog from '../../components/SafeDialog';
 import { Transaction } from './useTrackingData';
 
 interface Location {
@@ -225,7 +225,7 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
   };
 
   return (
-    <Dialog 
+    <SafeDialog 
       open={open} 
       onClose={handleClose} 
       maxWidth={false}
@@ -496,6 +496,6 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
         onConfirm={() => { void handleDelete(); }}
         onCancel={() => setShowDeleteConfirm(false)}
       />
-    </Dialog>
+    </SafeDialog>
   );
 };

@@ -1,12 +1,12 @@
 import React from 'react';
 import {
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Button,
   Typography,
 } from '@mui/material';
+import SafeDialog from './SafeDialog';
 
 interface ConfirmationDialogProps {
   open: boolean;
@@ -30,7 +30,7 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
   onCancel,
 }) => {
   return (
-    <Dialog
+    <SafeDialog
       open={open}
       onClose={onCancel}
       maxWidth="sm"
@@ -59,6 +59,6 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
           {confirmText}
         </Button>
       </DialogActions>
-    </Dialog>
+    </SafeDialog>
   );
 };
