@@ -10,13 +10,9 @@ import {
   Stack,
 } from '@mui/material';
 import {
-  TrendingUp as TrendingUpIcon,
-  TrendingDown as TrendingDownIcon,
   Casino as CasinoIcon,
-  AttachMoney as MoneyIcon,
 } from '@mui/icons-material';
 import { HistoricalWeek, Transaction } from './useTrackingData';
-import { formatCurrency } from '../../utils/formatters';
 import { TransactionManager } from './TransactionManager';
 import { TransactionCard } from './TransactionCard';
 
@@ -86,77 +82,54 @@ export const HistoricalData: React.FC<HistoricalDataProps> = ({
       {/* Overall Statistics */}
       {historicalData.length > 0 && (
         <Card sx={{ 
-          mb: 3, 
-          border: `2px solid ${totalAllTimeNet >= 0 ? '#4caf50' : '#f44336'}`,
-          boxShadow: `0 0 20px ${totalAllTimeNet >= 0 ? 'rgba(76, 175, 80, 0.3)' : 'rgba(244, 67, 54, 0.3)'}`,
-          backgroundColor: 'background.paper'
+          mb: 2, 
+          p: 2,
+          backgroundColor: 'background.paper',
+          borderRadius: 1,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          border: '1px solid',
+          borderColor: 'divider'
         }}>
-          <CardContent>
-            <Typography 
-              variant="h6" 
-              gutterBottom 
-              sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                gap: 1,
-                textAlign: 'center'
-              }}
-            >
-              <CasinoIcon />
+          <Stack spacing={2}>
+            <Typography variant="h6" textAlign="center" fontWeight={600}>
               All-Time Summary
             </Typography>
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 2 }}>
-              <Box>
-                <Typography variant="body2" color="text.secondary">
+            
+            <Stack direction="row" spacing={3} justifyContent="space-around">
+              <Stack alignItems="center">
+                <Typography variant="caption" color="text.secondary">
                   Net Result
                 </Typography>
                 <Typography 
                   variant="h5" 
-                  sx={{ 
-                    color: totalAllTimeNet >= 0 ? '#4caf50' : '#f44336',
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: 0.5,
-                    fontWeight: 'bold'
-                  }}
+                  color={totalAllTimeNet >= 0 ? 'success.main' : 'error.main'}
+                  fontWeight={700}
                 >
-                  {totalAllTimeNet >= 0 ? (
-                    <TrendingUpIcon />
-                  ) : (
-                    <TrendingDownIcon />
-                  )}
-                  {totalAllTimeNet >= 0 ? '+' : ''}{formatCurrency(Math.abs(totalAllTimeNet))}
+                  {totalAllTimeNet >= 0 ? '+' : ''}${Math.abs(totalAllTimeNet).toLocaleString()}
                 </Typography>
-              </Box>
-              <Box>
-                <Typography variant="body2" color="text.secondary">
-                  Total Transactions
+              </Stack>
+              
+              <Stack alignItems="center">
+                <Typography variant="caption" color="text.secondary">
+                  Transactions
                 </Typography>
-                <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+                <Typography variant="h5" fontWeight={700}>
                   {totalTransactions}
                 </Typography>
-              </Box>
-            </Box>
-          </CardContent>
+              </Stack>
+            </Stack>
+          </Stack>
         </Card>
       )}
 
       {/* Transaction List */}
       <Box>
-        <Typography 
+                <Typography 
           variant="h6" 
-          gutterBottom 
-          sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            gap: 1, 
-            mb: 2,
-            textAlign: 'center'
-          }}
+          textAlign="center" 
+          fontWeight={600}
+          sx={{ mb: 2 }}
         >
-          <MoneyIcon />
           Your Transactions
         </Typography>
         

@@ -12,6 +12,8 @@ import { useAuthStateCompat } from './services/useAuthStateCompat';
 import { usePageViews } from './utils/analytics-routing';
 import { initializeCompleteAnalytics } from './utils/analytics-init';
 import { bindUserIdentity, initScrollDepth } from './utils/analytics';
+import { configureStatusBar } from './native/statusBar';
+import { SplashScreen } from '@capacitor/splash-screen';
 
 function App() {
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
@@ -34,6 +36,16 @@ function App() {
     
     return cleanup;
   }, []);
+
+  // Configure status bar for native platforms
+  useEffect(() => {
+    configureStatusBar(prefersDarkMode).catch(() => {});
+    
+    // Hide splash screen after app loads
+    setTimeout(() => {
+      SplashScreen.hide().catch(() => {});
+    }, 1500);
+  }, [prefersDarkMode]);
 
   // Bind user identity for analytics when auth state changes
   useEffect(() => {

@@ -79,13 +79,13 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({ transaction, o
               
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, flexWrap: 'wrap' }}>
-                  <Chip
+                  {/* <Chip
                     label={isWin ? 'Won' : 'Lost'}
                     color={isWin ? 'success' : 'error'}
                     size="small"
                     variant="outlined"
                     sx={{ fontSize: '0.65rem', height: '20px' }}
-                  />
+                  /> */}
                   <Typography variant="caption" color="text.secondary">
                     {formatTransactionDate(transaction)}
                   </Typography>

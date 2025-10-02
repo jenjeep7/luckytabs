@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogContentText,
@@ -21,6 +20,7 @@ import {
   TextField,
 } from '@mui/material';
 import { ClaimedPrize } from '../../services/boxService';
+import SafeDialog from '../../components/SafeDialog';
 
 interface ConfirmRemoveDialogProps {
   open: boolean;
@@ -36,7 +36,7 @@ export const ConfirmRemoveDialog: React.FC<ConfirmRemoveDialogProps> = ({
   onCancel,
 }) => {
   return (
-    <Dialog open={open} onClose={onCancel}>
+    <SafeDialog open={open} onClose={onCancel}>
       <DialogTitle>Confirm Box Removal</DialogTitle>
       <DialogContent>
         <DialogContentText>
@@ -49,7 +49,7 @@ export const ConfirmRemoveDialog: React.FC<ConfirmRemoveDialogProps> = ({
           Remove
         </Button>
       </DialogActions>
-    </Dialog>
+    </SafeDialog>
   );
 };
 
@@ -69,7 +69,7 @@ export const ClaimPrizeDialog: React.FC<ClaimPrizeDialogProps> = ({
   onCancel,
 }) => {
   return (
-    <Dialog open={open} onClose={onCancel}>
+    <SafeDialog open={open} onClose={onCancel}>
       <DialogTitle>Claim Prize</DialogTitle>
       <DialogContent>
         <DialogContentText>
@@ -82,7 +82,7 @@ export const ClaimPrizeDialog: React.FC<ClaimPrizeDialogProps> = ({
           Claim Prize
         </Button>
       </DialogActions>
-    </Dialog>
+    </SafeDialog>
   );
 };
 
@@ -363,7 +363,7 @@ export const AddWinsDialog: React.FC<AddWinsDialogProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={handleCancel} maxWidth="sm" fullWidth>
+    <SafeDialog open={open} onClose={handleCancel} maxWidth="sm" fullWidth>
       <DialogTitle>Add Win - {boxName}</DialogTitle>
       <DialogContent>
         <DialogContentText sx={{ mb: 3 }}>
@@ -511,7 +511,7 @@ export const AddWinsDialog: React.FC<AddWinsDialogProps> = ({
           Add This Win
         </Button>
       </DialogActions>
-    </Dialog>
+    </SafeDialog>
   );
 };
 
@@ -624,7 +624,7 @@ export const EstimateRemainingDialog: React.FC<EstimateRemainingDialogProps> = (
 
   return (
     <>
-      <Dialog 
+      <SafeDialog 
         open={open} 
         onClose={onCancel} 
         maxWidth="md" 
@@ -694,7 +694,7 @@ export const EstimateRemainingDialog: React.FC<EstimateRemainingDialogProps> = (
           Update
         </Button>
       </DialogActions>
-    </Dialog>
+    </SafeDialog>
 
     {/* Add Wins Dialog */}
     <AddWinsDialog

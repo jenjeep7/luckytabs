@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
@@ -12,6 +11,7 @@ import {
   InputAdornment,
 } from '@mui/material';
 import { AttachMoney as MoneyIcon } from '@mui/icons-material';
+import SafeDialog from '../../components/SafeDialog';
 import { collection, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { Budget } from './useTrackingData';
@@ -88,7 +88,7 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <SafeDialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>
         {currentBudget ? 'Edit Weekly Budget' : 'Set Weekly Budget'}
       </DialogTitle>
@@ -175,6 +175,6 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({
           {isLoading ? 'Saving...' : currentBudget ? 'Update Budget' : 'Set Budget'}
         </Button>
       </DialogActions>
-    </Dialog>
+    </SafeDialog>
   );
 };
