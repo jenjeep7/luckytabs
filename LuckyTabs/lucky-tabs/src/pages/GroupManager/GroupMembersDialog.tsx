@@ -1,12 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Dialog,
   DialogTitle,
   DialogContent,
-  Box,
+  DialogActions,
+  Button,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction,
+  ListItemAvatar,
+  Avatar,
   Typography,
+  Box,
+  Alert,
+  CircularProgress,
   IconButton
 } from '@mui/material';
+import SafeDialog from '../../components/SafeDialog';
 import {
   Group as GroupIcon,
   Close as CloseIcon
@@ -83,7 +93,7 @@ export const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
   const isCreator = group?.createdBy === currentUserId;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <SafeDialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -116,6 +126,6 @@ export const GroupMembersDialog: React.FC<GroupMembersDialogProps> = ({
           onMemberRemove={(memberId) => { void handleRemoveMember(memberId); }}
         />
       </DialogContent>
-    </Dialog>
+    </SafeDialog>
   );
 };

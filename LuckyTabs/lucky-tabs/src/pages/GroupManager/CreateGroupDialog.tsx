@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
@@ -10,6 +9,7 @@ import {
   Alert,
   CircularProgress
 } from '@mui/material';
+import SafeDialog from '../../components/SafeDialog';
 import { groupService } from '../../services/groupService';
 
 interface CreateGroupDialogProps {
@@ -53,7 +53,7 @@ export const CreateGroupDialog: React.FC<CreateGroupDialogProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <SafeDialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>Create New Group</DialogTitle>
       <DialogContent>
         <Box sx={{ pt: 1 }}>
@@ -91,6 +91,6 @@ export const CreateGroupDialog: React.FC<CreateGroupDialogProps> = ({
           {loading ? <CircularProgress size={20} /> : 'Create Group'}
         </Button>
       </DialogActions>
-    </Dialog>
+    </SafeDialog>
   );
 };

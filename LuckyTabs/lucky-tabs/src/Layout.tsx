@@ -131,8 +131,13 @@ function Layout() {
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%' }}>
       {/* Top AppBar (only when logged-in) */}
       {user && (
-        <AppBar component="nav" position="fixed">
-          <Toolbar>
+        <AppBar component="nav" position="fixed" sx={{ pt: 'var(--safe-top)' }}>
+          <Toolbar
+            sx={{
+              // keep normal toolbar heights; the AppBar itself is taller due to pt above
+              minHeight: { xs: 56, md: 64 },
+            }}
+          >
             <Typography
               variant="h6"
               sx={{ 
@@ -173,10 +178,14 @@ function Layout() {
         sx={{
           flexGrow: 1,
           width: '100%',
-          // top padding to clear the AppBar when logged-in
-          pt: user ? { xs: '56px', md: '64px' } : 0,
-          // bottom padding to clear BottomNavigation on mobile
-          pb: user ? { xs: 'calc(env(safe-area-inset-bottom) + 64px)', md: 0 } : 0,
+          // 56/64 are Material mobile/desktop app bar heights + safe area
+          pt: user
+            ? { xs: 'calc(56px + var(--safe-top))', md: '64px' }
+            : 0,
+          // bottom padding: leave space for BottomNavigation + bottom safe-area
+          pb: user
+            ? { xs: 'calc(64px + var(--safe-bottom))', md: 0 }
+            : 0,
         }}
       >
   {user && isMdUp && <Toolbar sx={{ display: 'none' } /* already accounted with pt */} />}
@@ -196,7 +205,8 @@ function Layout() {
             bottom: 0,
             zIndex: (t) => t.zIndex.appBar, // keep on top
             display: { xs: 'block', md: 'none' },
-            pb: 'env(safe-area-inset-bottom)',
+            // push above the iOS home indicator / Android gesture bar
+            pb: 'var(--safe-bottom)',
           }}
         >
           <BottomNavigation

@@ -120,31 +120,13 @@ export const Tracking: React.FC = () => {
     }}>
       <Box sx={{ 
         display: 'flex', 
-        justifyContent: 'center',
-        alignItems: 'center', 
-        mb: 3 
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        mb: 3,
+        px: { xs: 3 },
+        width: '100%'
       }}>
-        <Box sx={{ 
-          display: 'flex', 
-          flexDirection: { xs: 'column', sm: 'row' },
-          gap: 2,
-          alignItems: 'center'
-        }}>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={() => setTransactionManagerOpen(true)}
-            sx={{ 
-              backgroundColor: 'primary.main',
-              color: 'primary.contrastText',
-              '&:hover': {
-                backgroundColor: 'primary.dark'
-              }
-            }}
-          >
-            Track $
-          </Button>
           <Button
             variant="outlined"
             size="small"
@@ -166,7 +148,21 @@ export const Tracking: React.FC = () => {
           >
             Budget
           </Button>
-        </Box>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<AddIcon />}
+            onClick={() => setTransactionManagerOpen(true)}
+            sx={{ 
+              backgroundColor: 'primary.main',
+              color: 'primary.contrastText',
+              '&:hover': {
+                backgroundColor: 'primary.dark'
+              }
+            }}
+          >
+            Track $
+          </Button>
       </Box>
 
       {/* Quick Stats Cards */}

@@ -136,6 +136,16 @@ const neonGamingTheme = createTheme({
       secondary: neonColors.text.secondary,
     }
   },
+  // Z-index configuration for iOS dialog fixes
+  zIndex: {
+    mobileStepper: 1000,
+    speedDial: 1050,
+    appBar: 1100,        // Keep AppBar below modal
+    drawer: 1200,        // Drawer above AppBar
+    modal: 1600,         // Modal above everything
+    snackbar: 1400,
+    tooltip: 1500,
+  },
   neon: {
     colors: neonColors,
     effects: neonEffects

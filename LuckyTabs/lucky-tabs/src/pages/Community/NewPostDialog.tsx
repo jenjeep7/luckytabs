@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
@@ -18,6 +17,7 @@ import {
 import { communityService } from '../../services/communityService';
 import { uploadPostImage } from '../../services/storageService';
 import { GroupData } from '../../services/groupService';
+import SafeDialog from '../../components/SafeDialog';
 
 interface NewPostDialogProps {
   open: boolean;
@@ -111,7 +111,7 @@ export const NewPostDialog: React.FC<NewPostDialogProps> = ({
   const selectedGroup = userGroups.find(g => g.id === selectedGroupId);
 
   return (
-    <Dialog
+    <SafeDialog
       open={open}
       onClose={handleClose}
       maxWidth="sm"
@@ -223,6 +223,6 @@ export const NewPostDialog: React.FC<NewPostDialogProps> = ({
           {uploading ? 'Posting…' : 'Post'}
         </Button>
       </DialogActions>
-    </Dialog>
+    </SafeDialog>
   );
 };

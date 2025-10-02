@@ -7,6 +7,7 @@ export default function AppBackground() {
         position: 'fixed',
         inset: 0,
         zIndex: -1,
+        pointerEvents: 'none', // Prevent tap interception on iOS
         background: `
           radial-gradient(1200px 700px at 80% -10%, rgba(255,60,172,.25), transparent 60%),
           radial-gradient(1000px 600px at 0% 10%, rgba(0,210,255,.22), transparent 55%),

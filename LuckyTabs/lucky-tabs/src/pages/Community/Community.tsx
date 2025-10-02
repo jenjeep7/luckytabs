@@ -13,7 +13,6 @@ import {
   IconButton,
   Button,
   TextField,
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
@@ -48,6 +47,7 @@ import { userService, UserData } from '../../services/userService';
 import { groupService, GroupData } from '../../services/groupService';
 import { GroupsManager } from '../GroupManager/GroupsManager';
 import { NewPostDialog } from './NewPostDialog';
+import SafeDialog from '../../components/SafeDialog';
 import { 
   formatTime, 
   getInitialsFromName, 
@@ -410,7 +410,7 @@ function PostCard({
                 </Box>
               ))}
             </Box>
-            <Dialog open={imageModalOpen} onClose={() => setImageModalOpen(false)} maxWidth="md" fullWidth>
+            <SafeDialog open={imageModalOpen} onClose={() => setImageModalOpen(false)} maxWidth="md" fullWidth>
               <DialogContent sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative', bgcolor: 'black', p: 0 }}>
                 <IconButton
                   sx={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', color: 'white', zIndex: 2 }}
@@ -438,7 +438,7 @@ function PostCard({
                   <CloseIcon />
                 </IconButton>
               </DialogContent>
-            </Dialog>
+            </SafeDialog>
           </>
         )}
 
@@ -1183,7 +1183,7 @@ export const Community: React.FC = () => {
       />
 
       {/* Delete Confirmation Dialog */}
-      <Dialog
+      <SafeDialog
         open={deleteConfirmation.open}
         onClose={() => setDeleteConfirmation({ open: false, postId: null })}
         maxWidth="sm"
@@ -1217,7 +1217,7 @@ export const Community: React.FC = () => {
             Delete
           </Button>
         </DialogActions>
-      </Dialog>
+      </SafeDialog>
 
       {/* Snackbar */}
       <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}>

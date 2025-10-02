@@ -1,5 +1,6 @@
 import React from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, CircularProgress, TextField, Avatar, Box } from '@mui/material';
+import { DialogTitle, DialogContent, DialogActions, Button, CircularProgress, TextField, Avatar, Box } from '@mui/material';
+import SafeDialog from '../../components/SafeDialog';
 import { PhotoCamera, Save, Cancel } from '@mui/icons-material';
 
 export interface ProfileForm {
@@ -26,7 +27,7 @@ const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
   setEditForm, 
   handleAvatarUpload 
 }) => (
-  <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+  <SafeDialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
     <DialogTitle>Edit Profile</DialogTitle>
     <DialogContent>
       <Box sx={{ mt: 2 }}>
@@ -80,7 +81,7 @@ const EditProfileDialog: React.FC<EditProfileDialogProps> = ({
         {saving ? 'Saving...' : 'Save Changes'}
       </Button>
     </DialogActions>
-  </Dialog>
+  </SafeDialog>
 );
 
 export default EditProfileDialog;
