@@ -7,6 +7,7 @@ import AppRoutes from './AppRoutes';
 import { UserProfileProvider } from './context/UserProfileContext';
 import { LocationProvider } from './context/LocationContext';
 import { VersionChecker } from './components/VersionChecker';
+import { GamblingDisclaimer } from './components/GamblingDisclaimer';
 import AppBackground from './components/AppBackground';
 import { useAuthStateCompat } from './services/useAuthStateCompat';
 import { usePageViews } from './utils/analytics-routing';
@@ -39,11 +40,15 @@ function App() {
 
   // Configure status bar for native platforms
   useEffect(() => {
-    configureStatusBar(prefersDarkMode).catch(() => {});
+    configureStatusBar(prefersDarkMode).catch(() => {
+      // Silently ignore status bar configuration errors
+    });
     
     // Hide splash screen after app loads
     setTimeout(() => {
-      SplashScreen.hide().catch(() => {});
+      SplashScreen.hide().catch(() => {
+        // Silently ignore splash screen errors
+      });
     }, 1500);
   }, [prefersDarkMode]);
 
@@ -54,8 +59,11 @@ function App() {
     }
   }, [user, loading]);
   
-  console.log('[App.tsx] app loaded - ENHANCED ANALYTICS VERSION');
-  console.log('[App.tsx] Auth state - user:', user?.uid || 'no user', 'loading:', loading, 'error:', error);
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[App.tsx] app loaded - ENHANCED ANALYTICS VERSION');
+    console.log('[App.tsx] Auth state - user:', user?.uid || 'no user', 'loading:', loading, 'error:', error);
+  }
+  
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -65,6 +73,7 @@ function App() {
         <LocationProvider>
           <AppRoutes />
           <VersionChecker />
+          <GamblingDisclaimer />
         </LocationProvider>
       </UserProfileProvider>
     </ThemeProvider>
