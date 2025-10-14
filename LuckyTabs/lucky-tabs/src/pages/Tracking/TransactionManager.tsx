@@ -68,12 +68,28 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
   const [resultType, setResultType] = useState<WinLossValue>('win');
   const [amount, setAmount] = useState<string>('');
   const [description, setDescription] = useState<string>('');
+  const [gameType, setGameType] = useState<string>('Pull Tabs');
   const [selectedDate, setSelectedDate] = useState<Dayjs | null>(dayjs());
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const gameTypes = [
+    'Pull Tabs',
+    'E Tabs',
+    'Pull Tab Racing',
+    'Bingo',
+    'Lottery',
+    'Slots',
+    'Blackjack',
+    'Poker',
+    'Horse Racing',
+    'Craps',
+    'Roulette',
+    'Other'
+  ];
 
   // Populate form when editing
   useEffect(() => {
@@ -86,6 +102,7 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
       setResultType(isWin ? 'win' : 'loss');
       setAmount(editingTransaction.amount.toString());
       setDescription(editingTransaction.description || '');
+      setGameType(editingTransaction.gameType || 'Pull Tabs');
       
       // Set date from transactionDate or createdAt
       const effectiveDate = editingTransaction.transactionDate?.toDate() || 
@@ -104,6 +121,7 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
       setResultType('win');
       setAmount('');
       setDescription('');
+      setGameType('Pull Tabs');
       setSelectedDate(dayjs());
       setSelectedLocation(null);
     }
@@ -160,6 +178,7 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
           amount: amountValue,
           netAmount: netAmount,
           description: activityDescription,
+          gameType: gameType,
           location: selectedLocation?.name || '',
           locationId: selectedLocation?.id || '',
           transactionDate: Timestamp.fromDate(transactionDate),
@@ -173,6 +192,7 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
           amount: amountValue,
           netAmount: netAmount,
           description: activityDescription,
+          gameType: gameType,
           location: selectedLocation?.name || '',
           locationId: selectedLocation?.id || '',
           createdAt: serverTimestamp(),
@@ -217,6 +237,7 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
   const handleClose = () => {
     setAmount('');
     setDescription('');
+    setGameType('Pull Tabs');
     setSelectedDate(dayjs());
     setSelectedLocation(null);
     setResultType('win');
@@ -265,7 +286,7 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
                     fullWidth: true,
                     required: true,
                     size: "small",
-                    helperText: "When did this gambling activity occur?",
+                    // helperText: "When did this gambling activity occur?",
                     InputProps: {
                       startAdornment: (
                         <InputAdornment position="start">
@@ -362,6 +383,25 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
               </Typography>
             </Box>
           )}
+
+          {/* Game Type Field */}
+          <Box sx={{ mb: 3 }}>
+            <Autocomplete
+              options={gameTypes}
+              value={gameType}
+              onChange={(event, newValue) => setGameType(newValue || 'Pull Tabs')}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Game Type"
+                  size="small"
+                  required
+                  helperText="Select the type of gambling activity"
+                />
+              )}
+              disableClearable
+            />
+          </Box>
 
           {/* Description Field */}
           <Box sx={{ mb: 3 }}>

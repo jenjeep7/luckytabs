@@ -17,6 +17,7 @@ export interface Transaction {
   amount: number;
   netAmount?: number; // New field for the net result
   description?: string;
+  gameType?: string; // Type of gambling activity
   location?: string;
   createdAt: Timestamp | null;
   transactionDate?: Timestamp | null; // When the gambling activity actually occurred

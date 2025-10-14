@@ -92,7 +92,7 @@ export const Play: React.FC = () => {
   }, [user]);
 
   // Box view toggle state
-  const [boxView, setBoxView] = useState<'my' | 'group'>('my');
+  // const [boxView, setBoxView] = useState<'my' | 'group'>('my');
   
   // Group filtering state
   const [selectedGroupId, setSelectedGroupId] = useState<string>('');
@@ -103,10 +103,10 @@ export const Play: React.FC = () => {
   const [groupBoxes, setGroupBoxes] = useState<BoxItem[]>([]);
 
   // Dialog state
-  const [shareDialogOpen, setShareDialogOpen] = useState(false);
-  const [shareBoxId, setShareBoxId] = useState<string>('');
-  const [shareBoxName, setShareBoxName] = useState<string>('');
-  const [shareBoxData, setShareBoxData] = useState<BoxItem | null>(null);
+  // const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  // const [shareBoxId, setShareBoxId] = useState<string>('');
+  // const [shareBoxName, setShareBoxName] = useState<string>('');
+  // const [shareBoxData, setShareBoxData] = useState<BoxItem | null>(null);
 
   // Restore missing helper functions
   const handleChange = (event: any) => {
@@ -454,16 +454,16 @@ export const Play: React.FC = () => {
   }, [selectedLocation, user, userData, userGroups, refreshBoxes]);
 
   // Update share box data when dialog opens or boxes change
-  useEffect(() => {
-    if (shareDialogOpen && shareBoxId) {
-      const allBoxes = [...myBoxes, ...groupBoxes];
-      const boxData = allBoxes.find(box => box.id === shareBoxId);
-      setShareBoxData(boxData || null);
-    }
-  }, [shareDialogOpen, shareBoxId, myBoxes, groupBoxes]);
+  // useEffect(() => {
+  //   if (shareDialogOpen && shareBoxId) {
+  //     const allBoxes = [...myBoxes, ...groupBoxes];
+  //     const boxData = allBoxes.find(box => box.id === shareBoxId);
+  //     setShareBoxData(boxData || null);
+  //   }
+  // }, [shareDialogOpen, shareBoxId, myBoxes, groupBoxes]);
 
   // Get current boxes to display based on toggle
-  const currentBoxes = boxView === 'my' ? myBoxes : groupBoxes;
+  const currentBoxes = myBoxes
 
   // Helper to calculate RTP percent for a box
   function getBoxRTP(box: BoxItem): number {
@@ -504,13 +504,13 @@ export const Play: React.FC = () => {
   const barBoxes = [...currentBoxes.filter((box) => box.type === "bar box")].sort((a, b) => getBoxRTP(b) - getBoxRTP(a));
 
   // Share box handlers
-  const handleShareBox = (boxId: string, boxName: string) => {
-    setShareBoxId(boxId);
-    setShareBoxName(boxName);
-    // Don't set shareBoxData here - let the dialog open and then set it
-    // This ensures we always get the most current data
-    setShareDialogOpen(true);
-  };
+  // const handleShareBox = (boxId: string, boxName: string) => {
+  //   setShareBoxId(boxId);
+  //   setShareBoxName(boxName);
+  //   // Don't set shareBoxData here - let the dialog open and then set it
+  //   // This ensures we always get the most current data
+  //   setShareDialogOpen(true);
+  // };
 
   // Replace box handlers
   const handleReplaceBox = (box: BoxItem) => {
@@ -547,7 +547,7 @@ export const Play: React.FC = () => {
       <Box sx={{ 
         p: 3,
         '@media (max-width: 600px)': {
-          p: 2, // Reduce padding on mobile
+          p: 2,
         }
       }}>
         {/* Show location selector if no location is selected OR user wants to change location */}
@@ -706,7 +706,7 @@ export const Play: React.FC = () => {
       {selectedLocation && (
         <Box sx={{ mt: 2 }}>
           {/* Box View Toggle */}
-          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+          {/* <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
             <NeonToggle
               value={boxView}
               onChange={(newView) => setBoxView(newView as 'my' | 'group')}
@@ -715,10 +715,10 @@ export const Play: React.FC = () => {
                 { value: 'group', label: `GROUP BOXES` }
               ]}
             />
-          </Box>
+          </Box> */}
 
           {/* Group Selector - only show when in group view */}
-          {boxView === 'group' && (
+          {/* {boxView === 'group' && (
             <Box sx={{ mb: 3 }}>
               {userGroups.length > 0 ? (
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
@@ -762,7 +762,7 @@ export const Play: React.FC = () => {
                 </Paper>
               )}
             </Box>
-          )}
+          )} */}
 
           {/* Box Dashboard by Type */}
           
@@ -930,11 +930,11 @@ export const Play: React.FC = () => {
                             <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.primary', fontSize: '1rem' }}>
                               {box.boxName}
                             </Typography>
-                            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.9rem', mt: 0.5 }}>
+                            {/* <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.9rem', mt: 0.5 }}>
                               {boxView === 'group' && box.ownerName && (
                                 <>by {box.ownerName}</>
                               )}
-                            </Typography>
+                            </Typography> */}
                             {lastUpdated && (
                               <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.7rem', mt: 0.5 }}>
                                 Updated: {lastUpdated}
@@ -954,9 +954,8 @@ export const Play: React.FC = () => {
                         </Box>
                         
                         {/* Bottom section with share button */}
-                        {boxView === 'my' && (
+                        
                           <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mt: 1 }}>
-                            {boxView === 'my' && (
                               <Box sx={{ display: 'flex', gap: 0.5 }}>
                                 <IconButton
                                   size="small"
@@ -979,7 +978,7 @@ export const Play: React.FC = () => {
                                 >
                                   <Edit fontSize="small" />
                                 </IconButton>
-                                <IconButton
+                                {/* <IconButton
                                   size="small"
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -988,11 +987,10 @@ export const Play: React.FC = () => {
                                   sx={{ color: 'primary.main' }}
                                 >
                                   <ShareIcon fontSize="small" />
-                                </IconButton>
+                                </IconButton> */}
                               </Box>
-                            )}
                           </Box>
-                        )}
+                                  
                       </Box>
                     </Box>
                   </CardContent>
@@ -1167,11 +1165,11 @@ export const Play: React.FC = () => {
                                 <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.primary', fontSize: '1rem' }}>
                                   {box.boxName}
                                 </Typography>
-                                <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.9rem', mt: 0.5 }}>
+                                {/* <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.9rem', mt: 0.5 }}>
                                   {boxView === 'group' && box.ownerName && (
                                     <>by {box.ownerName}</>
                                   )}
-                                </Typography>
+                                </Typography> */}
                                 {lastUpdated && (
                                   <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.7rem', mt: 0.5 }}>
                                     Updated: {lastUpdated}
@@ -1189,9 +1187,7 @@ export const Play: React.FC = () => {
                             </Box>
                             
                             {/* Bottom section with share button */}
-                            {boxView === 'my' && (
                               <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mt: 1 }}>
-                                {boxView === 'my' && (
                                   <Box sx={{ display: 'flex', gap: 0.5 }}>
                                     <IconButton
                                       size="small"
@@ -1214,7 +1210,7 @@ export const Play: React.FC = () => {
                                     >
                                       <Edit fontSize="small" />
                                     </IconButton>
-                                    <IconButton
+                                    {/* <IconButton
                                       size="small"
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -1223,11 +1219,9 @@ export const Play: React.FC = () => {
                                       sx={{ color: 'primary.main' }}
                                     >
                                       <ShareIcon fontSize="small" />
-                                    </IconButton>
+                                    </IconButton> */}
                                   </Box>
-                                )}
                               </Box>
-                            )}
                           </Box>
                         </Box>
                       </CardContent>
@@ -1242,12 +1236,11 @@ export const Play: React.FC = () => {
           {wallBoxes.length === 0 && barBoxes.length === 0 && (
             <Paper sx={{ p: 4, textAlign: 'center' }}>
               <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
-                {boxView === 'my' ? 'No boxes created yet' : 'No shared boxes for this location'}
+                {'No boxes created yet'}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                {boxView === 'my' 
-                  ? 'Create your first box to get started with pull tab tracking'
-                  : 'Boxes shared with you by friends will appear here'
+                { 
+                   'Create your first box to get started with pull tab tracking'
                 }
               </Typography>
             </Paper>
@@ -1323,7 +1316,7 @@ export const Play: React.FC = () => {
       />
 
       {/* Share Box Dialog */}
-      {user && (
+      {/* {user && (
         <ShareBoxDialog
           open={shareDialogOpen}
           onClose={() => {
@@ -1338,7 +1331,7 @@ export const Play: React.FC = () => {
           currentUserId={user.uid}
           existingShares={shareBoxData?.shares || []}
         />
-      )}
+      )} */}
 
       {/* Replace Box Confirmation Dialog */}
       <SafeDialog

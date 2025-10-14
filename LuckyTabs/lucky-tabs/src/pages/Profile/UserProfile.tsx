@@ -33,7 +33,7 @@ import EditProfileDialog from './EditProfileDialog';
 import { MetricThresholdsSettings } from './MetricThresholdsSettings';
 import { getVersionInfo } from '../../utils/version';
 import { ProfileFlare } from './ProfileFlare';
-import { AchievementBanner } from './AchievementBanner';
+// import { AchievementBanner } from './AchievementBanner';
 import { useMetricThresholds, MetricThresholds } from '../../hooks/useMetricThresholds';
 import { useUserProfile } from '../../context/UserProfileContext';
 import type { User } from 'firebase/auth';
@@ -360,7 +360,7 @@ export const UserProfile: React.FC = () => {
   return (
     <Container maxWidth="md" sx={{ p: 2 }}>
       {/* Achievement Banner - Placeholder for future badges */}
-      <AchievementBanner />
+      {/* <AchievementBanner /> */}
     
 
       {/* Flare Sheet Section */}
@@ -426,13 +426,13 @@ export const UserProfile: React.FC = () => {
                   <Typography variant="body2">
                     <strong>Member since:</strong> {userData.createdAt.toLocaleDateString()}
                   </Typography>
-                  <Typography variant="body2">
+                  {/* <Typography variant="body2">
                     <strong>Groups:</strong> {userData.groups.length}
                   </Typography>
                   <Typography variant="body2">
                     <strong>Friends:</strong> {userData.friends.length}
-                  </Typography>
-                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                  </Typography> */}
+                   {/* <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
                      <Typography variant="body2" sx={{ flexGrow: 1 }}>
                        <strong>Plan:</strong> {userData.plan}
                      </Typography>
@@ -444,10 +444,10 @@ export const UserProfile: React.FC = () => {
                      >
                        {userData.plan === 'pro' ? 'Manage Plan' : 'Go Pro'}
                      </Button>
-                   </Box>
+                   </Box> */}
                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
                      <Typography variant="body2" sx={{ flexGrow: 1 }}>
-                       <strong>Box Metrics:</strong> Custom thresholds
+                       <strong>My Win Condition:</strong> Personal analytics!
                      </Typography>
                      <Button
                        size="small"
