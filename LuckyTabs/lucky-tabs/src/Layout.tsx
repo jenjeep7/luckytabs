@@ -17,13 +17,11 @@ import AutoGraph from '@mui/icons-material/AutoGraph';
 import GroupIcon from '@mui/icons-material/Group';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import PersonIcon from '@mui/icons-material/Person';
-import FeedbackIcon from '@mui/icons-material/Feedback';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { signOutCompat } from './services/authService';
 import { Footer } from './components/Footer';
 import { useLocation as useLocationContext } from './hooks/useLocation';
-import { FeedbackDialog } from './components/FeedbackDialog';
 
 
 
@@ -37,21 +35,18 @@ type NavItem = {
   icon: React.ReactElement;
   route?: string;
   email?: string;
-  action?: 'feedback';
 };
 
 const navItems: NavItem[] = [
   { label: 'Profile', route: '/profile', icon: <PersonIcon /> },
   { label: 'Log Box', route: '/play', icon: <AutoGraph /> },
   { label: 'Profit/Loss', route: '/tracking', icon: <ListAltIcon /> },
-  { label: 'Social', route: '/community', icon: <GroupIcon /> },
-  { label: 'Feedback', action: 'feedback', icon: <FeedbackIcon /> },
+  // { label: 'Social', route: '/community', icon: <GroupIcon /> },
 ];
 
 function Layout() {
   const [user] = useAuthStateCompat();
   const { selectedLocationObj } = useLocationContext();
-  const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
 
   const theme = useTheme();
   const isMdUp = useMediaQuery(theme.breakpoints.up('md'));
@@ -95,9 +90,7 @@ function Layout() {
       });
     };
     
-    if (item.action === 'feedback') {
-      setFeedbackDialogOpen(true);
-    } else if (item.route) {
+    if (item.route) {
       // Force scroll reset before navigation
       forceScrollToTop();
       
@@ -230,12 +223,6 @@ function Layout() {
       )}
 
       <Footer />
-      
-      {/* Feedback Dialog */}
-      <FeedbackDialog 
-        open={feedbackDialogOpen}
-        onClose={() => setFeedbackDialogOpen(false)}
-      />
     </Box>
   );
 }

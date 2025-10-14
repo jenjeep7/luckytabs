@@ -9,11 +9,8 @@ import {
   Stack,
 } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
-import { PreviewDialog } from './PreviewDialog';
 
 export const LandingPage: React.FC = () => {
-  const [previewOpen, setPreviewOpen] = useState(false);
-
   // Track landing page visit when component mounts
   useEffect(() => {
     // Get referrer information for traffic source tracking
@@ -94,7 +91,7 @@ export const LandingPage: React.FC = () => {
                 mb: { xs: 2, sm: 3 }
               }}
             >
-              Smarter Pull Tab Play Starts Here
+              {`Play smarter. Laugh harder.`}
             </Typography>
 
             <Typography 
@@ -112,7 +109,9 @@ export const LandingPage: React.FC = () => {
                 whiteSpace: 'pre-line'
               }}
             >
-              {`Tabsy helps you track wins, scan Flare, set budgets, and spot hot boxes—so you can rip with confidence, not guesswork. Built for players. Powered by data. Backed by community.`}
+              {`Tabsy Wins is your personal pull tab companion—track your play, predict your odds, and get real-time reactions from Tabsy, your sarcastic gambling sidekick.
+
+Log sessions privately, set budgets, track nearby locations, and enjoy witty commentary whether you win or (let’s be honest) lose again.`}
             </Typography>
           </Box>
 
@@ -168,45 +167,13 @@ export const LandingPage: React.FC = () => {
                   height: { xs: '42px', sm: '48px' }
                 }}
               >
-                {`Behind the Magic`}
+                {`See Features`}
               </Button>
             </Stack>
-
-            {/* Second row: Preview App button centered */}
-            <Button
-              onClick={() => setPreviewOpen(true)}
-              size="small"
-              variant="outlined"
-              sx={{
-                px: { xs: 2, sm: 2.5 },
-                py: { xs: 1, sm: 1 },
-                fontWeight: 800,
-                textTransform: 'none',
-                fontSize: { xs: '0.85rem', sm: '1rem' },
-                minWidth: { xs: '160px', sm: '120px' },
-                borderColor: 'white',
-                color: 'white',
-                borderWidth: 2,
-                '&:hover': {
-                  borderColor: 'white',
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  borderWidth: 2,
-                },
-                height: { xs: '48px' }
-              }}
-            >
-              Preview App
-            </Button>
           </Box>
 
         </Container>
       </Box>
-      
-      {/* Preview Dialog */}
-      <PreviewDialog 
-        open={previewOpen} 
-        onClose={() => setPreviewOpen(false)} 
-      />
     </Box>
   );
 };

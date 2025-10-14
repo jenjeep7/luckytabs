@@ -68,7 +68,7 @@ const Features: React.FC = () => {
             align="center"
             maxWidth={800}
             mx="auto"
-            mb={4}
+            mb={2}
             sx={{
               fontSize: { xs: '1.1rem', sm: '1.25rem', md: '1.5rem' },
               px: { xs: 1, sm: 2 },
@@ -77,7 +77,25 @@ const Features: React.FC = () => {
               ...theme.neon.effects.textGlow(theme.neon.colors.pink, 0.3),
             }}
           >
-            The smarter way to play, track, and win—powered by magic, data, and community.
+            The only pull tab app powered by magic, sarcasm, and your questionable decision-making.
+          </Typography>
+          <Typography
+            variant="h6"
+            align="center"
+            maxWidth={700}
+            mx="auto"
+            mb={4}
+            sx={{
+              fontSize: { xs: '1rem', sm: '1.1rem', md: '1.25rem' },
+              px: { xs: 1, sm: 2 },
+              lineHeight: { xs: 1.5, md: 1.6 },
+              color: theme.neon.colors.text.primary,
+              fontWeight: 500,
+            }}
+          >
+            Track your play. Predict your odds. Get roasted by Tabsy.
+            <br />
+            It&apos;s solo gambling, smarter—and way more entertaining.
           </Typography>
         </Container>
       </Box>
@@ -121,7 +139,32 @@ const Features: React.FC = () => {
                 mb: 3
               }}
             >
-              Imagine walking into your favorite restaurant, bar, VFW, American Legion or the like. The box looks untouched. You&apos;ve got a few bucks and a gut feeling. But what if you had more than just instinct?
+              Imagine walking into your favorite corner dive, American Legion, VFW or the like. The pull tab box is untouched. You&apos;ve got a few bucks, a gut feeling, and just enough optimism to ignore your past losses.
+            </Typography>
+            
+            <Typography 
+              variant="body1" 
+              color="text.secondary"
+              sx={{ 
+                fontSize: { xs: '1rem', md: '1.125rem' },
+                lineHeight: 1.7,
+                mb: 3
+              }}
+            >
+              But what if you had more than just blind hope and beer-fueled instincts?
+            </Typography>
+            
+            <Typography 
+              variant="body1" 
+              color="text.primary"
+              sx={{ 
+                fontSize: { xs: '1rem', md: '1.125rem' },
+                lineHeight: 1.7,
+                fontWeight: 500,
+                mb: 3
+              }}
+            >
+              Enter Tabsy—your sarcastic sidekick and gambling magician. He doesn&apos;t just track your play, he reacts to it. He celebrates your wins like a game show host and roasts your losses like a stand-up comic.
             </Typography>
             
             <Typography 
@@ -133,7 +176,7 @@ const Features: React.FC = () => {
                 fontWeight: 500
               }}
             >
-              Tabsy turns casual play into strategic play. It&apos;s the only app built for pull tab players to log sessions, scan flair, predict box quality, and share wins with a vibrant community. Tabsy doesn&apos;t just track—he reacts, celebrates, and guides.
+              Tabsy Wins turns casual pull tab play into strategic solo missions. Log your sessions, scan the flare, predict box quality, and get real-time sass from the only app that&apos;s rooting for you… kind of.
             </Typography>
           </Paper>
         </Container>
@@ -158,11 +201,11 @@ const Features: React.FC = () => {
               ...theme.neon.effects.textGlow(theme.neon.colors.green, 0.5),
             }}
           >
-            What Tabsy Can Do?
+            Tabsy&apos;s Toolbox
           </Typography>
           
           <Grid container spacing={{ xs: 3, md: 4 }}>
-            {/* Pull Tab Map & Venue Explorer */}
+            {/* Private Play Logs & Stats */}
             <Grid size={{ xs: 12, lg: 6 }}>
               <Paper elevation={3} sx={{
                 p: { xs: 3, md: 4 },
@@ -179,58 +222,24 @@ const Features: React.FC = () => {
                   color="text.primary"
                   sx={{ mb: 2 }}
                 >
-                  🗺️ Pull Tab Map & Venue Explorer
-                </Typography>
-                <Typography 
-                  variant="body1" 
-                  color="text.secondary"
-                  sx={{ 
-                    fontSize: { xs: '0.95rem', md: '1rem' },
-                    lineHeight: 1.6,
-                    mb: 3
-                  }}
-                >
-                  Tabsy&apos;s integrated map helps you search and create nearby pull tab locations, explore what each venue offers, and see who&apos;s running the games behind the scenes. Whether you&apos;re chasing a new box or supporting a local nonprofit, Tabsy makes it easy to play with purpose.
-                </Typography>
-                
-                <Typography 
-                  variant="subtitle1" 
-                  fontWeight="bold" 
-                  color="text.primary"
-                  sx={{ mb: 2 }}
-                >
-                  What you&apos;ll see on the map:
+                  � Private Play Logs & Stats
                 </Typography>
                 
                 <Box sx={{ pl: 1 }}>
                   <Typography variant="body2" sx={{ mb: 1, lineHeight: 1.5 }}>
-                    📍 Nearby pull tab venues with hours and contact info
+                    Log every glorious (or not-so-glorious) session: game name, location, spend, wins, losses, and your salty notes.
                   </Typography>
                   <Typography variant="body2" sx={{ mb: 1, lineHeight: 1.5 }}>
-                    🎰 Gambling options offered (pull tabs, electronic games, bingo, raffles, etc.)
+                    Entries are private by default—because your pull tab secrets are yours alone.
                   </Typography>
-                  <Typography variant="body2" sx={{ mb: 1, lineHeight: 1.5 }}>
-                    🏛️ Nonprofit operators behind each game—so you know who benefits
-                  </Typography>
-                  <Typography variant="body2" sx={{ mb: 1, lineHeight: 1.5 }}>
-                    🧭 Community ratings and Flare freshness reports
-                  </Typography>
-                  <Typography variant="body2" sx={{ mb: 2, lineHeight: 1.5 }}>
-                    📸 User-submitted photos of boxes, Flare, and venue vibes
+                  <Typography variant="body2" sx={{ lineHeight: 1.5 }}>
+                    Visual dashboards to track your streaks, slumps, and spending habits (no judgment… okay, maybe a little).
                   </Typography>
                 </Box>
-                
-                <Typography 
-                  variant="body1" 
-                  color="text.primary"
-                  sx={{ fontWeight: 500, fontStyle: 'italic' }}
-                >
-                  Tabsy&apos;s goal? Transparency, trust, and smarter play—right down to the location.
-                </Typography>
               </Paper>
             </Grid>
 
-            {/* Budgeting & Mindful Play */}
+            {/* Pull Smart Tools */}
             <Grid size={{ xs: 12, lg: 6 }}>
               <Paper elevation={3} sx={{
                 p: { xs: 3, md: 4 },
@@ -247,43 +256,24 @@ const Features: React.FC = () => {
                   color="text.primary"
                   sx={{ mb: 2 }}
                 >
-                  💸 Budgeting & Mindful Play
-                </Typography>
-                <Typography 
-                  variant="body1" 
-                  color="text.secondary"
-                  sx={{ 
-                    fontSize: { xs: '0.95rem', md: '1rem' },
-                    lineHeight: 1.6,
-                    mb: 3
-                  }}
-                >
-                  Tabsy helps you play smarter—not just harder.
+                  🎯 Pull Smart Tools
                 </Typography>
                 
-                <Box sx={{ pl: 1, mb: 3 }}>
+                <Box sx={{ pl: 1 }}>
                   <Typography variant="body2" sx={{ mb: 1, lineHeight: 1.5 }}>
-                    Set personal budget limits and get gentle nudges when you&apos;re nearing them
+                    <strong>Budget Tracker:</strong> Set limits before your wallet stages a protest.
                   </Typography>
                   <Typography variant="body2" sx={{ mb: 1, lineHeight: 1.5 }}>
-                    Track spending trends over time to spot patterns
+                    <strong>Mindful Play Nudges:</strong> Gentle reminders to take a breather—or a walk of shame.
                   </Typography>
-                  <Typography variant="body2" sx={{ mb: 1, lineHeight: 1.5 }}>
-                    Get recovery tips when streaks dip or spending spikes
+                  <Typography variant="body2" sx={{ lineHeight: 1.5 }}>
+                    <strong>Tabsy&apos;s Alerts:</strong> &quot;You spent how much? Bold move, champ.&quot;
                   </Typography>
                 </Box>
-                
-                <Typography 
-                  variant="body1" 
-                  color="text.primary"
-                  sx={{ fontWeight: 500, fontStyle: 'italic' }}
-                >
-                  Tabsy&apos;s goal: keep the fun alive without the regret
-                </Typography>
               </Paper>
             </Grid>
 
-            {/* Smart Predictions */}
+            {/* Tabsy's AI Popups */}
             <Grid size={{ xs: 12, lg: 6 }}>
               <Paper elevation={3} sx={{
                 p: { xs: 3, md: 4 },
@@ -300,35 +290,27 @@ const Features: React.FC = () => {
                   color="text.primary"
                   sx={{ mb: 2 }}
                 >
-                  🧠 Smart Predictions
-                </Typography>
-                <Typography 
-                  variant="body1" 
-                  color="text.secondary"
-                  sx={{ 
-                    fontSize: { xs: '0.95rem', md: '1rem' },
-                    lineHeight: 1.6,
-                    mb: 3
-                  }}
-                >
-                  Tabsy uses real data, timing patterns, and community wisdom to help you decide:
+                  🎭 Tabsy&apos;s AI Popups
                 </Typography>
                 
                 <Box sx={{ pl: 1 }}>
                   <Typography variant="body2" sx={{ mb: 1, lineHeight: 1.5 }}>
-                    Should you jump in, wait, or skip?
+                    Real-time reactions from your magical, mildly condescending companion.
                   </Typography>
                   <Typography variant="body2" sx={{ mb: 1, lineHeight: 1.5 }}>
-                    Is this box heating up or cooling off?
+                    Win big? Tabsy throws confetti (and shade).
                   </Typography>
                   <Typography variant="body2" sx={{ mb: 1, lineHeight: 1.5 }}>
-                    What&apos;s your streak telling you?
+                    Lose again? Prepare for a roast. He&apos;s got jokes.
+                  </Typography>
+                  <Typography variant="body2" sx={{ lineHeight: 1.5 }}>
+                    Choose your sass level: <em>Light Tease</em>, <em>Full Roast</em>, or <em>Please Be Nice, Tabsy</em>.
                   </Typography>
                 </Box>
               </Paper>
             </Grid>
 
-            {/* Box Tracking & Insights */}
+            {/* Game Discovery (Solo Style) */}
             <Grid size={{ xs: 12, lg: 6 }}>
               <Paper elevation={3} sx={{
                 p: { xs: 3, md: 4 },
@@ -345,41 +327,30 @@ const Features: React.FC = () => {
                   color="text.primary"
                   sx={{ mb: 2 }}
                 >
-                  📊 Box Tracking & Insights
-                </Typography>
-                <Typography 
-                  variant="body1" 
-                  color="text.secondary"
-                  sx={{ 
-                    fontSize: { xs: '0.95rem', md: '1rem' },
-                    lineHeight: 1.6,
-                    mb: 3
-                  }}
-                >
-                  Turn data into decisions.
+                  � Game Discovery (Solo Style)
                 </Typography>
                 
                 <Box sx={{ pl: 1 }}>
                   <Typography variant="body2" sx={{ mb: 1, lineHeight: 1.5 }}>
-                    Log your play history by location, game, and outcome
+                    Find trending boxes near you—no need to ask the bartender or eavesdrop.
                   </Typography>
                   <Typography variant="body2" sx={{ mb: 1, lineHeight: 1.5 }}>
-                    Upload Flare photos and shuffled ticket images for analysis
+                    Save your favorite games and venues like a true pull tab connoisseur.
                   </Typography>
-                  <Typography variant="body2" sx={{ mb: 1, lineHeight: 1.5 }}>
-                    Track wins, losses, budget, and box quality over time
+                  <Typography variant="body2" sx={{ lineHeight: 1.5 }}>
+                    Tabsy&apos;s take on your odds: &quot;This box? 69% chance. But hey, you&apos;ve beaten worse.&quot;
                   </Typography>
                 </Box>
               </Paper>
             </Grid>
 
-            {/* Community Magic */}
+            {/* Personal Insights */}
             <Grid size={{ xs: 12 }}>
               <Paper elevation={3} sx={{
                 p: { xs: 3, md: 4 },
-                border: `1.5px solid ${theme.neon.colors.cyan}`,
+                border: `1.5px solid ${theme.neon.colors.purple}`,
                 background: 'rgba(18,20,24,0.92)',
-                boxShadow: theme.neon.effects.boxGlow(theme.neon.colors.cyan, 0.13).boxShadow,
+                boxShadow: theme.neon.effects.boxGlow(theme.neon.colors.purple, 0.13).boxShadow,
                 borderRadius: 1,
               }}>
                 <Typography 
@@ -389,32 +360,18 @@ const Features: React.FC = () => {
                   color="text.primary"
                   sx={{ mb: 2 }}
                 >
-                  👥 Community Magic
-                </Typography>
-                <Typography 
-                  variant="body1" 
-                  color="text.secondary"
-                  sx={{ 
-                    fontSize: { xs: '0.95rem', md: '1rem' },
-                    lineHeight: 1.6,
-                    mb: 3
-                  }}
-                >
-                  Pull tabs are better together.
+                  � Personal Insights
                 </Typography>
                 
                 <Box sx={{ pl: 1 }}>
                   <Typography variant="body2" sx={{ mb: 1, lineHeight: 1.5 }}>
-                    Share your finds, swap strategies, and celebrate wins
+                    Your win/loss ratios, average spend, and streaks—served with a side of snark.
                   </Typography>
                   <Typography variant="body2" sx={{ mb: 1, lineHeight: 1.5 }}>
-                    Join private groups or public feeds
+                    Compare your current vibe to your past performance. Spoiler: Tabsy remembers everything.
                   </Typography>
-                  <Typography variant="body2" sx={{ mb: 1, lineHeight: 1.5 }}>
-                    Record rip videos and tag #tabsywins to spotlight your favorite venues
-                  </Typography>
-                  <Typography variant="body2" sx={{ mb: 1, lineHeight: 1.5 }}>
-                    Learn from tutorials and tips shared by the crew
+                  <Typography variant="body2" sx={{ lineHeight: 1.5 }}>
+                    No group stats. No leaderboards. Just you vs. the odds (and Tabsy&apos;s commentary).
                   </Typography>
                 </Box>
               </Paper>
@@ -444,7 +401,7 @@ const Features: React.FC = () => {
               ...theme.neon.effects.textGlow(theme.neon.colors.cyan, 0.7),
             }}
           >
-            Ready to Join Tabsy&apos;s Community?
+            Ready to Play Smarter?
           </Typography>
           <Typography 
             variant="h6" 
@@ -456,7 +413,7 @@ const Features: React.FC = () => {
               lineHeight: 1.6
             }}
           >
-            Connect with fellow enthusiasts, share insights, and elevate your pull tab experience today.
+            Get Tabsy in your corner—where magic meets sarcasm, and every pull is a learning experience.
           </Typography>
           <Button
             variant="contained"
