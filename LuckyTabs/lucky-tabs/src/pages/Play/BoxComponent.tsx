@@ -277,8 +277,8 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
           const currentClaimedTotal = optimisticUpdates[boxId]?.[ticketIndex] ?? currentTicket.claimedTotal;
           let newClaimedTotal: number;
           
-          // Check if this specific prize is currently claimed
-          const isPrizeClaimed = prizeIndex < currentClaimedTotal;
+          // Check if this specific prize is currently claimed (from last to first)
+          const isPrizeClaimed = prizeIndex >= (currentTicket.totalPrizes - currentClaimedTotal);
           
           if (isPrizeClaimed) {
             // Unclaim: reduce claimedTotal by 1
@@ -581,7 +581,7 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
       const claimedTotal = optimisticUpdates[box.id]?.[originalTicketIndex] ?? ticket.claimedTotal;
 
       for (let i = 0; i < totalPrizes; i++) {
-        const isClaimed = i < claimedTotal;
+        const isClaimed = i >= (totalPrizes - claimedTotal);
         allPrizeButtons.push(
           <Button
             key={`${originalTicketIndex}-${i}`}

@@ -45,9 +45,11 @@
   "scripts": {
     "start": "craco start",
     "build": "node scripts/set-version.js && craco build",
+    "build:production": "node scripts/remove-console-logs.js && node scripts/set-version.js && craco build",
     "prebuild": "node scripts/set-version.js",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "wrap-logs": "node scripts/remove-console-logs.js"
   },
   "eslintConfig": {
     "extends": [

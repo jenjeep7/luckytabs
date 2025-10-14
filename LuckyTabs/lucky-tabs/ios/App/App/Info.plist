@@ -50,5 +50,13 @@
 
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Tabsy Wins needs access to your photo library to upload images of flare sheets and winning tickets.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Tabsy Wins would like to save images to your photo library.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Tabsy Wins needs access to your camera to take photos of flare sheets and winning tickets.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Tabsy Wins uses your location to help you find and track scratch-off games at nearby stores.</string>
 </dict>
 </plist>
