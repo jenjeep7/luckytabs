@@ -56,7 +56,23 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({ transaction, o
       <CardContent sx={{ pb: '16px !important' }}>
         <Box>
           {/* Top row - Icon, main info and amount */}
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+            {transaction.gameType && (
+              <Chip
+                label={transaction.gameType}
+                size="small"
+                sx={{ 
+                  fontSize: '0.7rem', 
+                  height: '22px',
+                  // backgroundColor: 'primary.main',
+                  color: 'white',
+                  fontWeight: 500
+                }}
+              />
+            )}
+            </Box>
+
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 0 }}>
             {/* Left side - Icon and basic info */}
             <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, flex: 1, minWidth: 0 }}>
               <Box sx={{ mt: 0.5, flexShrink: 0 }}>
@@ -79,13 +95,6 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({ transaction, o
               
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, flexWrap: 'wrap' }}>
-                  {/* <Chip
-                    label={isWin ? 'Won' : 'Lost'}
-                    color={isWin ? 'success' : 'error'}
-                    size="small"
-                    variant="outlined"
-                    sx={{ fontSize: '0.65rem', height: '20px' }}
-                  /> */}
                   <Typography variant="caption" color="text.secondary">
                     {formatTransactionDate(transaction)}
                   </Typography>

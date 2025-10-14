@@ -15,16 +15,17 @@ const flareButtonStyle = {
 
 // Button configuration data
 const flareButtons = [
-  { text: 'Log a Box', onClick: '/play' },
-  { text: 'Social', onClick: '/community' },
-  { text: 'My Crews', onClick: '/community?tab=2' },
-  { text: 'Add To Phone', onClick: 'getApp' },
-  { text: 'Feedback', onClick: 'feedback' },
+  { text: 'Pull Tab Tracker', onClick: '/play' },
   { text: 'Profit/Loss', onClick: '/tracking' },
   { text: 'Responsible Playing', onClick: '/responsible-gaming' },
-  { text: 'Go Pro', onClick: null },
-  { text: 'Local Non-Profits', onClick: null },
-  { text: 'Gaming Commissions', onClick: null },
+  { text: 'Budgeting', onClick: '/tracking' },
+  { text: 'Feedback', onClick: 'feedback' },
+  // { text: 'Social', onClick: '/community' },
+  // { text: 'My Crews', onClick: '/community?tab=2' },
+  // { text: 'Add To Phone', onClick: 'getApp' },
+  // { text: 'Go Pro', onClick: null },
+  // { text: 'Local Non-Profits', onClick: null },
+  // { text: 'Gaming Commissions', onClick: null },
 ];
 
 export const ProfileFlare: React.FC = () => {
@@ -64,9 +65,10 @@ export const ProfileFlare: React.FC = () => {
         justifyContent: 'center', 
         alignItems: 'center', 
         bgcolor: 'background.paper', 
-        borderRadius: 2, 
+        borderRadius: 1, 
         boxShadow: 2, 
-        py: 2 
+        py: 3,
+        px: .5
       }}>
         {flareButtons.map((button, index) => (
           <Button
