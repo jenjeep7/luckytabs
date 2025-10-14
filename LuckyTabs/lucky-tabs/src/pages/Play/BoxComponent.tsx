@@ -53,6 +53,7 @@ interface BoxComponentProps {
   marginTop?: number;
   refreshBoxes?: (boxId?: string) => void;
   userGroups?: string[]; // Array of group IDs the user belongs to
+  readOnly?: boolean; // When true, disables all editing capabilities
 }
 
 export const BoxComponent: React.FC<BoxComponentProps> = ({ 
@@ -61,7 +62,8 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
   showOwner = true,
   marginTop = 3,
   refreshBoxes,
-  userGroups = []
+  userGroups = [],
+  readOnly = false
 }) => {
   const [firebaseUser] = useAuthStateCompat();
   const { userProfile } = useUserProfile();
@@ -71,6 +73,7 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
 
   // Helper function to check if user can edit a box
   const canEditBox = useCallback((box: BoxItem): boolean => {
+    if (readOnly) return false; // Read-only mode overrides all permissions
     if (!firebaseUser?.uid) return false;
     
     // Owner can always edit
@@ -85,7 +88,7 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
     }
     
     return false;
-  }, [firebaseUser?.uid, userGroups]);
+  }, [firebaseUser?.uid, userGroups, readOnly]);
 
   const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; boxId: string; boxName: string }>({
     open: false,

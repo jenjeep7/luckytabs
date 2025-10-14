@@ -20,14 +20,18 @@ import {
   Card,
   CardContent,
   Paper,
+  Chip,
 } from "@mui/material";
 import CloseIcon from '@mui/icons-material/Close';
 import PlaceIcon from '@mui/icons-material/Place';
 import SafeDialog from '../../components/SafeDialog';
 import ShareIcon from '@mui/icons-material/Share';
 import Edit from '@mui/icons-material/Edit';
-import AutorenewIcon from '@mui/icons-material/Autorenew';
-import { collection, getDocs } from "firebase/firestore";
+import ArchiveIcon from '@mui/icons-material/Archive';
+import DeleteIcon from '@mui/icons-material/Delete';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import { collection, getDocs, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../../firebase";
 import { CreateBoxForm } from "./AddBox";
 import NeonToggle from "../../components/NeonToggle";
@@ -90,8 +94,8 @@ export const Play: React.FC = () => {
     }
   }, [user]);
 
-  // Box view toggle state
-  // const [boxView, setBoxView] = useState<'my' | 'group'>('my');
+  // Box type toggle state
+  const [boxTypeView, setBoxTypeView] = useState<'bar' | 'wall'>('bar');
   
   // Group filtering state
   const [selectedGroupId, setSelectedGroupId] = useState<string>('');
@@ -100,6 +104,8 @@ export const Play: React.FC = () => {
   // Box state
   const [myBoxes, setMyBoxes] = useState<BoxItem[]>([]);
   const [groupBoxes, setGroupBoxes] = useState<BoxItem[]>([]);
+  const [inactiveBoxes, setInactiveBoxes] = useState<BoxItem[]>([]);
+  const [showInactive, setShowInactive] = useState(false);
 
   // Dialog state
   // const [shareDialogOpen, setShareDialogOpen] = useState(false);
@@ -148,6 +154,38 @@ export const Play: React.FC = () => {
     setGroupBoxes(filteredBoxes);
   }, []);
 
+  // Fetch inactive boxes for the current location and user
+  const fetchInactiveBoxes = useCallback(async () => {
+    if (selectedLocation && user) {
+      try {
+        const snapshot = await getDocs(collection(db, "boxes"));
+        const inactive: BoxItem[] = snapshot.docs
+          .map((doc) => {
+            const docData = doc.data();
+            return {
+              id: doc.id,
+              boxName: (docData.boxName as string) || '',
+              pricePerTicket: (docData.pricePerTicket as string) || '',
+              type: (docData.type as "wall" | "bar box") || 'wall',
+              locationId: (docData.locationId as string) || '',
+              ownerId: (docData.ownerId as string) || '',
+              isActive: docData.isActive !== false,
+              ...docData,
+            } as BoxItem;
+          })
+          .filter((box) => 
+            box.locationId === selectedLocation && 
+            !box.isActive && 
+            box.ownerId === user.uid
+          );
+        
+        setInactiveBoxes(inactive);
+      } catch (error) {
+        console.error("Error fetching inactive boxes:", error);
+      }
+    }
+  }, [selectedLocation, user]);
+
   const refreshBoxes = useCallback(async (boxIdToUpdate?: string) => {
     if (selectedLocation && user) {
       try {
@@ -185,6 +223,9 @@ export const Play: React.FC = () => {
 
         setMyBoxes(enrichedMyBoxes);
         setAllGroupBoxes(enrichedSharedBoxes);
+        
+        // Fetch inactive boxes separately
+        await fetchInactiveBoxes();
         
         // Initialize selected group on first load - find group with boxes
         if (!selectedGroupId && userGroups.length > 0) {
@@ -238,14 +279,19 @@ export const Play: React.FC = () => {
             ...docData,
           };
         })
-        .filter((box) => box.locationId === selectedLocation && box.isActive);
+        .filter((box) => box.locationId === selectedLocation);
         
-        // Split into my boxes and others
-        const userBoxes = data.filter(box => box.ownerId === user?.uid);
-        const otherBoxes = data.filter(box => box.ownerId !== user?.uid);
+        // Split into active and inactive boxes
+        const activeBoxes = data.filter(box => box.isActive);
+        const inactive = data.filter(box => !box.isActive && box.ownerId === user?.uid);
+        
+        // Split active boxes into my boxes and others
+        const userBoxes = activeBoxes.filter(box => box.ownerId === user?.uid);
+        const otherBoxes = activeBoxes.filter(box => box.ownerId !== user?.uid);
         
         setMyBoxes(userBoxes);
         setGroupBoxes(otherBoxes);
+        setInactiveBoxes(inactive);
         
         // If dialog is open, update editBox with latest data
         if (editBox && boxIdToUpdate) {
@@ -291,10 +337,15 @@ export const Play: React.FC = () => {
   const [editFormBox, setEditFormBox] = useState<BoxItem | null>(null);
   const [showLocationSelector, setShowLocationSelector] = useState(false);
   
-  // Replace box state
-  const [replaceConfirmOpen, setReplaceConfirmOpen] = useState(false);
-  const [boxToReplace, setBoxToReplace] = useState<BoxItem | null>(null);
-  const [replaceMode, setReplaceMode] = useState(false);
+  // Close box state
+  const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
+  const [boxToClose, setBoxToClose] = useState<BoxItem | null>(null);
+  const [isClosingBox, setIsClosingBox] = useState(false);
+
+  // Delete box state
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [boxToDelete, setBoxToDelete] = useState<BoxItem | null>(null);
+  const [isDeletingBox, setIsDeletingBox] = useState(false);
 
   // Get user location on mount
   useEffect(() => {
@@ -511,27 +562,74 @@ export const Play: React.FC = () => {
   //   setShareDialogOpen(true);
   // };
 
-  // Replace box handlers
-  const handleReplaceBox = (box: BoxItem) => {
-    setBoxToReplace(box);
-    setReplaceConfirmOpen(true);
+  // Close box handlers
+  const handleCloseBox = (box: BoxItem) => {
+    setBoxToClose(box);
+    setCloseConfirmOpen(true);
   };
 
-  const handleConfirmReplace = () => {
-    setReplaceConfirmOpen(false);
-    setReplaceMode(true);
-    setOpenCreateBox(true);
+  const handleConfirmCloseBox = async () => {
+    if (!boxToClose) return;
+    
+    setIsClosingBox(true);
+    try {
+      // Update the box's isActive field to false
+      const boxRef = doc(db, 'boxes', boxToClose.id);
+      await updateDoc(boxRef, {
+        isActive: false
+      });
+      
+      // Refresh the boxes list
+      await refreshBoxes();
+      
+      // Close the dialog
+      setCloseConfirmOpen(false);
+      setBoxToClose(null);
+    } catch (error) {
+      console.error('Error closing box:', error);
+      // You could add error handling UI here if needed
+    } finally {
+      setIsClosingBox(false);
+    }
   };
 
-  const handleCancelReplace = () => {
-    setReplaceConfirmOpen(false);
-    setBoxToReplace(null);
+  const handleCancelCloseBox = () => {
+    setCloseConfirmOpen(false);
+    setBoxToClose(null);
   };
 
-  const handleCloseCreateBox = () => {
-    setOpenCreateBox(false);
-    setReplaceMode(false);
-    setBoxToReplace(null);
+  // Delete box handlers (for permanent deletion)
+  const handleDeleteBox = (box: BoxItem) => {
+    setBoxToDelete(box);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDeleteBox = async () => {
+    if (!boxToDelete) return;
+    
+    setIsDeletingBox(true);
+    try {
+      // Permanently delete the box from Firestore
+      const boxRef = doc(db, 'boxes', boxToDelete.id);
+      await deleteDoc(boxRef);
+      
+      // Refresh the boxes list
+      await refreshBoxes();
+      
+      // Close the dialog
+      setDeleteConfirmOpen(false);
+      setBoxToDelete(null);
+    } catch (error) {
+      console.error('Error deleting box:', error);
+      alert('Failed to delete box. Please try again.');
+    } finally {
+      setIsDeletingBox(false);
+    }
+  };
+
+  const handleCancelDeleteBox = () => {
+    setDeleteConfirmOpen(false);
+    setBoxToDelete(null);
   };
 
   return (
@@ -650,8 +748,6 @@ export const Play: React.FC = () => {
               }
             }}
             onClick={() => {
-              setReplaceMode(false);
-              setBoxToReplace(null);
               setOpenCreateBox(true);
             }}
             size="small"
@@ -662,10 +758,10 @@ export const Play: React.FC = () => {
       )}
 
       {/* Create Box Modal */}
-  <SafeDialog open={openCreateBox} onClose={handleCloseCreateBox} fullScreen>
+  <SafeDialog open={openCreateBox} onClose={() => setOpenCreateBox(false)} fullScreen>
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          {replaceMode ? `Replace Box: ${boxToReplace?.boxName || 'Unknown'}` : 'Create New Box'}
-          <IconButton onClick={handleCloseCreateBox}>
+          Create New Box
+          <IconButton onClick={() => setOpenCreateBox(false)}>
             <CloseIcon />
           </IconButton>
         </DialogTitle>
@@ -673,10 +769,8 @@ export const Play: React.FC = () => {
           {selectedLocationObj && (
             <CreateBoxForm
               location={selectedLocationObj}
-              onClose={handleCloseCreateBox}
+              onClose={() => setOpenCreateBox(false)}
               onBoxCreated={() => { void refreshBoxes(); }}
-              replaceMode={replaceMode}
-              boxToReplace={boxToReplace}
             />
           )}
         </DialogContent>
@@ -704,17 +798,17 @@ export const Play: React.FC = () => {
       {/* Display Box Dashboard */}
       {selectedLocation && (
         <Box sx={{ mt: 2 }}>
-          {/* Box View Toggle */}
-          {/* <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+          {/* Box Type Toggle */}
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
             <NeonToggle
-              value={boxView}
-              onChange={(newView) => setBoxView(newView as 'my' | 'group')}
+              value={boxTypeView}
+              onChange={(newView) => setBoxTypeView(newView as 'bar' | 'wall')}
               options={[
-                { value: 'my', label: `MY BOXES` },
-                { value: 'group', label: `GROUP BOXES` }
+                { value: 'bar', label: `BAR BOXES` },
+                { value: 'wall', label: `WALL BOXES` }
               ]}
             />
-          </Box> */}
+          </Box>
 
           {/* Group Selector - only show when in group view */}
           {/* {boxView === 'group' && (
@@ -765,8 +859,224 @@ export const Play: React.FC = () => {
 
           {/* Box Dashboard by Type */}
           
+          {/* Bar Boxes Section */}
+          {boxTypeView === 'bar' && barBoxes.length > 0 && (
+            <Box sx={{ mb: 4 }}>
+              {/* Group Header with Neon Divider */}
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                mb: 4,
+                '&::before, &::after': {
+                  content: '""',
+                  flex: 1,
+                  height: '2px',
+                  background: 'linear-gradient(90deg, transparent, #7DF9FF66, transparent)',
+                  boxShadow: '0 0 8px rgba(125, 249, 255, 0.4)',
+                  zIndex: 10
+                },
+                '&::before': { mr: 3 },
+                '&::after': { ml: 3 }
+              }}>
+                <Typography 
+                  variant="h4" 
+                  sx={{ 
+                    ...getNeonHeaderStyle(),
+                    px: 2
+                  }}
+                >
+                  Bar Boxes
+                </Typography>
+              </Box>
+              
+              {/* Bar Boxes Grid */}
+              <Box sx={{ 
+                display: 'grid', 
+                gridTemplateColumns: {
+                  xs: '1fr',
+                  sm: 'repeat(auto-fit, minmax(320px, 1fr))',
+                  lg: 'repeat(auto-fit, minmax(350px, 1fr))',
+                },
+                gap: 1.5,
+                mb: 2,
+                maxWidth: {
+                  lg: '1400px',
+                  xl: '1600px'
+                },
+                mx: 'auto'
+              }}>
+                {barBoxes.map((box) => {
+                  const pricePerTicket = parseFloat(box.pricePerTicket);
+                  
+                  // Calculate estimated tickets from either format
+                  let estimatedTickets = box.estimatedRemainingTickets || 0;
+                  
+                  // If no top-level estimatedRemainingTickets, try to calculate from rows
+                  if (estimatedTickets === 0 && (box as any).rows && Array.isArray((box as any).rows)) {
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+                    estimatedTickets = (box as any).rows.reduce((total: number, row: any) => {
+                      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                      return total + (Number(row.estimatedTicketsRemaining) || 0);
+                    }, 0);
+                  }
+                  
+                  // Calculate EV and metrics
+                  let evColor = statusColors.poor; // Default to poor
+                  let evStatus = 'No Data';
+                  
+                  if (estimatedTickets > 0 && box.winningTickets && Array.isArray(box.winningTickets) && box.winningTickets.length > 0) {
+                    const prizes = box.winningTickets
+                      .filter((ticket: WinningTicket) => ticket.prize && ticket.prize.toString().trim() !== '' && Number(ticket.totalPrizes) > 0)
+                      .map((ticket: WinningTicket) => ({
+                        value: Number(ticket.prize),
+                        remaining: Number(ticket.totalPrizes) - Number(ticket.claimedTotal)
+                      }));
+
+                    // Calculate remaining prize value
+                    const totalRemainingValue = prizes.reduce((sum: number, prize) => sum + (prize.value * prize.remaining), 0);
+
+                    // EV calculation: (total remaining prize value - cost to buy all tickets) / tickets
+                    const costToCloseOut = pricePerTicket * estimatedTickets;
+                    const evData = (totalRemainingValue - costToCloseOut) / estimatedTickets;
+                    const rtpData = (totalRemainingValue / costToCloseOut) * 100;
+
+                    // Color coding based on EV and RTP using custom user thresholds
+                    const boxStatus = getBoxStatus(evData, rtpData, metricThresholds);
+                    if (boxStatus === 'good') {
+                      evColor = statusColors.good;
+                      evStatus = 'Good';
+                    } else if (boxStatus === 'decent') {
+                      evColor = statusColors.decent;
+                      evStatus = 'Decent';
+                    } else {
+                      evColor = statusColors.poor;
+                      evStatus = 'Poor';
+                    }
+                  }
+
+                  // Get last updated timestamp for estimated tickets
+                  let lastUpdated = '';
+                  if (box.estimatedTicketsUpdated) {
+                    const dateObj = typeof box.estimatedTicketsUpdated === 'string'
+                      ? new Date(box.estimatedTicketsUpdated)
+                      : (box.estimatedTicketsUpdated &&
+                          typeof box.estimatedTicketsUpdated === 'object' &&
+                          typeof (box.estimatedTicketsUpdated as { toDate?: unknown }).toDate === 'function'
+                          ? (box.estimatedTicketsUpdated as { toDate: () => Date }).toDate()
+                          : box.estimatedTicketsUpdated);
+                    lastUpdated = dateObj instanceof Date && !isNaN(dateObj.getTime())
+                      ? dateObj.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                      : '';
+                  }
+                  return (
+                    <Card 
+                      key={box.id}
+                      sx={{ 
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease-in-out',
+                        border: '3px solid',
+                        borderColor: evColor,
+                        backgroundColor: `${evColor}08`,
+                        '&:hover': {
+                          transform: 'translateY(-4px)',
+                          boxShadow: `0 8px 20px ${evColor}40`,
+                          borderColor: evColor,
+                        }
+                      }}
+                      onClick={() => setEditBox(box)}
+                    >
+                      <CardContent sx={{ pt: 1, pb: 1 }}>
+                        <Box sx={{ display: 'flex', gap: 1, height: '100%' }}>
+                          {/* Flare sheet image - left side */}
+                          {box.flareSheetUrl && (
+                            <Box sx={{ 
+                              width: '80px', 
+                              height: '100px',
+                              flexShrink: 0,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}>
+                              <img
+                                src={box.flareSheetUrl}
+                                alt={`Flare sheet for ${box.boxName}`}
+                                style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'contain',
+                                  borderRadius: '4px'
+                                }}
+                              />
+                            </Box>
+                          )}
+                          
+                          {/* Content - right side */}
+                          <Box sx={{ 
+                            flex: 1, 
+                            display: 'flex', 
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
+                            minHeight: box.flareSheetUrl ? '80px' : 'auto'
+                          }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                              <Box sx={{ flex: 1 }}>
+                                <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.primary', fontSize: '1rem' }}>
+                                  {box.boxName}
+                                </Typography>
+                                {lastUpdated && (
+                                  <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.7rem', mt: 0.5 }}>
+                                    Updated: {lastUpdated}
+                                  </Typography>
+                                )}
+                              </Box>
+                              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 50 }}>
+                                <CrystalBall
+                                  percent={getBoxRTP(box)}
+                                  size={56}
+                                  showBase
+                                  color={evStatus === 'Good' ? statusColors.good : evStatus === 'Decent' ? statusColors.decent : statusColors.poor}
+                                />
+                              </Box>
+                            </Box>
+                            
+                            {/* Bottom section with buttons */}
+                              <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mt: 1 }}>
+                                  <Box sx={{ display: 'flex', gap: 0.5 }}>
+                                    <IconButton
+                                      size="small"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleCloseBox(box);
+                                      }}
+                                      sx={theme.neon.effects.interactiveIcon()}
+                                      title="Close Box"
+                                    >
+                                      <ArchiveIcon fontSize="small" />
+                                    </IconButton>
+                                    <IconButton
+                                      size="small"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEditFormBox(box);
+                                      }}
+                                      sx={theme.neon.effects.interactiveIcon()}
+                                    >
+                                      <Edit fontSize="small" />
+                                    </IconButton>
+                                  </Box>
+                              </Box>
+                          </Box>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </Box>
+            </Box>
+          )}
+          
           {/* Wall Boxes Section */}
-          {wallBoxes.length > 0 && (
+          {boxTypeView === 'wall' && wallBoxes.length > 0 && (
             <Box sx={{ mb: 4 }}>
               {/* Group Header with Neon Divider */}
               <Box sx={{ 
@@ -952,7 +1262,7 @@ export const Play: React.FC = () => {
                           </Box>
                         </Box>
                         
-                        {/* Bottom section with share button */}
+                        {/* Bottom section with buttons */}
                         
                           <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mt: 1 }}>
                               <Box sx={{ display: 'flex', gap: 0.5 }}>
@@ -960,12 +1270,12 @@ export const Play: React.FC = () => {
                                   size="small"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleReplaceBox(box);
+                                    handleCloseBox(box);
                                   }}
                                   sx={theme.neon.effects.interactiveIcon()}
-                                  title="Replace Box"
+                                  title="Close Box"
                                 >
-                                  <AutorenewIcon fontSize="small" />
+                                  <ArchiveIcon fontSize="small" />
                                 </IconButton>
                                 <IconButton
                                   size="small"
@@ -1000,242 +1310,11 @@ export const Play: React.FC = () => {
             </Box>
           )}
 
-          {/* Bar Boxes Section */}
-          {barBoxes.length > 0 && (
-            <Box sx={{ mb: 4 }}>
-              {/* Group Header with Neon Divider */}
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                mb: 4,
-                '&::before, &::after': {
-                  content: '""',
-                  flex: 1,
-                  height: '2px',
-                  background: 'linear-gradient(90deg, transparent, #7DF9FF66, transparent)',
-                  boxShadow: '0 0 8px rgba(125, 249, 255, 0.4)',
-                  zIndex: 10
-                },
-                '&::before': { mr: 3 },
-                '&::after': { ml: 3 }
-              }}>
-                <Typography 
-                  variant="h4" 
-                  sx={{ 
-                    ...getNeonHeaderStyle(),
-                    px: 2
-                  }}
-                >
-                  Bar Boxes
-                </Typography>
-              </Box>
-              
-              {/* Bar Boxes Grid */}
-              <Box sx={{ 
-                display: 'grid', 
-                gridTemplateColumns: {
-                  xs: '1fr',
-                  sm: 'repeat(auto-fit, minmax(320px, 1fr))',
-                  lg: 'repeat(auto-fit, minmax(350px, 1fr))',
-                },
-                gap: 1.5,
-                mb: 2,
-                maxWidth: {
-                  lg: '1400px',
-                  xl: '1600px'
-                },
-                mx: 'auto'
-              }}>
-                {barBoxes.map((box) => {
-                  const pricePerTicket = parseFloat(box.pricePerTicket);
-                  
-                  // Calculate estimated tickets from either format
-                  let estimatedTickets = box.estimatedRemainingTickets || 0;
-                  
-                  // If no top-level estimatedRemainingTickets, try to calculate from rows
-                  if (estimatedTickets === 0 && (box as any).rows && Array.isArray((box as any).rows)) {
-                    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-                    estimatedTickets = (box as any).rows.reduce((total: number, row: any) => {
-                      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                      return total + (Number(row.estimatedTicketsRemaining) || 0);
-                    }, 0);
-                  }
-                  
-                  // Calculate EV and metrics
-                  let evColor = statusColors.poor; // Default to poor
-                  let evStatus = 'No Data';
-                  
-                  if (estimatedTickets > 0 && box.winningTickets && Array.isArray(box.winningTickets) && box.winningTickets.length > 0) {
-                    const prizes = box.winningTickets
-                      .filter((ticket: WinningTicket) => ticket.prize && ticket.prize.toString().trim() !== '' && Number(ticket.totalPrizes) > 0)
-                      .map((ticket: WinningTicket) => ({
-                        value: Number(ticket.prize),
-                        remaining: Number(ticket.totalPrizes) - Number(ticket.claimedTotal)
-                      }));
-
-                    // Calculate remaining prize value
-                    const totalRemainingValue = prizes.reduce((sum: number, prize) => sum + (prize.value * prize.remaining), 0);
-
-                    // EV calculation: (total remaining prize value - cost to buy all tickets) / tickets
-                    const costToCloseOut = pricePerTicket * estimatedTickets;
-                    const evData = (totalRemainingValue - costToCloseOut) / estimatedTickets;
-                    const rtpData = (totalRemainingValue / costToCloseOut) * 100;
-
-                    // Color coding based on EV and RTP using custom user thresholds
-                    const boxStatus = getBoxStatus(evData, rtpData, metricThresholds);
-                    if (boxStatus === 'good') {
-                      evColor = statusColors.good;
-                      evStatus = 'Good';
-                    } else if (boxStatus === 'decent') {
-                      evColor = statusColors.decent;
-                      evStatus = 'Decent';
-                    } else {
-                      evColor = statusColors.poor;
-                      evStatus = 'Poor';
-                    }
-                  }
-
-                  // Get last updated timestamp for estimated tickets
-                  let lastUpdated = '';
-                  if (box.estimatedTicketsUpdated) {
-                    const dateObj = typeof box.estimatedTicketsUpdated === 'string'
-                      ? new Date(box.estimatedTicketsUpdated)
-                      : (box.estimatedTicketsUpdated &&
-                          typeof box.estimatedTicketsUpdated === 'object' &&
-                          typeof (box.estimatedTicketsUpdated as { toDate?: unknown }).toDate === 'function'
-                          ? (box.estimatedTicketsUpdated as { toDate: () => Date }).toDate()
-                          : box.estimatedTicketsUpdated);
-                    lastUpdated = dateObj instanceof Date && !isNaN(dateObj.getTime())
-                      ? dateObj.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                      : '';
-                  }
-                  return (
-                    <Card 
-                      key={box.id}
-                      sx={{ 
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease-in-out',
-                        border: '3px solid',
-                        borderColor: evColor,
-                        backgroundColor: `${evColor}08`,
-                        '&:hover': {
-                          transform: 'translateY(-4px)',
-                          boxShadow: `0 8px 20px ${evColor}40`,
-                          borderColor: evColor,
-                        }
-                      }}
-                      onClick={() => setEditBox(box)}
-                    >
-                      <CardContent sx={{ pt: 1, pb: 1 }}>
-                        <Box sx={{ display: 'flex', gap: 1, height: '100%' }}>
-                          {/* Flare sheet image - left side */}
-                          {box.flareSheetUrl && (
-                            <Box sx={{ 
-                              width: '80px', 
-                              height: '100px',
-                              flexShrink: 0,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
-                            }}>
-                              <img
-                                src={box.flareSheetUrl}
-                                alt={`Flare sheet for ${box.boxName}`}
-                                style={{
-                                  width: '100%',
-                                  height: '100%',
-                                  objectFit: 'contain',
-                                  borderRadius: '4px'
-                                }}
-                              />
-                            </Box>
-                          )}
-                          
-                          {/* Content - right side */}
-                          <Box sx={{ 
-                            flex: 1, 
-                            display: 'flex', 
-                            flexDirection: 'column',
-                            justifyContent: 'space-between',
-                            minHeight: box.flareSheetUrl ? '80px' : 'auto'
-                          }}>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                              <Box sx={{ flex: 1 }}>
-                                <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.primary', fontSize: '1rem' }}>
-                                  {box.boxName}
-                                </Typography>
-                                {/* <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.9rem', mt: 0.5 }}>
-                                  {boxView === 'group' && box.ownerName && (
-                                    <>by {box.ownerName}</>
-                                  )}
-                                </Typography> */}
-                                {lastUpdated && (
-                                  <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.7rem', mt: 0.5 }}>
-                                    Updated: {lastUpdated}
-                                  </Typography>
-                                )}
-                              </Box>
-                              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: 50 }}>
-                                <CrystalBall
-                                  percent={getBoxRTP(box)}
-                                  size={56}
-                                  showBase
-                                  color={evStatus === 'Good' ? statusColors.good : evStatus === 'Decent' ? statusColors.decent : statusColors.poor}
-                                />
-                              </Box>
-                            </Box>
-                            
-                            {/* Bottom section with share button */}
-                              <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mt: 1 }}>
-                                  <Box sx={{ display: 'flex', gap: 0.5 }}>
-                                    <IconButton
-                                      size="small"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleReplaceBox(box);
-                                      }}
-                                      sx={theme.neon.effects.interactiveIcon()}
-                                      title="Replace Box"
-                                    >
-                                      <AutorenewIcon fontSize="small" />
-                                    </IconButton>
-                                    <IconButton
-                                      size="small"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setEditFormBox(box);
-                                      }}
-                                      sx={theme.neon.effects.interactiveIcon()}
-                                    >
-                                      <Edit fontSize="small" />
-                                    </IconButton>
-                                    {/* <IconButton
-                                      size="small"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleShareBox(box.id, box.boxName);
-                                      }}
-                                      sx={{ color: 'primary.main' }}
-                                    >
-                                      <ShareIcon fontSize="small" />
-                                    </IconButton> */}
-                                  </Box>
-                              </Box>
-                          </Box>
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </Box>
-            </Box>
-          )}
-
           {/* No boxes message */}
-          {wallBoxes.length === 0 && barBoxes.length === 0 && (
+          {((boxTypeView === 'wall' && wallBoxes.length === 0) || (boxTypeView === 'bar' && barBoxes.length === 0)) && (
             <Paper sx={{ p: 4, textAlign: 'center' }}>
               <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
-                {'No boxes created yet'}
+                {boxTypeView === 'bar' ? 'No bar boxes created yet' : 'No wall boxes created yet'}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                 { 
@@ -1243,6 +1322,219 @@ export const Play: React.FC = () => {
                 }
               </Typography>
             </Paper>
+          )}
+
+          {/* Inactive Boxes Section */}
+          {inactiveBoxes.length > 0 && (
+            <Box sx={{ mt: 4 }}>
+              {/* Filter inactive boxes by current box type view */}
+              {(() => {
+                const filteredInactiveBoxes = inactiveBoxes.filter(box => 
+                  boxTypeView === 'bar' ? box.type === 'bar box' : box.type === 'wall'
+                );
+                
+                if (filteredInactiveBoxes.length === 0) return null;
+                
+                return (
+                  <>
+                    <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+                      <Button
+                        onClick={() => setShowInactive(!showInactive)}
+                        variant="outlined"
+                        startIcon={showInactive ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                        sx={{ 
+                          borderColor: 'text.secondary',
+                          color: 'text.secondary',
+                          '&:hover': {
+                            borderColor: 'text.primary',
+                            color: 'text.primary'
+                          }
+                        }}
+                      >
+                        {showInactive ? 'Hide' : 'Show'} Closed {boxTypeView === 'bar' ? 'Bar' : 'Wall'} Boxes ({filteredInactiveBoxes.length})
+                      </Button>
+                    </Box>
+
+                    {showInactive && (
+                      <Box>
+                        {/* Divider with text */}
+                        <Box sx={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          mb: 3,
+                          '&::before, &::after': {
+                            content: '""',
+                            flex: 1,
+                            height: '1px',
+                            background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent)',
+                          },
+                          '&::before': { mr: 3 },
+                          '&::after': { ml: 3 }
+                        }}>
+                          <Typography 
+                            variant="h6" 
+                            sx={{ 
+                              color: 'text.secondary',
+                              px: 2
+                            }}
+                          >
+                            Closed {boxTypeView === 'bar' ? 'Bar' : 'Wall'} Boxes (View Only)
+                          </Typography>
+                        </Box>
+
+                        {/* Inactive Boxes Grid */}
+                        <Box sx={{ 
+                          display: 'grid', 
+                          gridTemplateColumns: {
+                            xs: '1fr',
+                            sm: 'repeat(auto-fit, minmax(320px, 1fr))',
+                            lg: 'repeat(auto-fit, minmax(350px, 1fr))',
+                          },
+                          gap: 1.5,
+                          mb: 2,
+                          maxWidth: {
+                            lg: '1400px',
+                            xl: '1600px'
+                          },
+                          mx: 'auto'
+                        }}>
+                          {filteredInactiveBoxes.map((box) => {
+                      // Calculate estimated tickets from either format
+                      let estimatedTickets = box.estimatedRemainingTickets || 0;
+                      
+                      if (estimatedTickets === 0 && (box as any).rows && Array.isArray((box as any).rows)) {
+                        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+                        estimatedTickets = (box as any).rows.reduce((total: number, row: any) => {
+                          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                          return total + (Number(row.estimatedTicketsRemaining) || 0);
+                        }, 0);
+                      }
+
+                      // Get last updated timestamp
+                      let lastUpdated = '';
+                      if (box.estimatedTicketsUpdated) {
+                        const dateObj = typeof box.estimatedTicketsUpdated === 'string'
+                          ? new Date(box.estimatedTicketsUpdated)
+                          : (box.estimatedTicketsUpdated &&
+                              typeof box.estimatedTicketsUpdated === 'object' &&
+                              typeof (box.estimatedTicketsUpdated as { toDate?: unknown }).toDate === 'function'
+                              ? (box.estimatedTicketsUpdated as { toDate: () => Date }).toDate()
+                              : box.estimatedTicketsUpdated);
+                        lastUpdated = dateObj instanceof Date && !isNaN(dateObj.getTime())
+                          ? dateObj.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                          : '';
+                      }
+
+                      return (
+                        <Card 
+                          key={box.id}
+                          sx={{ 
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease-in-out',
+                            border: '2px solid',
+                            borderColor: 'text.disabled',
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            opacity: 0.7,
+                            '&:hover': {
+                              opacity: 1,
+                              transform: 'translateY(-2px)',
+                              boxShadow: 2,
+                            }
+                          }}
+                          onClick={() => setEditBox(box)}
+                        >
+                          <CardContent sx={{ pt: 1, pb: 1 }}>
+                            <Box sx={{ display: 'flex', gap: 1, height: '100%' }}>
+                              {/* Flare sheet image */}
+                              {box.flareSheetUrl && (
+                                <Box sx={{ 
+                                  width: '80px', 
+                                  height: '100px',
+                                  flexShrink: 0,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
+                                }}>
+                                  <img
+                                    src={box.flareSheetUrl}
+                                    alt={`Flare sheet for ${box.boxName}`}
+                                    style={{
+                                      width: '100%',
+                                      height: '100%',
+                                      objectFit: 'contain',
+                                      borderRadius: '4px',
+                                      opacity: 0.6
+                                    }}
+                                  />
+                                </Box>
+                              )}
+                              
+                              {/* Content */}
+                              <Box sx={{ 
+                                flex: 1, 
+                                display: 'flex', 
+                                flexDirection: 'column',
+                                justifyContent: 'space-between',
+                                minHeight: box.flareSheetUrl ? '80px' : 'auto'
+                              }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                  <Box sx={{ flex: 1 }}>
+                                    <Typography variant="h6" sx={{ fontWeight: 'bold', color: 'text.secondary', fontSize: '1rem' }}>
+                                      {box.boxName}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.7rem' }}>
+                                      Closed {lastUpdated ? `• ${lastUpdated}` : ''}
+                                    </Typography>
+                                  </Box>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                    <Chip
+                                      label="CLOSED"
+                                      size="small"
+                                      sx={{ 
+                                        fontSize: '0.65rem',
+                                        height: '20px',
+                                        backgroundColor: 'text.disabled',
+                                        color: 'background.paper'
+                                      }}
+                                    />
+                                    <IconButton
+                                      size="small"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteBox(box);
+                                      }}
+                                      sx={{ 
+                                        color: 'error.main',
+                                        '&:hover': {
+                                          backgroundColor: 'error.dark',
+                                          color: 'error.contrastText'
+                                        }
+                                      }}
+                                      title="Permanently Delete Box"
+                                    >
+                                      <DeleteIcon fontSize="small" />
+                                    </IconButton>
+                                  </Box>
+                                </Box>
+                                
+                                {/* <Box sx={{ mt: 1 }}>
+                                  <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.75rem' }}>
+                                    Click to view details (view only)
+                                  </Typography>
+                                </Box> */}
+                              </Box>
+                            </Box>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </Box>
+                </Box>
+              )}
+            </>
+          );
+        })()}
+            </Box>
           )}
         </Box>
       )}
@@ -1300,6 +1592,7 @@ export const Play: React.FC = () => {
                 marginTop={0}
                 refreshBoxes={(boxId: string | undefined) => { void refreshBoxes(boxId); }}
                 userGroups={userGroups.map(g => g.id)} // Pass group IDs for permission checking
+                readOnly={editBox.isActive === false} // Make inactive boxes read-only
               />
             </Box>
           )}
@@ -1332,25 +1625,61 @@ export const Play: React.FC = () => {
         />
       )} */}
 
-      {/* Replace Box Confirmation Dialog */}
+      {/* Close Box Confirmation Dialog */}
       <SafeDialog
-        open={replaceConfirmOpen}
-        onClose={handleCancelReplace}
+        open={closeConfirmOpen}
+        onClose={handleCancelCloseBox}
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Replace Box</DialogTitle>
+        <DialogTitle>Close Box</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to replace &ldquo;{boxToReplace?.boxName}&rdquo;? This action cannot be undone and will permanently delete the current box data.
+            Are you sure you want to close &ldquo;{boxToClose?.boxName}&rdquo;? This will mark the box as inactive and remove it from your active boxes list. 
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCancelReplace} color="primary">
+          <Button onClick={handleCancelCloseBox} color="primary" disabled={isClosingBox}>
             Cancel
           </Button>
-          <Button onClick={handleConfirmReplace} color="error" variant="contained">
-            Replace Box
+          <Button 
+            onClick={() => { void handleConfirmCloseBox(); }} 
+            color="warning" 
+            variant="contained"
+            disabled={isClosingBox}
+          >
+            {isClosingBox ? 'Closing...' : 'Close Box'}
+          </Button>
+        </DialogActions>
+      </SafeDialog>
+
+      {/* Delete Box Confirmation Dialog */}
+      <SafeDialog
+        open={deleteConfirmOpen}
+        onClose={handleCancelDeleteBox}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Permanently Delete Box</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to <strong>permanently delete</strong> &ldquo;{boxToDelete?.boxName}&rdquo;? 
+            <Box component="span" sx={{ display: 'block', mt: 2, color: 'error.main', fontWeight: 'bold' }}>
+              This action cannot be undone and all box data will be lost forever.
+            </Box>
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelDeleteBox} color="primary" disabled={isDeletingBox}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={() => { void handleConfirmDeleteBox(); }} 
+            color="error" 
+            variant="contained"
+            disabled={isDeletingBox}
+          >
+            {isDeletingBox ? 'Deleting...' : 'Permanently Delete'}
           </Button>
         </DialogActions>
       </SafeDialog>
