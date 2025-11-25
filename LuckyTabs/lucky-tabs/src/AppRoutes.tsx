@@ -10,6 +10,7 @@ import { SupportCircle } from './pages/Support/SupportCircle';
 import Layout from './Layout';
 import { Play } from './pages/Play/Play';
 import { Tracking } from './pages/Tracking/Tracking';
+import { Frugal } from './pages/Frugal/Frugal';
 import { Community } from './pages/Community/Community';
 import { UserProfile } from './pages/Profile/UserProfile';
 import Features from './pages/Landing/Features';
@@ -168,6 +169,7 @@ export default function AppRoutes() {
           {/* Protected */}
           <Route path="play" element={user ? <Play /> : <Navigate to="/home" replace />} />
           <Route path="tracking" element={user ? <Tracking /> : <Navigate to="/home" replace />} />
+          <Route path="frugal" element={user ? <Frugal /> : <Navigate to="/home" replace />} />
           <Route path="community" element={user ? <Community /> : <Navigate to="/home" replace />} />
           <Route path="profile" element={user ? <UserProfile /> : <Navigate to="/home" replace />} />
           <Route path="tabsy" element={user ? <LandingPage /> : <Navigate to="/home" replace />} />

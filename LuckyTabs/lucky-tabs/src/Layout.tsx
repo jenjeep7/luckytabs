@@ -21,6 +21,7 @@ import { useMemo } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { signOutCompat } from './services/authService';
 import { Footer } from './components/Footer';
+import { FrogIcon } from './components/FrogIcon';
 import { useLocation as useLocationContext } from './hooks/useLocation';
 
 
@@ -41,6 +42,7 @@ const navItems: NavItem[] = [
   { label: 'Profile', route: '/profile', icon: <PersonIcon /> },
   { label: 'Log Box', route: '/play', icon: <AutoGraph /> },
   { label: 'Profit/Loss', route: '/tracking', icon: <ListAltIcon /> },
+  { label: 'Frugal', route: '/frugal', icon: <FrogIcon /> },
   // { label: 'Social', route: '/community', icon: <GroupIcon /> },
 ];
 
@@ -63,6 +65,8 @@ function Layout() {
         return selectedLocationObj?.name || 'Box Dashboard';
       case path.startsWith('/tracking'):
         return 'Profit/Loss';
+      case path.startsWith('/frugal'):
+        return 'Frugal Tracker';
       case path.startsWith('/community'):
         return 'Social';
       // case path.startsWith('/profile'):

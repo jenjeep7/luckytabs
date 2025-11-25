@@ -113,7 +113,7 @@ export const Footer = () => {
           </IconButton>
         </Box>
 
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2, flexWrap: 'wrap', mb: 2 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 1, mb: 2 }}>
           <Typography 
             variant="caption"
             sx={{
@@ -121,14 +121,23 @@ export const Footer = () => {
               fontSize: '0.8rem'
             }}
           >
-            {`© 2025 Tabsy's Community. All rights reserved. For entertainment purposes only. Please play responsibly.`}
+            {`© 2025 Unnecessarily Complicated Ventures, LLC Limited. All rights reserved.`}
+          </Typography>
+          <Typography 
+            variant="caption"
+            sx={{
+              color: theme.neon.colors.text.secondary,
+              fontSize: '0.75rem'
+            }}
+          >
+            {`For entertainment purposes only. Please play responsibly.`}
           </Typography>
           <Button 
             onClick={() => void navigate('/privacy-policy')}
             sx={{ 
               color: theme.neon.colors.text.secondary, 
               textTransform: 'none',
-              fontSize: 'inherit',
+              fontSize: '0.75rem',
               p: 0,
               minWidth: 'auto',
               borderRadius: 1,

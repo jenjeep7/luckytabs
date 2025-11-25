@@ -136,7 +136,7 @@ export default function PrivacyPolicy() {
           <strong>Address:</strong> 1745 White Oak Drive, Chaska, MN 55318, USA
         </Typography>
         <Typography variant="body1" component="p" sx={{ fontSize: { xs: '1rem', md: '1.1rem' }, lineHeight: 1.7, mb: 2 }}>
-          <strong>Contact:</strong> <Link href="mailto:tabsywins@gmail.com" sx={{ color: '#00E676' }}>tabsywins@gmail.com</Link>
+          <strong>Contact:</strong> <Link href="mailto:info@tabsywins.com" sx={{ color: '#00E676' }}>info@tabsywins.com</Link>
         </Typography>
 
         <Typography variant="h5" component="h2" gutterBottom sx={{ color: '#7DF9FF', fontWeight: 700, mt: 4, mb: 2 }}>
@@ -459,7 +459,7 @@ export default function PrivacyPolicy() {
           We do not &quot;sell&quot; or &quot;share&quot; personal information as defined by the California Consumer Privacy Act (CCPA) and California Privacy Rights Act (CPRA). We do not process personal information for targeted advertising or cross-context behavioral advertising.
         </Typography>
         <Typography variant="body1" component="p" sx={{ fontSize: { xs: '1rem', md: '1.1rem' }, lineHeight: 1.7, mb: 2 }}>
-          California residents can request access, deletion, or correction of their personal information by emailing <Link href="mailto:tabsywins@gmail.com" sx={{ color: '#00E676' }}>tabsywins@gmail.com</Link>. We will respond to verifiable consumer requests within 45 days. We do not currently support Global Privacy Control (GPC) signals but may implement this in the future.
+          California residents can request access, deletion, or correction of their personal information by emailing <Link href="mailto:info@tabsywins.com" sx={{ color: '#00E676' }}>info@tabsywins.com</Link>. We will respond to verifiable consumer requests within 45 days. We do not currently support Global Privacy Control (GPC) signals but may implement this in the future.
         </Typography>
 
         <Typography variant="h5" component="h2" gutterBottom sx={{ color: '#7DF9FF', fontWeight: 700, mt: 4, mb: 2 }}>
@@ -479,7 +479,7 @@ export default function PrivacyPolicy() {
           <strong>In the app:</strong> Profile → Settings → Account → Delete Account
         </Typography>
         <Typography variant="body1" component="p" sx={{ fontSize: { xs: '1rem', md: '1.1rem' }, lineHeight: 1.7, mb: 2 }}>
-          <strong>Cannot access the app?</strong> Email <Link href="mailto:tabsywins@gmail.com" sx={{ color: '#00E676' }}>tabsywins@gmail.com</Link> with your account details.
+          <strong>Cannot access the app?</strong> Email <Link href="mailto:info@tabsywins.com" sx={{ color: '#00E676' }}>info@tabsywins.com</Link> with your account details.
         </Typography>
         <Typography variant="body1" component="p" sx={{ fontSize: { xs: '1rem', md: '1.1rem' }, lineHeight: 1.7, mb: 2 }}>
           Account deletion immediately schedules the removal of your personal data from our systems, completed within 7 days except where legally required to retain certain information.
@@ -535,7 +535,7 @@ export default function PrivacyPolicy() {
         </Typography>
         <Box component="ul" sx={{ pl: 3, mb: 2 }}>
           <Typography component="li" variant="body1" sx={{ fontSize: { xs: '1rem', md: '1.1rem' }, lineHeight: 1.7, mb: 0.5 }}>
-            <strong>Email:</strong> tabsywins@gmail.com
+            <strong>Email:</strong> info@tabsywins.com
           </Typography>
           <Typography component="li" variant="body1" sx={{ fontSize: { xs: '1rem', md: '1.1rem' }, lineHeight: 1.7, mb: 0.5 }}>
             <strong>App:</strong> Use the Feedback feature in the app
