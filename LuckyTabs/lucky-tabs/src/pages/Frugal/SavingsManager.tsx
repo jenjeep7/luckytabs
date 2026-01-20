@@ -74,8 +74,19 @@ export const SavingsManager: React.FC<SavingsManagerProps> = ({
   ];
 
   const destinations = [
-    'Bank Savings',
-    'Goal',
+    'Savings Account',
+    'Individual Retirement Account (IRA)',
+    'Emergency Fund',
+    'Certificate of Deposit (CD)',
+    'Credit Card Payment',
+    'Personal Goal',
+    'Shared Goal',
+  ];
+
+  const missedReasons = [
+    'Spent on similar purchase',
+    'Spent on different purchase',
+    'Forgot to transfer',
   ];
 
   const commonItems = [
@@ -146,7 +157,7 @@ export const SavingsManager: React.FC<SavingsManagerProps> = ({
         description: description.trim(),
         savedDate: Timestamp.fromDate(selectedDate.toDate()),
         status,
-        destination: status === 'saved' ? destination : '',
+        destination: (status === 'saved' || status === 'missed') ? destination : '',
       };
 
       if (mode === 'edit' && editingEntry) {
@@ -306,21 +317,37 @@ export const SavingsManager: React.FC<SavingsManagerProps> = ({
             </FormControl>
 
             {status === 'saved' && (
-              <Autocomplete
-                freeSolo
-                options={destinations}
-                value={destination}
-                onChange={(_, newValue) => setDestination(newValue || '')}
-                onInputChange={(_, newInputValue) => setDestination(newInputValue)}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Where Did It Go?"
-                    placeholder="e.g., Bank Savings, Goal"
-                    helperText="Where did you move the money?"
-                  />
-                )}
-              />
+              <FormControl fullWidth required>
+                <InputLabel>Savings Category</InputLabel>
+                <Select
+                  value={destination}
+                  label="Savings Category"
+                  onChange={(e) => setDestination(e.target.value)}
+                >
+                  {destinations.map((dest) => (
+                    <MenuItem key={dest} value={dest}>
+                      {dest}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+
+            {status === 'missed' && (
+              <FormControl fullWidth required>
+                <InputLabel>Why Wasn&apos;t It Saved?</InputLabel>
+                <Select
+                  value={destination}
+                  label="Why Wasn't It Saved?"
+                  onChange={(e) => setDestination(e.target.value)}
+                >
+                  {missedReasons.map((reason) => (
+                    <MenuItem key={reason} value={reason}>
+                      {reason}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             )}
 
             <LocalizationProvider dateAdapter={AdapterDayjs}>

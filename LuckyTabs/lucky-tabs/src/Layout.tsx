@@ -29,6 +29,7 @@ import { useLocation as useLocationContext } from './hooks/useLocation';
 import { useAuthStateCompat } from './services/useAuthStateCompat';
 import { ScrollToTop } from './components/ScrollToTop';
 import { PageViewTracker } from './components/PageViewTracker';
+import { useUserProfile } from './context/UserProfileContext';
 
 
 type NavItem = {
@@ -43,18 +44,30 @@ const navItems: NavItem[] = [
   { label: 'Log Box', route: '/play', icon: <AutoGraph /> },
   { label: 'Profit/Loss', route: '/tracking', icon: <ListAltIcon /> },
   { label: 'Frugal', route: '/frugal', icon: <FrogIcon /> },
-  // { label: 'Social', route: '/community', icon: <GroupIcon /> },
+  { label: 'Social', route: '/community', icon: <GroupIcon /> },
 ];
 
 function Layout() {
   const [user] = useAuthStateCompat();
   const { selectedLocationObj } = useLocationContext();
+  const { userProfile } = useUserProfile();
 
   const theme = useTheme();
   const isMdUp = useMediaQuery(theme.breakpoints.up('md'));
 
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Filter nav items based on admin status
+  const visibleNavItems = useMemo(() => {
+    return navItems.filter(item => {
+      // Hide Frugal unless user is admin
+      if (item.route === '/frugal') {
+        return userProfile?.isAdmin || false;
+      }
+      return true;
+    });
+  }, [userProfile?.isAdmin]);
 
   // Determine page title based on current route
   const getPageTitle = () => {
@@ -66,7 +79,7 @@ function Layout() {
       case path.startsWith('/tracking'):
         return 'Profit/Loss';
       case path.startsWith('/frugal'):
-        return 'Frugal Tracker';
+        return 'Frugal Wins';
       case path.startsWith('/community'):
         return 'Social';
       // case path.startsWith('/profile'):
@@ -118,11 +131,11 @@ function Layout() {
 
   // Which bottom tab should be active based on the current URL
   const bottomValue = useMemo(() => {
-    const idx = navItems.findIndex(
+    const idx = visibleNavItems.findIndex(
       (i) => i.route && location.pathname.startsWith(i.route)
     );
     return idx >= 0 ? idx : 0;
-  }, [location.pathname]);
+  }, [location.pathname, visibleNavItems]);
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%' }}>
@@ -156,7 +169,7 @@ function Layout() {
 
             {/* Desktop links - only show on larger screens */}
             <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 2 }}>
-              {navItems.map((item) => (
+              {visibleNavItems.map((item) => (
                 <Button key={item.label} onClick={() => handleNavItemClick(item)} color="inherit">
                   {item.label}
                 </Button>
@@ -209,13 +222,13 @@ function Layout() {
           <BottomNavigation
             showLabels
             value={bottomValue}
-            onChange={(_e: React.SyntheticEvent, newIndex: number) => handleNavItemClick(navItems[newIndex])}
+            onChange={(_e: React.SyntheticEvent, newIndex: number) => handleNavItemClick(visibleNavItems[newIndex])}
             sx={{
               pb: 2,
               pt: 1,
             }}
           >
-            {navItems.map((item) => (
+            {visibleNavItems.map((item) => (
               <BottomNavigationAction
                 key={item.label}
                 label={item.label}
@@ -226,7 +239,7 @@ function Layout() {
         </Paper>
       )}
 
-      <Footer />
+      {!location.pathname.startsWith('/frugal') && <Footer />}
     </Box>
   );
 }

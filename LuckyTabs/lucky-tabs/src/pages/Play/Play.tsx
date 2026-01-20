@@ -96,6 +96,7 @@ export const Play: React.FC = () => {
 
   // Box type toggle state
   const [boxTypeView, setBoxTypeView] = useState<'bar' | 'wall'>('bar');
+  const [boxView, setBoxView] = useState<'my' | 'group'>('my');
   
   // Group filtering state
   const [selectedGroupId, setSelectedGroupId] = useState<string>('');
@@ -108,10 +109,10 @@ export const Play: React.FC = () => {
   const [showInactive, setShowInactive] = useState(false);
 
   // Dialog state
-  // const [shareDialogOpen, setShareDialogOpen] = useState(false);
-  // const [shareBoxId, setShareBoxId] = useState<string>('');
-  // const [shareBoxName, setShareBoxName] = useState<string>('');
-  // const [shareBoxData, setShareBoxData] = useState<BoxItem | null>(null);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shareBoxId, setShareBoxId] = useState<string>('');
+  const [shareBoxName, setShareBoxName] = useState<string>('');
+  const [shareBoxData, setShareBoxData] = useState<BoxItem | null>(null);
 
   // Restore missing helper functions
   const handleChange = (event: any) => {
@@ -504,16 +505,16 @@ export const Play: React.FC = () => {
   }, [selectedLocation, user, userData, userGroups, refreshBoxes]);
 
   // Update share box data when dialog opens or boxes change
-  // useEffect(() => {
-  //   if (shareDialogOpen && shareBoxId) {
-  //     const allBoxes = [...myBoxes, ...groupBoxes];
-  //     const boxData = allBoxes.find(box => box.id === shareBoxId);
-  //     setShareBoxData(boxData || null);
-  //   }
-  // }, [shareDialogOpen, shareBoxId, myBoxes, groupBoxes]);
+  useEffect(() => {
+    if (shareDialogOpen && shareBoxId) {
+      const allBoxes = [...myBoxes, ...groupBoxes];
+      const boxData = allBoxes.find(box => box.id === shareBoxId);
+      setShareBoxData(boxData || null);
+    }
+  }, [shareDialogOpen, shareBoxId, myBoxes, groupBoxes]);
 
   // Get current boxes to display based on toggle
-  const currentBoxes = myBoxes
+  const currentBoxes = boxView === 'my' ? myBoxes : groupBoxes
 
   // Helper to calculate RTP percent for a box
   function getBoxRTP(box: BoxItem): number {
@@ -554,13 +555,13 @@ export const Play: React.FC = () => {
   const barBoxes = [...currentBoxes.filter((box) => box.type === "bar box")].sort((a, b) => getBoxRTP(b) - getBoxRTP(a));
 
   // Share box handlers
-  // const handleShareBox = (boxId: string, boxName: string) => {
-  //   setShareBoxId(boxId);
-  //   setShareBoxName(boxName);
-  //   // Don't set shareBoxData here - let the dialog open and then set it
-  //   // This ensures we always get the most current data
-  //   setShareDialogOpen(true);
-  // };
+  const handleShareBox = (boxId: string, boxName: string) => {
+    setShareBoxId(boxId);
+    setShareBoxName(boxName);
+    // Don't set shareBoxData here - let the dialog open and then set it
+    // This ensures we always get the most current data
+    setShareDialogOpen(true);
+  };
 
   // Close box handlers
   const handleCloseBox = (box: BoxItem) => {
@@ -798,6 +799,18 @@ export const Play: React.FC = () => {
       {/* Display Box Dashboard */}
       {selectedLocation && (
         <Box sx={{ mt: 2 }}>
+          {/* Box View Toggle (My/Group) */}
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+            <NeonToggle
+              value={boxView}
+              onChange={(newView) => setBoxView(newView as 'my' | 'group')}
+              options={[
+                { value: 'my', label: 'MY BOXES' },
+                { value: 'group', label: 'GROUP BOXES' }
+              ]}
+            />
+          </Box>
+
           {/* Box Type Toggle */}
           <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
             <NeonToggle
@@ -811,7 +824,7 @@ export const Play: React.FC = () => {
           </Box>
 
           {/* Group Selector - only show when in group view */}
-          {/* {boxView === 'group' && (
+          {boxView === 'group' && (
             <Box sx={{ mb: 3 }}>
               {userGroups.length > 0 ? (
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
@@ -855,7 +868,7 @@ export const Play: React.FC = () => {
                 </Paper>
               )}
             </Box>
-          )} */}
+          )}
 
           {/* Box Dashboard by Type */}
           
@@ -1062,6 +1075,16 @@ export const Play: React.FC = () => {
                                       sx={theme.neon.effects.interactiveIcon()}
                                     >
                                       <Edit fontSize="small" />
+                                    </IconButton>
+                                    <IconButton
+                                      size="small"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleShareBox(box.id, box.boxName);
+                                      }}
+                                      sx={theme.neon.effects.interactiveIcon()}
+                                    >
+                                      <ShareIcon fontSize="small" />
                                     </IconButton>
                                   </Box>
                               </Box>
@@ -1287,16 +1310,16 @@ export const Play: React.FC = () => {
                                 >
                                   <Edit fontSize="small" />
                                 </IconButton>
-                                {/* <IconButton
+                                <IconButton
                                   size="small"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleShareBox(box.id, box.boxName);
                                   }}
-                                  sx={{ color: 'primary.main' }}
+                                  sx={theme.neon.effects.interactiveIcon()}
                                 >
                                   <ShareIcon fontSize="small" />
-                                </IconButton> */}
+                                </IconButton>
                               </Box>
                           </Box>
                                   
@@ -1608,7 +1631,7 @@ export const Play: React.FC = () => {
       />
 
       {/* Share Box Dialog */}
-      {/* {user && (
+      {user && (
         <ShareBoxDialog
           open={shareDialogOpen}
           onClose={() => {
@@ -1623,7 +1646,7 @@ export const Play: React.FC = () => {
           currentUserId={user.uid}
           existingShares={shareBoxData?.shares || []}
         />
-      )} */}
+      )}
 
       {/* Close Box Confirmation Dialog */}
       <SafeDialog

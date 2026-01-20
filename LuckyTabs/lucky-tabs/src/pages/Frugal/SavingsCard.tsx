@@ -1,6 +1,5 @@
 import React from 'react';
-import { Card, CardContent, Typography, Box, Chip, IconButton } from '@mui/material';
-import { Edit as EditIcon } from '@mui/icons-material';
+import { Card, CardContent, Typography, Box, Chip } from '@mui/material';
 import { SavingsEntry } from './useFrugalData';
 import { formatCurrency } from '../../utils/formatters';
 
@@ -48,20 +47,19 @@ export const SavingsCard: React.FC<SavingsCardProps> = ({ entry, onEdit }) => {
     <Card 
       sx={{ 
         mb: 1,
+        cursor: 'pointer',
         '&:hover': {
           boxShadow: 2,
           transform: 'translateY(-2px)',
           transition: 'all 0.2s ease-in-out',
         }
       }}
+      onClick={() => onEdit(entry)}
     >
       <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <Box sx={{ flex: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-              <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600 }}>
-                {entry.itemName}
-              </Typography>
               <Chip 
                 label={entry.category} 
                 size="small" 
@@ -80,6 +78,10 @@ export const SavingsCard: React.FC<SavingsCardProps> = ({ entry, onEdit }) => {
                 }}
               />
             </Box>
+            
+            <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600, mb: 0.5, mt: 0.5 }}>
+              {entry.itemName}
+            </Typography>
             
             {entry.description && (
               <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem', mb: 0.5 }}>
@@ -109,13 +111,6 @@ export const SavingsCard: React.FC<SavingsCardProps> = ({ entry, onEdit }) => {
             >
               {entry.status === 'missed' ? '-' : '+'}{formatCurrency(entry.amount)}
             </Typography>
-            <IconButton 
-              size="small" 
-              onClick={() => onEdit(entry)}
-              sx={{ ml: 0.5 }}
-            >
-              <EditIcon fontSize="small" />
-            </IconButton>
           </Box>
         </Box>
       </CardContent>
