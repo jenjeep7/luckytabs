@@ -257,36 +257,60 @@ class BoxService {
       const snapshot = await getDocs(boxesRef);
       const allBoxes = this.mapBoxData(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       
+      if (process.env.NODE_ENV === 'development') {
       console.log('=== GROUP SHARING DEBUG ===');
+      }
+      if (process.env.NODE_ENV === 'development') {
       console.log('User ID:', userId);
+      }
+      if (process.env.NODE_ENV === 'development') {
       console.log('User Groups:', userGroups);
+      }
+      if (process.env.NODE_ENV === 'development') {
       console.log('Total boxes:', allBoxes.length);
+      }
       
       const boxesWithShares = allBoxes.filter(box => box.shares && box.shares.length > 0);
+      if (process.env.NODE_ENV === 'development') {
       console.log('Boxes with shares:', boxesWithShares.length);
+      }
       
       boxesWithShares.forEach(box => {
+        if (process.env.NODE_ENV === 'development') {
         console.log(`\nBox: ${box.boxName} (${box.id})`);
+        }
+        if (process.env.NODE_ENV === 'development') {
         console.log('Owner:', box.ownerId);
+        }
+        if (process.env.NODE_ENV === 'development') {
         console.log('Location:', box.locationId);
+        }
+        if (process.env.NODE_ENV === 'development') {
         console.log('Shares:', box.shares);
+        }
         
         const groupShares = box.shares?.filter(share => share.shareType === 'group') || [];
         if (groupShares.length > 0) {
-          console.log('Group shares found:');
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Group shares found:');
+          }
           groupShares.forEach((share, index) => {
-            console.log(`  Group Share ${index + 1}:`, {
-              sharedWithGroups: share.sharedWith,
-              sharedBy: share.sharedBy,
-              shareType: share.shareType,
-              sharedAt: share.sharedAt,
-              userIsInAnyGroup: share.sharedWith.some(groupId => userGroups.includes(groupId))
-            });
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`  Group Share ${index + 1}:`, {
+                sharedWithGroups: share.sharedWith,
+                sharedBy: share.sharedBy,
+                shareType: share.shareType,
+                sharedAt: share.sharedAt,
+                userIsInAnyGroup: share.sharedWith.some(groupId => userGroups.includes(groupId))
+              });
+            }
           });
         }
       });
       
-      console.log('=== END DEBUG ===');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('=== END DEBUG ===');
+      }
     } catch (error) {
       console.error('Debug error:', error);
     }

@@ -6,8 +6,10 @@
   "dependencies": {
     "@capacitor-firebase/analytics": "^7.3.1",
     "@capacitor-firebase/authentication": "^7.3.1",
+    "@capacitor-firebase/storage": "^7.5.0",
     "@capacitor/app": "^7.1.0",
     "@capacitor/core": "^7.4.3",
+    "@capacitor/filesystem": "^7.1.6",
     "@capacitor/splash-screen": "^7.0.3",
     "@capacitor/status-bar": "^7.0.3",
     "@emotion/react": "^11.14.0",

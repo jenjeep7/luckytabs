@@ -61,7 +61,9 @@ function App() {
   
   if (process.env.NODE_ENV === 'development') {
     console.log('[App.tsx] app loaded - ENHANCED ANALYTICS VERSION');
+    if (process.env.NODE_ENV === 'development') {
     console.log('[App.tsx] Auth state - user:', user?.uid || 'no user', 'loading:', loading, 'error:', error);
+    }
   }
   
   return (

@@ -121,7 +121,7 @@ export const Footer = () => {
               fontSize: '0.8rem'
             }}
           >
-            {`© 2025 Unnecessarily Complicated Ventures, LLC Limited. All rights reserved.`}
+            {`© 2026 Unnecessarily Complicated LLC. All rights reserved.`}
           </Typography>
           <Typography 
             variant="caption"

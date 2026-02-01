@@ -1,11 +1,15 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import vision from "@google-cloud/vision";
+import cors from "cors";
 
 admin.initializeApp();
 
 const db = admin.firestore();
 const visionClient = new vision.ImageAnnotatorClient();
+
+// CORS configuration
+const corsHandler = cors({ origin: true });
 
 // Pull large dollar amounts like $800, $600, etc.
 const MONEY_RE = /\$(\d{1,3}(?:,\d{3})*|\d+)/g;
@@ -264,4 +268,74 @@ export const parseFlareSheetImmediate = functions.https.onCall(async (data, cont
     
     throw new functions.https.HttpsError('internal', `Error processing image: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
+});
+
+// HTTP endpoint to upload flare sheet images (bypasses CORS/auth issues)
+export const uploadFlareSheet = functions.https.onRequest((req, res) => {
+  return corsHandler(req, res, async () => {
+    try {
+      // Check auth
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return;
+      }
+
+      const token = authHeader.split('Bearer ')[1];
+      const decodedToken = await admin.auth().verifyIdToken(token);
+      
+      if (!decodedToken.uid) {
+        res.status(401).json({ error: 'Invalid token' });
+        return;
+      }
+
+      // Get image data from request
+      const { imageData, tempId, contentType } = req.body;
+      
+      if (!imageData || !tempId) {
+        res.status(400).json({ error: 'Missing imageData or tempId' });
+        return;
+      }
+
+      console.log(`Uploading flare sheet for temp ID: ${tempId}`);
+
+      // Remove data URL prefix if present
+      const base64Data = imageData.includes(',') 
+        ? imageData.split(',')[1] 
+        : imageData;
+
+      // Upload to Storage
+      const bucket = admin.storage().bucket();
+      const filePath = `flare-sheets/${tempId}.jpg`;
+      const file = bucket.file(filePath);
+
+      await file.save(Buffer.from(base64Data, 'base64'), {
+        metadata: {
+          contentType: contentType || 'image/jpeg',
+          metadata: {
+            uploadedBy: decodedToken.uid
+          }
+        }
+      });
+
+      console.log(`File uploaded successfully: ${filePath}`);
+
+      // Get download URL
+      await file.makePublic();
+      const downloadUrl = `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+
+      res.status(200).json({
+        success: true,
+        downloadUrl,
+        path: filePath
+      });
+
+    } catch (error) {
+      console.error('Error uploading flare sheet:', error);
+      res.status(500).json({
+        error: 'Upload failed',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
 });

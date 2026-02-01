@@ -8,7 +8,9 @@ import { initWebVitals } from './analytics-webvitals';
  */
 export async function initializeCompleteAnalytics() {
   try {
+    if (process.env.NODE_ENV === 'development') {
     console.log('🚀 Initializing comprehensive analytics...');
+    }
     
     // 1. Capture attribution data from URL parameters
     captureAttributionOnLoad();
@@ -19,7 +21,9 @@ export async function initializeCompleteAnalytics() {
     // 3. Start performance monitoring
     initWebVitals();
     
+    if (process.env.NODE_ENV === 'development') {
     console.log('✅ All analytics features initialized successfully');
+    }
   } catch (error) {
     console.error('❌ Failed to initialize analytics:', error);
   }

@@ -40,10 +40,14 @@ import type { User } from 'firebase/auth';
 
 // Type guard to check if user has required properties (works for both web and native)
 function isValidUser(u: unknown): u is User {
+  if (process.env.NODE_ENV === 'development') {
   console.log('[UserProfile] Type guard checking user:', u);
+  }
   const hasUid = !!u && typeof u === 'object' && 'uid' in u && typeof (u as { uid?: unknown }).uid === 'string';
   const uid = hasUid ? (u as { uid: string }).uid : 'no uid';
+  if (process.env.NODE_ENV === 'development') {
   console.log('[UserProfile] User has UID:', hasUid, uid);
+  }
   return hasUid;
 }
 

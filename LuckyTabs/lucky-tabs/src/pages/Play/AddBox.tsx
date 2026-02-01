@@ -18,8 +18,8 @@ import {
 } from "@mui/material";
 import { PhotoCamera, Upload } from "@mui/icons-material";
 import { collection, addDoc, serverTimestamp, doc, updateDoc, onSnapshot } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { db, storage } from "../../firebase";
+import { db } from "../../firebase";
+import { uploadFile } from "../../utils/storageHelper";
 import { useAuthStateCompat } from '../../services/useAuthStateCompat';
 import { userService, UserData } from "../../services/userService";
 import { trackBoxCreated, trackFlareSheetUploaded } from "../../utils/analytics";
@@ -82,7 +82,9 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
   const convertHeicToJpeg = async (file: File): Promise<File> => {
     if (file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic')) {
       try {
+        if (process.env.NODE_ENV === 'development') {
         console.log("Converting HEIC file to JPEG:", file.name);
+        }
         
         const convertedBlob = await heic2any({
           blob: file,
@@ -97,7 +99,9 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
           { type: 'image/jpeg' }
         );
         
+        if (process.env.NODE_ENV === 'development') {
         console.log("HEIC conversion successful:", convertedFile.name, convertedFile.type);
+        }
         return convertedFile;
       } catch (error) {
         console.error("Error converting HEIC file:", error);
@@ -143,7 +147,9 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
 
     // Set a timeout to stop waiting after 30 seconds
     const timeout = setTimeout(() => {
+      if (process.env.NODE_ENV === 'development') {
       console.log("OCR parsing timeout");
+      }
       setParsing(false);
       setParseError("Parsing timeout. Please try manual entry.");
       setTempBoxId(null);
@@ -208,9 +214,11 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
       const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       setTempBoxId(tempId);
 
-      // Upload image to the flare-sheets path to trigger the existing OCR function
-      const imageRef = ref(storage, `flare-sheets/${tempId}.jpg`);
-      await uploadBytes(imageRef, file);    } catch (error) {
+      // Upload image using storageHelper which handles both web and native platforms
+      console.log('[AddBox] Uploading for OCR parsing with temp ID:', tempId);
+      await uploadFile(`flare-sheets/${tempId}.jpg`, file);
+      console.log('[AddBox] Upload complete, waiting for OCR processing...');
+    } catch (error) {
       console.error("Error uploading for parsing:", error);
       setParsing(false);
       setParseError(`Failed to parse image: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -220,9 +228,8 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
 
   // Upload image to Firebase Storage
   const uploadFlareSheetImage = async (file: File, boxId: string): Promise<string> => {
-    const imageRef = ref(storage, `flare-sheets/${boxId}.jpg`);
-    await uploadBytes(imageRef, file);
-    return await getDownloadURL(imageRef);
+    // Use storageHelper which handles both web and native platforms
+    return await uploadFile(`flare-sheets/${boxId}.jpg`, file);
   };
 
   // Estimate dialog handlers
@@ -372,7 +379,9 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
             isActive: false,
             lastUpdated: serverTimestamp()
           });
+          if (process.env.NODE_ENV === 'development') {
           console.log(`Deactivated old box: ${boxToReplace.boxName} (${boxToReplace.id})`);
+          }
         } catch (deactivateError) {
           console.error("Error deactivating old box:", deactivateError);
           // Don't fail the whole operation if deactivation fails

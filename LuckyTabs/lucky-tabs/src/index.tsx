@@ -5,7 +5,9 @@ import './index.css';
 import App from './App';
 import { HashRouter } from 'react-router-dom';
 import reportWebVitals from './reportWebVitals';
+if (process.env.NODE_ENV === 'development') {
 console.log('[BOOT] href:', window.location.href);
+}
 if (Capacitor.isNativePlatform() && !window.location.hash) {
   window.location.replace(
     window.location.href + (window.location.href.endsWith('/') ? '#/' : '/#/')

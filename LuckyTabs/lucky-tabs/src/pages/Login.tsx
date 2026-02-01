@@ -28,14 +28,6 @@ const Login: React.FC = () => {
   const onSubmit = async (data: LoginFormInputs) => {
     try {
       const user = await signInWithEmailPasswordCompat(data.email, data.password);
-      // Type guard for FirebaseUser
-      if (user && typeof (user as FirebaseUser).reload === 'function') {
-        await (user as FirebaseUser).reload();
-        if (!(user as FirebaseUser).emailVerified) {
-          setError('Please verify your email address before logging in.');
-          return;
-        }
-      }
       trackUserLogin('email');
       setError('');
       void navigate('/');

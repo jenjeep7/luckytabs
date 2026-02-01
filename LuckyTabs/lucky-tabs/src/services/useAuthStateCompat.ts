@@ -11,7 +11,9 @@ export function useAuthStateCompat() {
 
   useEffect(() => {
     const isNative = Capacitor.isNativePlatform();
+    if (process.env.NODE_ENV === 'development') {
     console.log('[useAuthStateCompat] Initializing, isNative:', isNative);
+    }
     
     let unsub: (() => void) | undefined;
     
@@ -22,7 +24,9 @@ export function useAuthStateCompat() {
       const checkCurrentUser = async () => {
         try {
           const result = await FirebaseAuthentication.getCurrentUser();
+          if (process.env.NODE_ENV === 'development') {
           console.log('[useAuthStateCompat] Current user check result:', result);
+          }
           if (result && result.user) {
             const userObj = {
               ...result.user,
@@ -36,13 +40,20 @@ export function useAuthStateCompat() {
             setUser(userObj);
             
             // Sync with Firestore auth context
-            await syncNativeAuthWithFirestore();
+            try {
+              await syncNativeAuthWithFirestore();
+            } catch (error) {
+              console.error('[useAuthStateCompat] Failed to sync auth:', error);
+              // Continue anyway - user is still authenticated
+            }
           } else {
             setUser(null);
           }
           setLoading(false);
         } catch (err) {
+          if (process.env.NODE_ENV === 'development') {
           console.log('[useAuthStateCompat] Error checking current user:', err);
+          }
           setUser(null);
           setLoading(false);
         }
@@ -53,7 +64,9 @@ export function useAuthStateCompat() {
       
       // Also listen for changes
       const listenerPromise = FirebaseAuthentication.addListener('authStateChange', ({ user }) => {
+        if (process.env.NODE_ENV === 'development') {
         console.log('[useAuthStateCompat] Auth state change:', user);
+        }
         if (user) {
           const userObj = {
             ...user,
@@ -84,12 +97,16 @@ export function useAuthStateCompat() {
       const unsubscribe = auth ? onAuthStateChanged(
         auth,
         (u) => { 
+          if (process.env.NODE_ENV === 'development') {
           console.log('[useAuthStateCompat] Web auth state change:', u?.uid || 'no user');
+          }
           setUser(u); 
           setLoading(false); 
         },
         (e) => { 
+          if (process.env.NODE_ENV === 'development') {
           console.log('[useAuthStateCompat] Web auth error:', e);
+          }
           setError(e); 
           setLoading(false); 
         }

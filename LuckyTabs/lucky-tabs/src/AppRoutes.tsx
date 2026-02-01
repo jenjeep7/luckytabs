@@ -61,101 +61,11 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <>{children}</>;
 };
 
-// Email Verification Guard Component
+// Email Verification Guard Component (Disabled - no longer requiring email verification)
 const EmailVerificationGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user] = useAuthStateCompat();
-  const [checkingVerification, setCheckingVerification] = React.useState(false);
+  // Always render children without email verification check
+  return <>{children}</>;
 
-  // If user is not authenticated or email is verified, render children
-  if (
-    !user ||
-    (isFirebaseUser(user) && (
-      user.emailVerified ||
-      (user.providerData && user.providerData.some((p: UserInfo) => p.providerId === "password") === false)
-    ))
-  ) {
-    return <>{children}</>;
-  }
-
-  // If email is not verified, show verification screen
-  return (
-    <Container maxWidth="sm">
-      <Box sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
-      }}>
-        <Paper elevation={6} sx={{ p: 6, textAlign: 'center', maxWidth: 400, position: 'relative' }}>
-          {/* Logout button in top right */}
-          <IconButton
-            onClick={() => {
-              void signOutCompat();
-            }}
-            sx={{
-              position: 'absolute',
-              top: 16,
-              right: 16,
-              color: 'text.secondary'
-            }}
-            title="Logout"
-          >
-            <LogoutOutlined />
-          </IconButton>
-          
-          <Typography variant="h5" fontWeight="bold" gutterBottom>
-            {`Verify Your Email`}
-          </Typography>
-          <Typography variant="body1" sx={{ mb: 3 }}>
-            {`Please check your inbox and click the verification link to activate your account.`}<br />
-          </Typography>
-          <Typography variant="body1" sx={{ mb: 3 }}>
-           <strong>{`* If you don't see the email, please check your spam or junk folder.`}</strong>
-          </Typography>
-          <Button
-            variant="contained"
-            color="primary"
-            disabled={checkingVerification}
-            onClick={() => {
-              void (async () => {
-                setCheckingVerification(true);
-                if (isFirebaseUser(user)) {
-                  await user.reload();
-                }
-                setCheckingVerification(false);
-                if (isFirebaseUser(user) && user.emailVerified) {
-                  window.location.reload();
-                }
-              })();
-            }}
-            sx={{ mt: 2, mr: 2 }}
-          >
-            {`Refresh & Check Verification`}
-          </Button>
-          <Button
-            variant="outlined"
-            color="secondary"
-            sx={{ mt: 2 }}
-            onClick={() => {
-              void (async () => {
-                if (isFirebaseUser(user)) {
-                  const actionCodeSettings = {
-                    url: 'https://tabsywins.com/login', // Custom domain for better email deliverability
-                    handleCodeInApp: false, // Handle verification via email link, not in-app
-                  };
-                  await sendEmailVerification(user, actionCodeSettings);
-                  alert(`Verification email sent! Please check your inbox.`);
-                }
-              })();
-            }}
-          >
-            {`Resend Verification Email`}
-          </Button>
-        </Paper>
-      </Box>
-    </Container>
-  );
 };
 
 

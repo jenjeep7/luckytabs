@@ -16,8 +16,8 @@ import {
 } from "@mui/material";
 import { PhotoCamera } from "@mui/icons-material";
 import { doc, setDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { db, storage } from "../../firebase";
+import { db } from "../../firebase";
+import { uploadFile } from "../../utils/storageHelper";
 import { useState, useRef, useEffect } from "react";
 import { useAuthStateCompat } from "../../services/useAuthStateCompat";
 import heic2any from "heic2any";
@@ -82,7 +82,9 @@ export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onCl
   const convertHeicToJpeg = async (file: File): Promise<File> => {
     if (file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic')) {
       try {
+        if (process.env.NODE_ENV === 'development') {
         console.log("Converting HEIC file to JPEG:", file.name);
+        }
         
         const convertedBlob = await heic2any({
           blob: file,
@@ -97,7 +99,9 @@ export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onCl
           { type: 'image/jpeg' }
         );
         
+        if (process.env.NODE_ENV === 'development') {
         console.log("HEIC conversion successful:", convertedFile.name, convertedFile.type);
+        }
         return convertedFile;
       } catch (error) {
         console.error("Error converting HEIC file:", error);
@@ -131,10 +135,18 @@ export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onCl
             : [];
           const detectedChanges = detectClaimedPrizes(originalWinningTickets, ocrPrizes);
           
+          if (process.env.NODE_ENV === 'development') {
           console.log("OCR Prize Detection Results:");
+          }
+          if (process.env.NODE_ENV === 'development') {
           console.log("Original prizes:", originalWinningTickets);
+          }
+          if (process.env.NODE_ENV === 'development') {
           console.log("OCR detected prizes:", ocrPrizes);
+          }
+          if (process.env.NODE_ENV === 'development') {
           console.log("Updated prizes with claimed detection:", detectedChanges);
+          }
           
           setWinningTickets(detectedChanges);
           ocrProcessedRef.current = true;
@@ -206,13 +218,18 @@ export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onCl
       const tempId = `temp_edit_${box.id}_${Date.now()}`;
       setTempBoxId(tempId);
 
+      if (process.env.NODE_ENV === 'development') {
       console.log("Starting OCR processing for file:", file.name, "Size:", file.size, "Type:", file.type);
+      }
 
-      // Upload image to trigger OCR processing
-      const imageRef = ref(storage, `flare-sheets/${tempId}.jpg`);
-      await uploadBytes(imageRef, file);
+      // Upload image using storageHelper which handles both web and native platforms
+      console.log('[EditBox] Uploading for OCR parsing with temp ID:', tempId);
+      await uploadFile(`flare-sheets/${tempId}.jpg`, file);
+      console.log('[EditBox] Upload complete, waiting for OCR processing...');
       
+      if (process.env.NODE_ENV === 'development') {
       console.log("Image uploaded successfully, waiting for OCR processing...");
+      }
     } catch (error) {
       console.error("Error uploading for OCR:", error);
       setParsing(false);
@@ -254,9 +271,8 @@ export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onCl
 
   // Upload image to Firebase Storage
   const uploadFlareSheetImage = async (file: File, boxId: string): Promise<string> => {
-    const imageRef = ref(storage, `flare-sheets/${boxId}.jpg`);
-    await uploadBytes(imageRef, file);
-    return await getDownloadURL(imageRef);
+    // Use storageHelper which handles both web and native platforms
+    return await uploadFile(`flare-sheets/${boxId}.jpg`, file);
   };
 
   const handleSubmit = async () => {

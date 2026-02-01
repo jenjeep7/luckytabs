@@ -129,21 +129,12 @@ const Signup: React.FC = () => {
         plan: 'free',
       });
 
-      // Send email verification with custom domain branding
-      if (confirmedUser && confirmedUser.email) {
-        const actionCodeSettings = {
-          url: 'https://tabsywins.com/login', // Custom domain for better email deliverability
-          handleCodeInApp: false, // Handle verification via email link, not in-app
-        };
-        await sendEmailVerification(confirmedUser, actionCodeSettings);
-        setVerificationSent(true);
-      }
-
       // Track successful signup
       trackUserSignup('email');
 
       setError('');
-      // Do not navigate until verified
+      // Navigate to profile after successful signup
+      navigate('/profile');
     } catch (err: unknown) {
       if (err instanceof Error) {
         // Handle specific Firebase error codes with user-friendly messages

@@ -25,14 +25,16 @@ export function initAnalyticsDefaults(env: 'prod' | 'staging' | 'dev' = 'prod') 
   
   // Note: setDefaultEventParameters may not be available in all Firebase versions
   // Using manual parameter addition instead
-  console.log('Setting analytics defaults:', {
-    app_version: APP_VERSION,
-    package_version: packageVersion,
-    platform: 'web',
-    env,
-    device_type: getDeviceType(),
-    ...attribution
-  });
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Setting analytics defaults:', {
+      app_version: APP_VERSION,
+      package_version: packageVersion,
+      platform: 'web',
+      env,
+      device_type: getDeviceType(),
+      ...attribution
+    });
+  }
 
   setUserProperties(analytics, {
     device_type: getDeviceType(),
@@ -40,7 +42,9 @@ export function initAnalyticsDefaults(env: 'prod' | 'staging' | 'dev' = 'prod') 
     platform: 'web'
   });
 
+  if (process.env.NODE_ENV === 'development') {
   console.log('✅ Analytics defaults initialized');
+  }
 }
 
 export const initializeAnalyticsWithVersion = async () => {
@@ -48,7 +52,9 @@ export const initializeAnalyticsWithVersion = async () => {
     // Wait for Firebase Analytics to be ready
     const supported = await isSupported();
     if (!supported) {
+      if (process.env.NODE_ENV === 'development') {
       console.log('Analytics not supported in this environment');
+      }
       return;
     }
     
@@ -60,14 +66,18 @@ export const initializeAnalyticsWithVersion = async () => {
     // Initialize defaults
     initAnalyticsDefaults();
     
+    if (process.env.NODE_ENV === 'development') {
     console.log('🔧 Initializing analytics with enhanced tracking');
+    }
     
     // Log initialization event
     logEvent(analytics, 'app_open', {
       first_open_time: Date.now()
     });
     
+    if (process.env.NODE_ENV === 'development') {
     console.log('✅ Analytics initialized with enhanced tracking');
+    }
   } catch (error) {
     console.error('❌ Failed to initialize analytics:', error);
   }
@@ -325,11 +335,15 @@ export const setUserAnalyticsProperties = (user: {
       ...versionInfo
     };
     
+    if (process.env.NODE_ENV === 'development') {
     console.log('Setting user properties with version info:', properties);
+    }
     
     setUserProperties(analytics, properties);
     
+    if (process.env.NODE_ENV === 'development') {
     console.log('✅ User properties set with version tracking');
+    }
   } catch (error) {
     console.error('❌ Failed to set user properties:', error);
   }

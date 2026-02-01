@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { trackLandingPageVisit } from '../../utils/analytics';
 import { Capacitor } from '@capacitor/core';
 import {
@@ -122,54 +122,25 @@ Log sessions privately, set budgets, track nearby locations, and enjoy witty com
             alignItems: 'center',
             gap: { xs: 2 }, 
           }}>
-            {/* First row: Join and Features buttons side by side */}
-            <Stack
-              direction="row"
-              spacing={{ xs: 1, sm: 2 }}
-              justifyContent="center"
-              alignItems="center"
-              sx={{ flexWrap: 'wrap', gap: { xs: 1, sm: 2 } }}
+            <Button
+              component={RouterLink}
+              to="/signup"
+              size="small"
+              variant="contained"
+              color="success"
+              sx={{
+                px: { xs: 1.5, sm: 2.5 },
+                py: { xs: 1, sm: 1 },
+                fontWeight: 800,
+                textTransform: 'none',
+                fontSize: { xs: '0.75rem', sm: '1rem' },
+                minWidth: { xs: '110px', sm: '120px' },
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
+                height: { xs: '42px', sm: '48px' }
+              }}
             >
-              <Button
-                component={RouterLink}
-                to="/signup"
-                size="small"
-                variant="contained"
-                color="success"
-                sx={{
-                  px: { xs: 1.5, sm: 2.5 },
-                  py: { xs: 1, sm: 1 },
-                  fontWeight: 800,
-                  textTransform: 'none',
-                  fontSize: { xs: '0.75rem', sm: '1rem' },
-                  minWidth: { xs: '110px', sm: '120px' },
-                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
-                  height: { xs: '42px', sm: '48px' }
-                }}
-              >
-                {`Join Tabsy's Crew`}
-              </Button>
-
-              <Button
-                component={RouterLink}
-                to="/features"
-                size="small"
-                variant="contained"
-                color="secondary"
-                sx={{
-                  px: { xs: 1.5, sm: 2.5 },
-                  py: { xs: 1, sm: 1 },
-                  fontWeight: 800,
-                  textTransform: 'none',
-                  fontSize: { xs: '0.75rem', sm: '1rem' },
-                  minWidth: { xs: '110px', sm: '120px' },
-                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
-                  height: { xs: '42px', sm: '48px' }
-                }}
-              >
-                {`See Features`}
-              </Button>
-            </Stack>
+              {`Join Tabsy's Crew`}
+            </Button>
           </Box>
 
         </Container>

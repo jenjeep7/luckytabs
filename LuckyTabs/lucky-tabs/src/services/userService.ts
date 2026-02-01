@@ -188,15 +188,21 @@ class UserService {
     try {
       if (!searchTerm.trim()) return [];
 
+      if (process.env.NODE_ENV === 'development') {
       console.log('Searching for users with term:', searchTerm);
+      }
+      if (process.env.NODE_ENV === 'development') {
       console.log('Excluding user IDs:', excludeUserIds);
+      }
 
       // Get all users and filter client-side for better search experience
       // Note: For large user bases, consider using Algolia or similar
       const usersRef = collection(db, 'users');
       const snapshot = await getDocs(usersRef);
       
+      if (process.env.NODE_ENV === 'development') {
       console.log('Total users found in database:', snapshot.docs.length);
+      }
       
       const searchTermLower = searchTerm.toLowerCase().trim();
       const users = snapshot.docs
@@ -226,7 +232,9 @@ class UserService {
                  lastNameLower.includes(searchTermLower);
         });
 
+      if (process.env.NODE_ENV === 'development') {
       console.log('Users matching search:', users);
+      }
       return users;
     } catch (error) {
       console.error('Error searching users:', error);

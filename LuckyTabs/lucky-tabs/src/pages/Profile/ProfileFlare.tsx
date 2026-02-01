@@ -18,7 +18,6 @@ const flareButtons = [
   { text: 'Pull Tab Tracker', onClick: '/play' },
   { text: 'Profit/Loss', onClick: '/tracking' },
   { text: 'Responsible Playing', onClick: '/responsible-gaming' },
-  { text: 'Budgeting', onClick: '/tracking' },
   { text: 'Feedback', onClick: 'feedback' },
   // { text: 'Social', onClick: '/community' },
   // { text: 'My Crews', onClick: '/community?tab=2' },
