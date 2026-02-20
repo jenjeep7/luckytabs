@@ -12,9 +12,13 @@ import {
 } from '@mui/material';
 import { AttachMoney as MoneyIcon } from '@mui/icons-material';
 import SafeDialog from '../../components/SafeDialog';
+import { Capacitor } from '@capacitor/core';
+import * as firestoreService from '../../services/firestoreService';
 import { collection, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { Budget } from './useTrackingData';
+
+const isNative = Capacitor.isNativePlatform();
 
 interface BudgetManagerProps {
   open: boolean;
@@ -55,20 +59,40 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({
     setError('');
 
     try {
-      if (currentBudget) {
-        // Update existing budget
-        await updateDoc(doc(db, 'budgets', currentBudget.id), {
-          weeklyLimit: limitValue,
-          updatedAt: serverTimestamp(),
-        });
+      if (isNative) {
+        // Use firestoreService on native platforms
+        if (currentBudget) {
+          // Update existing budget
+          await firestoreService.updateBudget(currentBudget.id, {
+            amount: limitValue,
+            updatedAt: new Date(),
+          });
+        } else {
+          // Create new budget
+          await firestoreService.createBudget({
+            userId,
+            amount: limitValue,
+            period: 'weekly',
+            startDate: new Date(),
+          });
+        }
       } else {
-        // Create new budget
-        await addDoc(collection(db, 'budgets'), {
-          userId,
-          weeklyLimit: limitValue,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
+        // Use direct Firestore SDK on web
+        if (currentBudget) {
+          // Update existing budget
+          await updateDoc(doc(db, 'budgets', currentBudget.id), {
+            weeklyLimit: limitValue,
+            updatedAt: serverTimestamp(),
+          });
+        } else {
+          // Create new budget
+          await addDoc(collection(db, 'budgets'), {
+            userId,
+            weeklyLimit: limitValue,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          });
+        }
       }
 
       onBudgetUpdated();
@@ -130,7 +154,7 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({
           {currentBudget && (
             <Box sx={{ p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
               <Typography variant="body2" color="text.secondary">
-                Current budget: ${currentBudget.weeklyLimit.toFixed(2)} per week
+                Current budget: ${(currentBudget.weeklyLimit || 0).toFixed(2)} per week
               </Typography>
               <Typography variant="caption" color="text.secondary">
                 Last updated: {currentBudget.updatedAt?.toDate().toLocaleDateString() || 'Unknown'}

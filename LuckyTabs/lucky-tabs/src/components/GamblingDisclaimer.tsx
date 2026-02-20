@@ -12,8 +12,7 @@ import {
 } from '@mui/material';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { useAuthStateCompat } from '../services/useAuthStateCompat';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { getUserData, updateUserData } from '../services/firestoreService';
 
 export const GamblingDisclaimer: React.FC = () => {
   const [user, loading] = useAuthStateCompat();
@@ -24,11 +23,9 @@ export const GamblingDisclaimer: React.FC = () => {
     if (!user?.uid) return;
 
     try {
-      const userDocRef = doc(db, 'users', user.uid);
-      const userDoc = await getDoc(userDocRef);
+      const userData = await getUserData(user.uid);
       
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
+      if (userData) {
         // If user hasn't acknowledged the disclaimer, show it
         if (!userData.gamblingDisclaimerAcknowledged) {
           setOpen(true);
@@ -53,11 +50,10 @@ export const GamblingDisclaimer: React.FC = () => {
 
     try {
       // Save acknowledgment to user's Firestore document
-      const userDocRef = doc(db, 'users', user.uid);
-      await setDoc(userDocRef, {
+      await updateUserData(user.uid, {
         gamblingDisclaimerAcknowledged: true,
         gamblingDisclaimerAcknowledgedAt: new Date()
-      }, { merge: true });
+      });
 
       setOpen(false);
     } catch (error) {

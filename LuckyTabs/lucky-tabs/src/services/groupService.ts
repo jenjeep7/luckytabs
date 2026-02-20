@@ -12,8 +12,12 @@ import {
   Timestamp,
   deleteDoc
 } from 'firebase/firestore';
+import { Capacitor } from '@capacitor/core';
 import { db } from '../firebase';
 import { userService } from './userService';
+import * as firestoreService from './firestoreService';
+
+const isNative = Capacitor.isNativePlatform();
 
 export interface GroupData {
   id: string;
@@ -73,6 +77,24 @@ class GroupService {
   // Get group by ID
   async getGroup(groupId: string): Promise<GroupData | null> {
     try {
+      if (isNative) {
+        // Use firestoreService for native platforms
+        const group = await firestoreService.getGroup(groupId);
+        if (group) {
+          return {
+            id: group.id || groupId,
+            name: group.name,
+            description: group.description || '',
+            createdBy: group.createdBy,
+            members: group.members || [],
+            createdAt: group.createdAt ? new Date(group.createdAt as any) : new Date(),
+            updatedAt: group.updatedAt ? new Date(group.updatedAt as any) : new Date()
+          } as GroupData;
+        }
+        return null;
+      }
+      
+      // Web: use direct Firestore SDK
       const groupDoc = await getDoc(doc(db, 'groups', groupId));
       
       if (groupDoc.exists()) {
@@ -98,28 +120,43 @@ class GroupService {
   // Get all groups where user is a member
   async getUserGroups(userId: string): Promise<GroupData[]> {
     try {
-      const groupsQuery = query(
-        collection(db, 'groups'),
-        where('members', 'array-contains', userId)
-      );
+      if (isNative) {
+        // Use firestoreService for native platforms
+        const groups = await firestoreService.getUserGroups(userId);
+        return groups.map(group => ({
+          id: group.id || '',
+          name: group.name,
+          description: group.description || '',
+          createdBy: group.createdBy,
+          members: group.members,
+          createdAt: group.createdAt instanceof Date ? group.createdAt : new Date(),
+          updatedAt: group.updatedAt instanceof Date ? group.updatedAt : new Date(),
+        })).sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+      } else {
+        // Use direct Firestore SDK for web
+        const groupsQuery = query(
+          collection(db, 'groups'),
+          where('members', 'array-contains', userId)
+        );
 
-      const snapshot = await getDocs(groupsQuery);
-      const groups: GroupData[] = [];
+        const snapshot = await getDocs(groupsQuery);
+        const groups: GroupData[] = [];
 
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        groups.push({
-          id: doc.id,
-          name: data.name as string,
-          description: (data.description as string) || '',
-          createdBy: data.createdBy as string,
-          members: (data.members as string[]) || [],
-          createdAt: (data.createdAt as Timestamp).toDate(),
-          updatedAt: (data.updatedAt as Timestamp).toDate()
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          groups.push({
+            id: doc.id,
+            name: data.name as string,
+            description: (data.description as string) || '',
+            createdBy: data.createdBy as string,
+            members: (data.members as string[]) || [],
+            createdAt: (data.createdAt as Timestamp).toDate(),
+            updatedAt: (data.updatedAt as Timestamp).toDate()
+          });
         });
-      });
 
-      return groups.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+        return groups.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+      }
     } catch (error) {
       console.error('Error getting user groups:', error);
       throw error;

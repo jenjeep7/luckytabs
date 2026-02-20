@@ -19,6 +19,10 @@ import {
   QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from '../firebase';
+import { Capacitor } from '@capacitor/core';
+import * as firestoreService from './firestoreService';
+
+const isNative = Capacitor.isNativePlatform();
 
 export interface User {
   id: string;
@@ -122,6 +126,13 @@ async createPost(
     ...(media && media.length ? { media } : {}),
   };
 
+  if (isNative) {
+    // On native, use REST API via firestoreService
+    const postId = await firestoreService.createPost(postData);
+    return postId;
+  }
+
+  // On web, use direct Firestore SDK
   const docRef = await addDoc(collection(db, 'posts'), {
     ...postData,
     timestamp: Timestamp.fromDate(postData.timestamp),
@@ -131,6 +142,38 @@ async createPost(
 
 
   async getPosts(type: 'public' | 'group', groupId?: string, pageSize = 10, lastDoc?: QueryDocumentSnapshot): Promise<PaginatedPosts> {
+    if (isNative) {
+      // On native, use REST API via firestoreService
+      const posts = await firestoreService.getPosts(type, groupId, pageSize);
+      
+      // Convert to Post format
+      const convertedPosts = posts.map((postData: Record<string, unknown>) => {
+        // Timestamps from REST API are already converted to Date objects by firestoreRestClient
+        const timestamp = postData.timestamp;
+        const editedAt = postData.editedAt;
+        
+        return {
+          id: postData.id as string,
+          authorId: postData.authorId as string,
+          content: postData.content as string,
+          timestamp: timestamp instanceof Date ? timestamp : new Date(),
+          likes: (postData.likes as string[]) || [],
+          type: postData.type as 'public' | 'group',
+          ...(postData.groupId && { groupId: postData.groupId as string }),
+          ...(postData.edited && { edited: postData.edited as boolean }),
+          ...(editedAt instanceof Date && { editedAt }),
+          media: (postData.media as Array<{ url: string; width?: number; height?: number; contentType?: string }>) || [],
+        } as Post;
+      });
+      
+      return {
+        posts: convertedPosts,
+        lastDoc: null, // Pagination not supported on native yet
+        hasMore: false
+      };
+    }
+    
+    // Web implementation
     const postsRef = collection(db, 'posts');
     let q = query(postsRef, where('type', '==', type), orderBy('timestamp', 'desc'), limit(pageSize));
     
@@ -196,6 +239,10 @@ async createPost(
 
 
   async likePost(postId: string, userId: string): Promise<void> {
+    if (isNative) {
+      await firestoreService.likePost(postId, userId);
+      return;
+    }
     const postRef = doc(db, 'posts', postId);
     const postDoc = await getDoc(postRef);
     
@@ -211,6 +258,11 @@ async createPost(
   }
 
   async updatePost(postId: string, content: string): Promise<void> {
+    if (isNative) {
+      await firestoreService.updatePost(postId, content);
+      return;
+    }
+
     const postRef = doc(db, 'posts', postId);
     await updateDoc(postRef, {
       content,
@@ -220,6 +272,11 @@ async createPost(
   }
 
   async deletePost(postId: string): Promise<void> {
+    if (isNative) {
+      await firestoreService.deletePost(postId);
+      return;
+    }
+
     await deleteDoc(doc(db, 'posts', postId));
     
     // Also delete all comments for this post
@@ -246,6 +303,10 @@ async createPost(
       timestamp: new Date()
     };
 
+    if (isNative) {
+      return firestoreService.createComment(commentData);
+    }
+
     const docRef = await addDoc(collection(db, 'comments'), {
       ...commentData,
       timestamp: Timestamp.fromDate(commentData.timestamp)
@@ -255,6 +316,25 @@ async createPost(
   }
 
   async getComments(postId: string, pageSize = 20, lastDoc?: QueryDocumentSnapshot): Promise<PaginatedComments> {
+    if (isNative) {
+      const rawComments = await firestoreService.getComments(postId);
+      const comments: Comment[] = rawComments.map((c: Record<string, unknown>) => ({
+        id: c.id as string,
+        postId: c.postId as string,
+        authorId: c.authorId as string,
+        authorDisplayName: (c.authorDisplayName as string) || 'Unknown User',
+        content: c.content as string,
+        timestamp: c.timestamp instanceof Date ? c.timestamp : new Date(),
+        ...(c.edited && { edited: c.edited as boolean }),
+        ...(c.editedAt instanceof Date && { editedAt: c.editedAt }),
+      }));
+      return {
+        comments: comments.slice(0, pageSize),
+        lastDoc: null,
+        hasMore: comments.length > pageSize
+      };
+    }
+
     let commentsQuery = query(
       collection(db, 'comments'),
       where('postId', '==', postId),
@@ -307,6 +387,10 @@ async createPost(
   }
 
   async deleteComment(commentId: string): Promise<void> {
+    if (isNative) {
+      await firestoreService.deleteComment(commentId);
+      return;
+    }
     await deleteDoc(doc(db, 'comments', commentId));
   }
 
@@ -429,6 +513,11 @@ async createPost(
 }
 
   async getCommentsCount(postId: string): Promise<number> {
+    if (isNative) {
+      // Use REST API on native
+      const comments = await firestoreService.getComments(postId);
+      return comments.length;
+    }
     const q = query(
       collection(db, 'comments'),
       where('postId', '==', postId)

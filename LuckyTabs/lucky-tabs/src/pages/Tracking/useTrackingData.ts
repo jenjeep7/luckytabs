@@ -9,6 +9,10 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { db } from '../../firebase';
+import { Capacitor } from '@capacitor/core';
+import * as firestoreService from '../../services/firestoreService';
+
+const isNative = Capacitor.isNativePlatform();
 
 export interface Transaction {
   id: string;
@@ -99,43 +103,79 @@ export const useTrackingData = (userId: string | undefined) => {
       const weekStart = getStartOfWeek(now);
       const weekEnd = getEndOfWeek(now);
 
-      // Fetch user's budget
-      const budgetQuery = query(
-        collection(db, 'budgets'),
-        where('userId', '==', userId),
-        orderBy('updatedAt', 'desc')
-      );
-      
-      const budgetSnapshot = await getDocs(budgetQuery);
-      if (!budgetSnapshot.empty) {
-        const budgetDoc = budgetSnapshot.docs[0];
-        setUserBudget({ id: budgetDoc.id, ...budgetDoc.data() } as Budget);
-      } else {
-        setUserBudget(null);
-      }
+      if (isNative) {
+        // Use firestoreService on native platforms
+        // Fetch user's budget
+        const budgets = await firestoreService.getBudgets(userId);
+        if (budgets.length > 0) {
+          // Sort by updatedAt if available, or createdAt
+          budgets.sort((a, b) => {
+            const dateA = a.updatedAt ? (a.updatedAt instanceof Date ? a.updatedAt : new Date()) : new Date(0);
+            const dateB = b.updatedAt ? (b.updatedAt instanceof Date ? b.updatedAt : new Date()) : new Date(0);
+            return dateB.getTime() - dateA.getTime();
+          });
+          const latestBudget = budgets[0];
+          // Ensure amount exists and is a valid number
+          const weeklyLimit = typeof latestBudget.amount === 'number' && !isNaN(latestBudget.amount) 
+            ? latestBudget.amount 
+            : 0;
+          
+          setUserBudget({
+            id: latestBudget.id || '',
+            userId: latestBudget.userId,
+            weeklyLimit: weeklyLimit,
+            createdAt: latestBudget.createdAt ? (latestBudget.createdAt instanceof Date ? Timestamp.fromDate(latestBudget.createdAt) : latestBudget.createdAt as Timestamp) : null,
+            updatedAt: latestBudget.updatedAt ? (latestBudget.updatedAt instanceof Date ? Timestamp.fromDate(latestBudget.updatedAt) : latestBudget.updatedAt as Timestamp) : null,
+          });
+        } else {
+          setUserBudget(null);
+        }
 
-      // Fetch all transactions for historical data
-      const transactionsQuery = query(
-        collection(db, 'transactions'),
-        where('userId', '==', userId),
-        orderBy('createdAt', 'desc')
-      );
+        // Fetch all transactions (no date filtering on initial query for simplicity)
+        const allTransactions = await firestoreService.getTransactions(userId);
+        
+        // Helper to safely convert any date format to a Date object
+        const parseToDate = (val: unknown): Date | null => {
+          if (!val) return null;
+          if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+          if (typeof val === 'string') { const d = new Date(val); return isNaN(d.getTime()) ? null : d; }
+          if (typeof val === 'object' && val !== null && 'toDate' in val && typeof (val as { toDate: () => Date }).toDate === 'function') {
+            try { return (val as { toDate: () => Date }).toDate(); } catch { return null; }
+          }
+          if (typeof val === 'object' && val !== null && 'seconds' in val) {
+            return new Date((val as { seconds: number }).seconds * 1000);
+          }
+          return null;
+        };
 
-      const unsubscribe = onSnapshot(transactionsQuery, (snapshot) => {
-        const transactions: Transaction[] = [];
-        snapshot.forEach((doc) => {
-          transactions.push({ id: doc.id, ...doc.data() } as Transaction);
+        // Convert to expected format and process
+        const transactions: Transaction[] = allTransactions.map(t => {
+          const raw = t as Record<string, unknown>;
+          // Use transactionDate if available (web-created), fall back to date (native-created)
+          const txDate = parseToDate(raw.transactionDate || t.date);
+          const created = parseToDate(t.createdAt);
+          return {
+            id: t.id || '',
+            userId: t.userId,
+            type: t.type as 'bet' | 'win' | 'loss',
+            amount: t.amount,
+            netAmount: raw.netAmount !== undefined ? raw.netAmount as number : (t.type === 'win' ? t.amount : t.type === 'loss' ? -t.amount : undefined),
+            description: (raw.description as string) || t.notes,
+            gameType: (t.gameType as string | undefined) || undefined,
+            location: (raw.location as string) || (t.locationId as string) || '',
+            createdAt: created ? Timestamp.fromDate(created) : null,
+            transactionDate: txDate ? Timestamp.fromDate(txDate) : null,
+            weekStart: Timestamp.fromDate(weekStart),
+          };
         });
 
         // Process current week data
         const currentWeekTransactions = transactions.filter(transaction => {
           try {
-            // Use transactionDate if available, otherwise fall back to createdAt
             const effectiveDate = transaction.transactionDate?.toDate() || 
               (transaction.createdAt ? transaction.createdAt.toDate() : null);
             if (!effectiveDate || isNaN(effectiveDate.getTime())) {
-              console.warn('Skipping transaction with invalid date in current week filter:', transaction);
-              return false; // Skip transactions without valid timestamps
+              return false;
             }
             return effectiveDate >= weekStart && effectiveDate <= weekEnd;
           } catch (error) {
@@ -144,20 +184,18 @@ export const useTrackingData = (userId: string | undefined) => {
           }
         });
 
-        // Calculate totals supporting both old (bet/win) and new (win/loss with netAmount) formats
+        // Calculate totals
         let totalSpent = 0;
         let totalWon = 0;
 
         currentWeekTransactions.forEach(transaction => {
           if (transaction.netAmount !== undefined) {
-            // New format: use netAmount
             if (transaction.netAmount < 0) {
               totalSpent += Math.abs(transaction.netAmount);
             } else if (transaction.netAmount > 0) {
               totalWon += transaction.netAmount;
             }
           } else {
-            // Old format: use type-based calculation
             if (transaction.type === 'bet') {
               totalSpent += transaction.amount;
             } else if (transaction.type === 'win') {
@@ -183,15 +221,12 @@ export const useTrackingData = (userId: string | undefined) => {
         
         transactions.forEach(transaction => {
           try {
-            // Use transactionDate if available, otherwise fall back to createdAt
             const effectiveDate = transaction.transactionDate?.toDate() || 
               (transaction.createdAt ? transaction.createdAt.toDate() : null);
             if (!effectiveDate || isNaN(effectiveDate.getTime())) {
-              console.warn('Skipping transaction with invalid date:', transaction);
-              return; // Skip transactions without valid timestamps
+              return;
             }
             const weekStartDate = getStartOfWeek(effectiveDate);
-            // Use a more reliable key that doesn't depend on timezone
             const weekStartKey = `${weekStartDate.getFullYear()}-${weekStartDate.getMonth()}-${weekStartDate.getDate()}`;
             
             if (!weeklyGroups.has(weekStartKey)) {
@@ -208,32 +243,26 @@ export const useTrackingData = (userId: string | undefined) => {
 
         const historical: HistoricalWeek[] = Array.from(weeklyGroups.entries())
           .map(([weekStartKey, weekTransactions]) => {
-            // Parse the key back to get the week start date
             const [year, month, date] = weekStartKey.split('-').map(Number);
             const weekStartDate = new Date(year, month, date);
             
-            // Validate the parsed date
             if (isNaN(weekStartDate.getTime())) {
-              console.warn('Invalid week start date parsed from key:', weekStartKey);
               return null;
             }
             
             const weekEndDate = getEndOfWeek(weekStartDate);
             
-            // Calculate totals supporting both old (bet/win) and new (win/loss with netAmount) formats
             let spent = 0;
             let won = 0;
 
             weekTransactions.forEach(transaction => {
               if (transaction.netAmount !== undefined) {
-                // New format: use netAmount
                 if (transaction.netAmount < 0) {
                   spent += Math.abs(transaction.netAmount);
                 } else if (transaction.netAmount > 0) {
                   won += transaction.netAmount;
                 }
               } else {
-                // Old format: use type-based calculation
                 if (transaction.type === 'bet') {
                   spent += transaction.amount;
                 } else if (transaction.type === 'win') {
@@ -255,12 +284,11 @@ export const useTrackingData = (userId: string | undefined) => {
           .filter((week): week is HistoricalWeek => week !== null)
           .sort((a, b) => b.weekStart.getTime() - a.weekStart.getTime());
 
-        // Ensure current week is always included, even if it has no transactions
+        // Ensure current week is included
         const currentWeekKey = `${weekStart.getFullYear()}-${weekStart.getMonth()}-${weekStart.getDate()}`;
         const hasCurrentWeek = weeklyGroups.has(currentWeekKey);
         
         if (!hasCurrentWeek) {
-          // Add current week with zero values if it doesn't exist
           const currentWeekHistorical: HistoricalWeek = {
             weekStart,
             weekEnd,
@@ -270,16 +298,182 @@ export const useTrackingData = (userId: string | undefined) => {
             transactionCount: currentWeek.transactionCount,
             transactions: currentWeek.transactions,
           };
-          
-          // Insert at the beginning since it's the most recent
           historical.unshift(currentWeekHistorical);
         }
 
         setHistoricalData(historical);
         setIsLoading(false);
-      });
+      } else {
+        // Use direct Firestore SDK on web with real-time updates
+        // Fetch user's budget
+        const budgetQuery = query(
+          collection(db, 'budgets'),
+          where('userId', '==', userId),
+          orderBy('updatedAt', 'desc')
+        );
+        
+        const budgetSnapshot = await getDocs(budgetQuery);
+        if (!budgetSnapshot.empty) {
+          const budgetDoc = budgetSnapshot.docs[0];
+          setUserBudget({ id: budgetDoc.id, ...budgetDoc.data() } as Budget);
+        } else {
+          setUserBudget(null);
+        }
 
-      return unsubscribe;
+        // Fetch all transactions for historical data
+        const transactionsQuery = query(
+          collection(db, 'transactions'),
+          where('userId', '==', userId),
+          orderBy('createdAt', 'desc')
+        );
+
+        const unsubscribe = onSnapshot(transactionsQuery, (snapshot) => {
+          const transactions: Transaction[] = [];
+          snapshot.forEach((doc) => {
+            transactions.push({ id: doc.id, ...doc.data() } as Transaction);
+          });
+
+          // Process current week data
+          const currentWeekTransactions = transactions.filter(transaction => {
+            try {
+              const effectiveDate = transaction.transactionDate?.toDate() || 
+                (transaction.createdAt ? transaction.createdAt.toDate() : null);
+              if (!effectiveDate || isNaN(effectiveDate.getTime())) {
+                console.warn('Skipping transaction with invalid date in current week filter:', transaction);
+                return false;
+              }
+              return effectiveDate >= weekStart && effectiveDate <= weekEnd;
+            } catch (error) {
+              console.error('Error processing transaction date in current week filter:', transaction, error);
+              return false;
+            }
+          });
+
+          // Calculate totals
+          let totalSpent = 0;
+          let totalWon = 0;
+
+          currentWeekTransactions.forEach(transaction => {
+            if (transaction.netAmount !== undefined) {
+              if (transaction.netAmount < 0) {
+                totalSpent += Math.abs(transaction.netAmount);
+              } else if (transaction.netAmount > 0) {
+                totalWon += transaction.netAmount;
+              }
+            } else {
+              if (transaction.type === 'bet') {
+                totalSpent += transaction.amount;
+              } else if (transaction.type === 'win') {
+                totalWon += transaction.amount;
+              }
+            }
+          });
+
+          const currentWeek: WeeklyData = {
+            totalSpent,
+            totalWon,
+            netResult: totalWon - totalSpent,
+            transactionCount: currentWeekTransactions.length,
+            weekStart,
+            weekEnd,
+            transactions: currentWeekTransactions,
+          };
+
+          setWeeklyData(currentWeek);
+
+          // Process historical data (group by weeks)
+          const weeklyGroups = new Map<string, Transaction[]>();
+          
+          transactions.forEach(transaction => {
+            try {
+              const effectiveDate = transaction.transactionDate?.toDate() || 
+                (transaction.createdAt ? transaction.createdAt.toDate() : null);
+              if (!effectiveDate || isNaN(effectiveDate.getTime())) {
+                console.warn('Skipping transaction with invalid date:', transaction);
+                return;
+              }
+              const weekStartDate = getStartOfWeek(effectiveDate);
+              const weekStartKey = `${weekStartDate.getFullYear()}-${weekStartDate.getMonth()}-${weekStartDate.getDate()}`;
+              
+              if (!weeklyGroups.has(weekStartKey)) {
+                weeklyGroups.set(weekStartKey, []);
+              }
+              const weekGroup = weeklyGroups.get(weekStartKey);
+              if (weekGroup) {
+                weekGroup.push(transaction);
+              }
+            } catch (error) {
+              console.error('Error processing transaction date:', transaction, error);
+            }
+          });
+
+          const historical: HistoricalWeek[] = Array.from(weeklyGroups.entries())
+            .map(([weekStartKey, weekTransactions]) => {
+              const [year, month, date] = weekStartKey.split('-').map(Number);
+              const weekStartDate = new Date(year, month, date);
+              
+              if (isNaN(weekStartDate.getTime())) {
+                console.warn('Invalid week start date parsed from key:', weekStartKey);
+                return null;
+              }
+              
+              const weekEndDate = getEndOfWeek(weekStartDate);
+              
+              let spent = 0;
+              let won = 0;
+
+              weekTransactions.forEach(transaction => {
+                if (transaction.netAmount !== undefined) {
+                  if (transaction.netAmount < 0) {
+                    spent += Math.abs(transaction.netAmount);
+                  } else if (transaction.netAmount > 0) {
+                    won += transaction.netAmount;
+                  }
+                } else {
+                  if (transaction.type === 'bet') {
+                    spent += transaction.amount;
+                  } else if (transaction.type === 'win') {
+                    won += transaction.amount;
+                  }
+                }
+              });
+
+              return {
+                weekStart: weekStartDate,
+                weekEnd: weekEndDate,
+                totalSpent: spent,
+                totalWon: won,
+                netResult: won - spent,
+                transactionCount: weekTransactions.length,
+                transactions: weekTransactions,
+              };
+            })
+            .filter((week): week is HistoricalWeek => week !== null)
+            .sort((a, b) => b.weekStart.getTime() - a.weekStart.getTime());
+
+          // Ensure current week is always included
+          const currentWeekKey = `${weekStart.getFullYear()}-${weekStart.getMonth()}-${weekStart.getDate()}`;
+          const hasCurrentWeek = weeklyGroups.has(currentWeekKey);
+          
+          if (!hasCurrentWeek) {
+            const currentWeekHistorical: HistoricalWeek = {
+              weekStart,
+              weekEnd,
+              totalSpent: currentWeek.totalSpent,
+              totalWon: currentWeek.totalWon,
+              netResult: currentWeek.netResult,
+              transactionCount: currentWeek.transactionCount,
+              transactions: currentWeek.transactions,
+            };
+            historical.unshift(currentWeekHistorical);
+          }
+
+          setHistoricalData(historical);
+          setIsLoading(false);
+        });
+
+        return unsubscribe;
+      }
     } catch (err) {
       console.error('Error fetching tracking data:', err);
       setError('Failed to load tracking data. Please try again.');

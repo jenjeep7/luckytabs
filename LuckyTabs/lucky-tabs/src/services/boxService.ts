@@ -18,6 +18,10 @@ import {
   Timestamp
 } from 'firebase/firestore';
 import { db } from '../firebase';
+import { Capacitor } from '@capacitor/core';
+import * as firestoreService from './firestoreService';
+
+const isNative = Capacitor.isNativePlatform();
 
 // Interface for claimed prizes on wall boxes  
 export interface ClaimedPrize {
@@ -70,18 +74,23 @@ class BoxService {
   // Get boxes created by a specific user
   async getUserBoxes(userId: string, locationId?: string): Promise<BoxItem[]> {
     try {
-      const boxesRef = collection(db, 'boxes');
-      let q = query(boxesRef, where('ownerId', '==', userId));
-      
-      if (locationId) {
-        q = query(boxesRef, where('ownerId', '==', userId), where('locationId', '==', locationId));
-      }
+      if (isNative) {
+        const boxes = await firestoreService.getUserBoxes(userId, locationId);
+        return this.mapBoxData(boxes);
+      } else {
+        const boxesRef = collection(db, 'boxes');
+        let q = query(boxesRef, where('ownerId', '==', userId));
+        
+        if (locationId) {
+          q = query(boxesRef, where('ownerId', '==', userId), where('locationId', '==', locationId));
+        }
 
-      const snapshot = await getDocs(q);
-      const allBoxes = this.mapBoxData(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      
-      // Filter out inactive boxes
-      return allBoxes.filter(box => box.isActive !== false);
+        const snapshot = await getDocs(q);
+        const allBoxes = this.mapBoxData(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        
+        // Filter out inactive boxes
+        return allBoxes.filter(box => box.isActive !== false);
+      }
     } catch (error) {
       console.error('Error getting user boxes:', error);
       throw error;
@@ -91,12 +100,19 @@ class BoxService {
   // Get boxes shared with a user through groups they belong to
   async getSharedBoxes(userId: string, userGroups: string[], locationId?: string): Promise<BoxItem[]> {
     try {
-      const boxesRef = collection(db, 'boxes');
+      let allBoxes: any[];
       
-      // Get all boxes and filter in memory since Firestore doesn't support 
-      // complex nested array queries efficiently
-      const snapshot = await getDocs(boxesRef);
-      const allBoxes = this.mapBoxData(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      if (isNative) {
+        // Get all boxes from location if specified, otherwise all boxes
+        const boxes = locationId 
+          ? await firestoreService.getAllBoxesForLocation(locationId)
+          : await firestoreService.getBoxes();
+        allBoxes = this.mapBoxData(boxes);
+      } else {
+        const boxesRef = collection(db, 'boxes');
+        const snapshot = await getDocs(boxesRef);
+        allBoxes = this.mapBoxData(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      }
       
       // Filter boxes that are explicitly shared with user's groups
       const sharedBoxes = allBoxes.filter(box => {
@@ -104,9 +120,9 @@ class BoxService {
         if (!box.shares || box.shares.length === 0) return false;
         
         // Check if any share is with a group that the user belongs to
-        return box.shares.some(share => {
+        return box.shares.some((share: any) => {
           if (share.shareType === 'group' && userGroups.length > 0) {
-            return share.sharedWith.some(groupId => userGroups.includes(groupId));
+            return share.sharedWith.some((groupId: string) => userGroups.includes(groupId));
           }
           // Could also check for direct user shares if needed
           if (share.shareType === 'user') {
@@ -133,23 +149,39 @@ class BoxService {
   // Share a box with users or groups
   async shareBox(boxId: string, sharedBy: string, shareWith: string[], shareType: 'user' | 'group'): Promise<void> {
     try {
-      const boxRef = doc(db, 'boxes', boxId);
-      const newShare: BoxShare = {
-        sharedWith: shareWith,
-        sharedBy,
-        sharedAt: new Date(),
-        shareType
-      };
+      if (isNative) {
+        // On native, we need to read the current shares, add the new one, and update
+        const box = await firestoreService.getBox(boxId);
+        const existingShares = (box.shares as any[]) || [];
+        const newShare = {
+          sharedWith: shareWith,
+          sharedBy,
+          sharedAt: new Date(),
+          shareType
+        };
+        await firestoreService.updateBox(boxId, {
+          shares: [...existingShares, newShare],
+          lastUpdated: new Date()
+        });
+      } else {
+        const boxRef = doc(db, 'boxes', boxId);
+        const newShare: BoxShare = {
+          sharedWith: shareWith,
+          sharedBy,
+          sharedAt: new Date(),
+          shareType
+        };
 
-      const firestoreShare = {
-        ...newShare,
-        sharedAt: Timestamp.fromDate(newShare.sharedAt)
-      };
+        const firestoreShare = {
+          ...newShare,
+          sharedAt: Timestamp.fromDate(newShare.sharedAt)
+        };
 
-      await updateDoc(boxRef, {
-        shares: arrayUnion(firestoreShare),
-        lastUpdated: Timestamp.fromDate(new Date())
-      });
+        await updateDoc(boxRef, {
+          shares: arrayUnion(firestoreShare),
+          lastUpdated: Timestamp.fromDate(new Date())
+        });
+      }
     } catch (error) {
       console.error('Error sharing box:', error);
       throw error;
@@ -159,17 +191,32 @@ class BoxService {
   // Unshare a box
   async unshareBox(boxId: string, shareToRemove: BoxShare): Promise<void> {
     try {
-      const boxRef = doc(db, 'boxes', boxId);
-      
-      const firestoreShare = {
-        ...shareToRemove,
-        sharedAt: Timestamp.fromDate(shareToRemove.sharedAt)
-      };
+      if (isNative) {
+        // On native, read current shares, remove the one, and update
+        const box = await firestoreService.getBox(boxId);
+        const existingShares = (box.shares as any[]) || [];
+        const filteredShares = existingShares.filter((share: any) => 
+          !(share.shareType === shareToRemove.shareType &&
+            share.sharedBy === shareToRemove.sharedBy &&
+            JSON.stringify(share.sharedWith) === JSON.stringify(shareToRemove.sharedWith))
+        );
+        await firestoreService.updateBox(boxId, {
+          shares: filteredShares,
+          lastUpdated: new Date()
+        });
+      } else {
+        const boxRef = doc(db, 'boxes', boxId);
+        
+        const firestoreShare = {
+          ...shareToRemove,
+          sharedAt: Timestamp.fromDate(shareToRemove.sharedAt)
+        };
 
-      await updateDoc(boxRef, {
-        shares: arrayRemove(firestoreShare),
-        lastUpdated: Timestamp.fromDate(new Date())
-      });
+        await updateDoc(boxRef, {
+          shares: arrayRemove(firestoreShare),
+          lastUpdated: Timestamp.fromDate(new Date())
+        });
+      }
     } catch (error) {
       console.error('Error unsharing box:', error);
       throw error;
@@ -228,12 +275,11 @@ class BoxService {
       const uniqueOwnerIds = boxes.map(box => box.ownerId).filter((id, index, arr) => arr.indexOf(id) === index);
       const ownerInfo: { [key: string]: string } = {};
 
-      // Fetch owner information
+      // Fetch owner information using firestoreService (platform-aware)
       for (const ownerId of uniqueOwnerIds) {
         if (ownerId) {
-          const userDoc = await getDoc(doc(db, 'users', ownerId));
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
+          const userData = await firestoreService.getUserData(ownerId);
+          if (userData) {
             ownerInfo[ownerId] = userData.displayName || String(userData.firstName || '') + ' ' + String(userData.lastName || '') || 'Unknown User';
           }
         }

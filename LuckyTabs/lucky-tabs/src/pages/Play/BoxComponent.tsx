@@ -14,6 +14,10 @@ import {
 import { Delete as DeleteIcon } from '@mui/icons-material';
 import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
+import { Capacitor } from '@capacitor/core';
+import * as firestoreRest from '../../services/firestoreRestClient';
+
+const isNative = Capacitor.isNativePlatform();
 import { useAuthStateCompat } from '../../services/useAuthStateCompat';
 import { ConfirmRemoveDialog, EstimateRemainingDialog } from './BoxDialogs';
 import { formatCurrencyClean } from '../../utils/formatters';
@@ -111,6 +115,9 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
   // Local state to immediately track claimed prizes for real-time dialog updates
   const [localClaimedPrizes, setLocalClaimedPrizes] = useState<{ [boxId: string]: ClaimedPrize[] }>({});
 
+  // Local state to cache row estimates so reopening the dialog shows the latest saved values
+  const [localRowEstimates, setLocalRowEstimates] = useState<{ [boxId: string]: { row1: number; row2: number; row3: number; row4: number } }>({});
+
   // Helper function to get claimed prizes (local state first, then box data)
   const getClaimedPrizes = useCallback((boxId: string): ClaimedPrize[] => {
     if (localClaimedPrizes[boxId]) {
@@ -159,12 +166,17 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
       await Promise.all(
         uniqueOwnerIds.map(async (ownerId: string) => {
           try {
-            const userDoc = await getDoc(doc(db, 'users', ownerId));
-            if (userDoc.exists()) {
-              const userData = userDoc.data() as { displayName?: string };
-              displayNames[ownerId] = userData.displayName || 'Unknown User';
+            if (isNative) {
+              const userData = await firestoreRest.getDocument(`users/${ownerId}`);
+              displayNames[ownerId] = (userData?.displayName as string) || 'Unknown User';
             } else {
-              displayNames[ownerId] = 'Unknown User';
+              const userDoc = await getDoc(doc(db, 'users', ownerId));
+              if (userDoc.exists()) {
+                const userData = userDoc.data() as { displayName?: string };
+                displayNames[ownerId] = userData.displayName || 'Unknown User';
+              } else {
+                displayNames[ownerId] = 'Unknown User';
+              }
             }
           } catch (error) {
             console.error('Error fetching user data:', error);
@@ -223,14 +235,17 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
   const handleConfirmRemove = () => {
     const removeBox = async () => {
       try {
-        const boxRef = doc(db, 'boxes', confirmDialog.boxId);
-        
         // Find the box being removed for analytics
         const boxToRemove = boxes.find(b => b.id === confirmDialog.boxId);
         
-        await updateDoc(boxRef, {
-          isActive: false
-        });
+        if (isNative) {
+          await firestoreRest.setDocument(`boxes/${confirmDialog.boxId}`, { isActive: false }, true);
+        } else {
+          const boxRef = doc(db, 'boxes', confirmDialog.boxId);
+          await updateDoc(boxRef, {
+            isActive: false
+          });
+        }
         
         // Track box removal
         if (boxToRemove) {
@@ -311,9 +326,13 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
             claimedTotal: newClaimedTotal
           };
 
-          await updateDoc(boxRef, {
-            winningTickets: updatedTickets
-          });
+          if (isNative) {
+            await firestoreRest.setDocument(`boxes/${boxId}`, { winningTickets: updatedTickets }, true);
+          } else {
+            await updateDoc(boxRef, {
+              winningTickets: updatedTickets
+            });
+          }
 
           // Track prize claim/unclaim
           trackPrizeClaimed({
@@ -386,6 +405,12 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
           [estimateDialog.boxId]: totalTickets.toString()
         }));
 
+        // Cache row estimates locally for immediate re-open
+        setLocalRowEstimates(prev => ({
+          ...prev,
+          [estimateDialog.boxId]: rowEstimates
+        }));
+
         // Update Firestore with both total and row estimates
         const boxRef = doc(db, 'boxes', estimateDialog.boxId);
         const updateData: {
@@ -409,7 +434,11 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
           ];
         }
 
-        await updateDoc(boxRef, updateData);
+        if (isNative) {
+          await firestoreRest.setDocument(`boxes/${estimateDialog.boxId}`, updateData as Record<string, unknown>, true);
+        } else {
+          await updateDoc(boxRef, updateData);
+        }
 
         // Track tickets estimation
         const boxForTracking = boxes.find(b => b.id === estimateDialog.boxId);
@@ -457,28 +486,32 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
     (claimedPrize: ClaimedPrize) => {
       const addWin = async () => {
         try {
-          const boxRef = doc(db, 'boxes', estimateDialog.boxId);
-          const boxDoc = await getDoc(boxRef);
-          
-          if (boxDoc.exists()) {
+          let updatedPrizes: ClaimedPrize[];
+          if (isNative) {
+            const boxData = await firestoreRest.getDocument(`boxes/${estimateDialog.boxId}`);
+            const existingPrizes = (boxData?.claimedPrizes as ClaimedPrize[]) || [];
+            updatedPrizes = [...existingPrizes, claimedPrize];
+            await firestoreRest.setDocument(`boxes/${estimateDialog.boxId}`, { claimedPrizes: updatedPrizes }, true);
+          } else {
+            const boxRef = doc(db, 'boxes', estimateDialog.boxId);
+            const boxDoc = await getDoc(boxRef);
+            if (!boxDoc.exists()) return;
             const existingPrizes = (boxDoc.data().claimedPrizes as ClaimedPrize[]) || [];
-            const updatedPrizes = [...existingPrizes, claimedPrize];
-            
-            // Update Firestore
+            updatedPrizes = [...existingPrizes, claimedPrize];
             await updateDoc(boxRef, {
               claimedPrizes: updatedPrizes
             });
-            
-            // Immediately update local state for real-time UI update
-            setLocalClaimedPrizes(prev => ({
-              ...prev,
-              [estimateDialog.boxId]: updatedPrizes
-            }));
-            
-            // Refresh the box data in the background
-            if (refreshBoxes) {
-              refreshBoxes();
-            }
+          }
+          
+          // Immediately update local state for real-time UI update
+          setLocalClaimedPrizes(prev => ({
+            ...prev,
+            [estimateDialog.boxId]: updatedPrizes
+          }));
+          
+          // Refresh the box data in the background
+          if (refreshBoxes) {
+            refreshBoxes();
           }
         } catch (error) {
           console.error('Error adding win:', error);
@@ -509,10 +542,14 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
           return;
         }
 
-        const boxRef = doc(db, 'boxes', boxId);
-        await updateDoc(boxRef, {
-          estimatedRemainingTickets: ticketsRemaining
-        });
+        if (isNative) {
+          await firestoreRest.setDocument(`boxes/${boxId}`, { estimatedRemainingTickets: ticketsRemaining }, true);
+        } else {
+          const boxRef = doc(db, 'boxes', boxId);
+          await updateDoc(boxRef, {
+            estimatedRemainingTickets: ticketsRemaining
+          });
+        }
         
         // Track manual ticket estimation
         const box = boxes.find(b => b.id === boxId);
@@ -919,6 +956,10 @@ export const BoxComponent: React.FC<BoxComponentProps> = ({
         currentValue={Number(remainingTicketsInput[estimateDialog.boxId] || '0')}
         currentRowEstimates={(() => {
           const box = boxes.find(b => b.id === estimateDialog.boxId);
+          // Use locally cached row estimates first (most recent save)
+          if (localRowEstimates[estimateDialog.boxId]) {
+            return localRowEstimates[estimateDialog.boxId];
+          }
           // Convert rows array to rowEstimates object format
           if (box?.rows && Array.isArray(box.rows)) {
             const rowEstimates: { row1: number; row2: number; row3: number; row4: number } = {

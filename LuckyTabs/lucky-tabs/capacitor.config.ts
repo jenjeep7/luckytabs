@@ -6,9 +6,9 @@ const config: CapacitorConfig = {
   appName: 'Tabsy',
   webDir: 'build',
   server: {
-    // Keep this false for production builds.
-    // For live-reload dev you can point to a local dev server later.
-    androidScheme: 'https'
+    hostname: 'localhost',
+    iosScheme: 'https',
+    androidScheme: 'https',
   },
   plugins: {
     SplashScreen: {

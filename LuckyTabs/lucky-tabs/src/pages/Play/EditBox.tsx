@@ -17,6 +17,8 @@ import {
 import { PhotoCamera } from "@mui/icons-material";
 import { doc, setDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
 import { db } from "../../firebase";
+import { Capacitor } from '@capacitor/core';
+import * as firestoreRest from '../../services/firestoreRestClient';
 import { uploadFile } from "../../utils/storageHelper";
 import { useState, useRef, useEffect } from "react";
 import { useAuthStateCompat } from "../../services/useAuthStateCompat";
@@ -116,6 +118,55 @@ export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onCl
   useEffect(() => {
     if (!tempBoxId || !parsing) return;
 
+    if (Capacitor.isNativePlatform()) {
+      // Native: poll via REST API since onSnapshot is blocked
+      let cancelled = false;
+      const pollInterval = setInterval(async () => {
+        if (cancelled) return;
+        try {
+          const data = await firestoreRest.getDocument(`temp-ocr-results/${tempBoxId}`);
+          if (data) {
+            if (data.ocrProcessed && !ocrProcessedRef.current) {
+              const ocrPrizes: WinningTicket[] = Array.isArray(data.winningTickets)
+                ? data.winningTickets.map((ticket: any) => ({
+                    prize: String((ticket as any)?.prize || ''),
+                    totalPrizes: Number((ticket as any)?.totalPrizes || 0),
+                    claimedTotal: Number((ticket as any)?.claimedTotal || 0)
+                  }))
+                : [];
+              const detectedChanges = detectClaimedPrizes(originalWinningTickets, ocrPrizes);
+              setWinningTickets(detectedChanges);
+              ocrProcessedRef.current = true;
+              setParsing(false);
+              setParseError(null);
+              setTempBoxId(null);
+            } else if (data.error) {
+              setParsing(false);
+              setParseError(String(data.error));
+              setTempBoxId(null);
+            }
+          }
+        } catch (err) {
+          // Document may not exist yet, keep polling
+        }
+      }, 2000);
+
+      const timeout = setTimeout(() => {
+        cancelled = true;
+        clearInterval(pollInterval);
+        setParsing(false);
+        setParseError("OCR parsing timeout. Please try manual updates.");
+        setTempBoxId(null);
+      }, 30000);
+
+      return () => {
+        cancelled = true;
+        clearInterval(pollInterval);
+        clearTimeout(timeout);
+      };
+    }
+
+    // Web: use onSnapshot
     const unsubscribe = onSnapshot(doc(db, "temp-ocr-results", tempBoxId), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
@@ -298,8 +349,16 @@ export const EditBoxForm = ({ box, onClose, onBoxUpdated }: { box: BoxType; onCl
         lastUpdated: serverTimestamp(),
       };
 
-      const docRef = doc(db, "boxes", box.id);
-      await setDoc(docRef, updatedBox, { merge: true });
+      if (Capacitor.isNativePlatform()) {
+        const restBox = {
+          ...updatedBox,
+          lastUpdated: new Date().toISOString(),
+        };
+        await firestoreRest.setDocument(`boxes/${box.id}`, restBox as Record<string, unknown>, true);
+      } else {
+        const docRef = doc(db, "boxes", box.id);
+        await setDoc(docRef, updatedBox, { merge: true });
+      }
       onBoxUpdated?.();
       onClose(); // Close the dialog after successful save
     } catch (err) {

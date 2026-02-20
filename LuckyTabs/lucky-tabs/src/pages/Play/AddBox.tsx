@@ -19,6 +19,8 @@ import {
 import { PhotoCamera, Upload } from "@mui/icons-material";
 import { collection, addDoc, serverTimestamp, doc, updateDoc, onSnapshot } from "firebase/firestore";
 import { db } from "../../firebase";
+import { Capacitor } from '@capacitor/core';
+import * as firestoreRest from '../../services/firestoreRestClient';
 import { uploadFile } from "../../utils/storageHelper";
 import { useAuthStateCompat } from '../../services/useAuthStateCompat';
 import { userService, UserData } from "../../services/userService";
@@ -116,6 +118,54 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
   useEffect(() => {
     if (!tempBoxId || !parsing) return;
 
+    if (Capacitor.isNativePlatform()) {
+      // Native: poll via REST API since onSnapshot is blocked
+      let cancelled = false;
+      const pollInterval = setInterval(async () => {
+        if (cancelled) return;
+        try {
+          const data = await firestoreRest.getDocument(`temp-ocr-results/${tempBoxId}`);
+          if (data) {
+            if (data.ocrProcessed && !ocrProcessedRef.current) {
+              const ocrTickets = Array.isArray(data.winningTickets) ? data.winningTickets : [];
+              const sortedTickets = ocrTickets.sort((a: any, b: any) => {
+                const prizeA = parseFloat(String((a as any)?.prize || '').replace(/[^0-9.]/g, '')) || 0;
+                const prizeB = parseFloat(String((b as any)?.prize || '').replace(/[^0-9.]/g, '')) || 0;
+                return prizeB - prizeA;
+              });
+              setWinningTickets(sortedTickets);
+              ocrProcessedRef.current = true;
+              setParsing(false);
+              setParseError(null);
+              setTempBoxId(null);
+              setShowSuccessSnackbar(true);
+            } else if (data.error) {
+              setParsing(false);
+              setParseError(String(data.error));
+              setTempBoxId(null);
+            }
+          }
+        } catch (err) {
+          // Document may not exist yet, keep polling
+        }
+      }, 2000);
+
+      const timeout = setTimeout(() => {
+        cancelled = true;
+        clearInterval(pollInterval);
+        setParsing(false);
+        setParseError("Parsing timeout. Please try manual entry.");
+        setTempBoxId(null);
+      }, 30000);
+
+      return () => {
+        cancelled = true;
+        clearInterval(pollInterval);
+        clearTimeout(timeout);
+      };
+    }
+
+    // Web: use onSnapshot
     const unsubscribe = onSnapshot(doc(db, "temp-ocr-results", tempBoxId), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
@@ -342,7 +392,19 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
       };
 
       // Create the box first to get the document ID
-      const docRef = await addDoc(collection(db, "boxes"), newBox);
+      let newBoxId: string;
+      if (Capacitor.isNativePlatform()) {
+        const restBox = {
+          ...newBox,
+          createdAt: new Date().toISOString(),
+          lastUpdated: new Date().toISOString(),
+          estimatedTicketsUpdated: new Date().toISOString(),
+        };
+        newBoxId = await firestoreRest.addDocument('boxes', restBox as Record<string, unknown>);
+      } else {
+        const docRef = await addDoc(collection(db, "boxes"), newBox);
+        newBoxId = docRef.id;
+      }
       
       // Track box creation
       trackBoxCreated({
@@ -354,14 +416,18 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
       
       if (flareSheetImage) {
         try {
-          const flareSheetUrl = await uploadFlareSheetImage(flareSheetImage, docRef.id);
+          const flareSheetUrl = await uploadFlareSheetImage(flareSheetImage, newBoxId);
           // Update the box with the image URL
-          const boxDocRef = doc(db, "boxes", docRef.id);
-          await updateDoc(boxDocRef, { flareSheetUrl });
+          if (Capacitor.isNativePlatform()) {
+            await firestoreRest.setDocument(`boxes/${newBoxId}`, { flareSheetUrl }, true);
+          } else {
+            const boxDocRef = doc(db, "boxes", newBoxId);
+            await updateDoc(boxDocRef, { flareSheetUrl });
+          }
           
           // Track flare sheet upload
           trackFlareSheetUploaded({
-            boxId: docRef.id,
+            boxId: newBoxId,
             boxType: type,
             userPlan: userProfile?.plan || 'free'
           });
@@ -374,11 +440,18 @@ export const CreateBoxForm: React.FC<Props> = ({ location, onClose, onBoxCreated
       // If in replace mode, deactivate the old box
       if (replaceMode && boxToReplace?.id) {
         try {
-          const oldBoxRef = doc(db, "boxes", boxToReplace.id);
-          await updateDoc(oldBoxRef, { 
-            isActive: false,
-            lastUpdated: serverTimestamp()
-          });
+          if (Capacitor.isNativePlatform()) {
+            await firestoreRest.setDocument(`boxes/${boxToReplace.id}`, {
+              isActive: false,
+              lastUpdated: new Date().toISOString(),
+            }, true);
+          } else {
+            const oldBoxRef = doc(db, "boxes", boxToReplace.id);
+            await updateDoc(oldBoxRef, { 
+              isActive: false,
+              lastUpdated: serverTimestamp()
+            });
+          }
           if (process.env.NODE_ENV === 'development') {
           console.log(`Deactivated old box: ${boxToReplace.boxName} (${boxToReplace.id})`);
           }

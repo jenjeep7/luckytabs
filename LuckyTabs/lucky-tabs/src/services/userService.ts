@@ -11,6 +11,8 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase';
+import { Capacitor } from '@capacitor/core';
+import * as firestoreService from './firestoreService';
 
 export interface UserData {
   uid: string;
@@ -50,6 +52,53 @@ class UserService {
       return this.cachedProfile;
     }
     try {
+      // On native platforms with secure rules, use Cloud Functions
+      if (Capacitor.isNativePlatform()) {
+        const userData = await firestoreService.getUserData(userId);
+        if (!userData) {
+          this.cachedProfile = null;
+          this.cachedProfileUid = null;
+          return null;
+        }
+        
+        // Convert to UserData format
+        // Handle Firestore timestamp format from REST API: { seconds, nanoseconds }
+        const convertTimestamp = (timestamp: unknown): Date => {
+          if (!timestamp) return new Date();
+          if (timestamp instanceof Date) return timestamp;
+          if (typeof timestamp === 'object' && timestamp !== null && 'seconds' in timestamp) {
+            const ts = timestamp as { seconds: number; nanoseconds?: number };
+            return new Date(ts.seconds * 1000);
+          }
+          return new Date();
+        };
+        
+        const profile: UserData = {
+          uid: userId,
+          email: userData.email || '',
+          displayName: userData.displayName || 'Anonymous User',
+          firstName: userData.firstName as string || '',
+          lastName: userData.lastName as string || '',
+          avatar: userData.avatar as string | undefined,
+          groups: (userData.groups as string[]) || [],
+          friends: (userData.friends as string[]) || [],
+          isAdmin: userData.isAdmin as boolean || false,
+          createdAt: convertTimestamp(userData.createdAt),
+          updatedAt: convertTimestamp(userData.updatedAt),
+          plan: userData.plan as string || 'free',
+          metricThresholds: userData.metricThresholds as UserData['metricThresholds'] || {
+            rtpGoodThreshold: 85,
+            rtpDecentThreshold: 75,
+            evPositiveThreshold: 0
+          }
+        };
+        
+        this.cachedProfile = profile;
+        this.cachedProfileUid = userId;
+        return profile;
+      }
+      
+      // On web platforms, use direct Firestore SDK
       const userDocRef = doc(db, 'users', userId);
       const userDoc = await getDoc(userDocRef);
       
@@ -123,13 +172,27 @@ class UserService {
         }
       };
 
-      const firestoreData = {
-        ...userData,
-        createdAt: Timestamp.fromDate(userData.createdAt),
-        updatedAt: Timestamp.fromDate(userData.updatedAt)
-      };
-
-      await setDoc(doc(db, 'users', userId), firestoreData);
+      // On native platforms with secure rules, use Cloud Functions
+      if (Capacitor.isNativePlatform()) {
+        await firestoreService.updateUserData(userId, {
+          email,
+          displayName,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          groups: [],
+          friends: [],
+          isAdmin: false,
+          plan: 'free',
+          metricThresholds: userData.metricThresholds
+        });
+      } else {
+        const firestoreData = {
+          ...userData,
+          createdAt: Timestamp.fromDate(userData.createdAt),
+          updatedAt: Timestamp.fromDate(userData.updatedAt)
+        };
+        await setDoc(doc(db, 'users', userId), firestoreData);
+      }
     } catch (error) {
       console.error('Error creating user profile:', error);
       throw error;
@@ -147,11 +210,16 @@ class UserService {
         throw new Error('Display name cannot be empty');
       }
 
-      const updateData = {
-        ...updates,
-        updatedAt: Timestamp.fromDate(new Date())
-      };
-      await updateDoc(doc(db, 'users', userId), updateData);
+      // On native platforms with secure rules, use Cloud Functions
+      if (Capacitor.isNativePlatform()) {
+        await firestoreService.updateUserData(userId, updates);
+      } else {
+        const updateData = {
+          ...updates,
+          updatedAt: Timestamp.fromDate(new Date())
+        };
+        await updateDoc(doc(db, 'users', userId), updateData);
+      }
       // If cache exists and matches, update cache
       if (this.cachedProfile && this.cachedProfileUid === userId) {
         this.cachedProfile = {

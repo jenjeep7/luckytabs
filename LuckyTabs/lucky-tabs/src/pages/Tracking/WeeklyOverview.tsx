@@ -179,7 +179,7 @@ export const WeeklyOverview: React.FC<WeeklyOverviewProps> = ({
                   {netLoss > 0 ? `$${netLoss.toFixed(2)} net loss` : 'No net loss'}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  ${userBudget.weeklyLimit.toFixed(2)} budget
+                  ${(userBudget.weeklyLimit || 0).toFixed(2)} budget
                 </Typography>
               </Box>
               <LinearProgress

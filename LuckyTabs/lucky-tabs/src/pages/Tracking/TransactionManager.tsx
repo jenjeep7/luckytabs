@@ -22,7 +22,11 @@ import {
 } from '@mui/icons-material';
 import { collection, addDoc, serverTimestamp, getDocs, Timestamp, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
+import { Capacitor } from '@capacitor/core';
+import * as firestoreService from '../../services/firestoreService';
 import dayjs, { Dayjs } from 'dayjs';
+
+const isNative = Capacitor.isNativePlatform();
 import WinLossToggle, { WinLossValue } from '../../components/WinLossToggle';
 import { ConfirmationDialog } from '../../components/ConfirmationDialog';
 import SafeDialog from '../../components/SafeDialog';
@@ -132,12 +136,17 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
     if (open) {
       const fetchLocations = async () => {
         try {
-          const snapshot = await getDocs(collection(db, 'locations'));
-          const locationData: Location[] = [];
-          snapshot.forEach((doc) => {
-            locationData.push({ id: doc.id, ...doc.data() } as Location);
-          });
-          setLocations(locationData);
+          if (isNative) {
+            const locationData = await firestoreService.getLocations();
+            setLocations(locationData.map(loc => ({ id: loc.id || '', name: (loc as Record<string, unknown>).name as string || '', address: (loc as Record<string, unknown>).address as string, latitude: (loc as Record<string, unknown>).latitude as number, longitude: (loc as Record<string, unknown>).longitude as number })));
+          } else {
+            const snapshot = await getDocs(collection(db, 'locations'));
+            const locationData: Location[] = [];
+            snapshot.forEach((doc) => {
+              locationData.push({ id: doc.id, ...doc.data() } as Location);
+            });
+            setLocations(locationData);
+          }
         } catch (err) {
           console.error('Error fetching locations:', err);
         }
@@ -172,33 +181,66 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
       
       if (mode === 'edit' && editingTransaction) {
         // Update existing transaction
-        const transactionRef = doc(db, 'transactions', editingTransaction.id);
-        await updateDoc(transactionRef, {
-          type: resultType,
-          amount: amountValue,
-          netAmount: netAmount,
-          description: activityDescription,
-          gameType: gameType,
-          location: selectedLocation?.name || '',
-          locationId: selectedLocation?.id || '',
-          transactionDate: Timestamp.fromDate(transactionDate),
-          weekStart: weekStart.toISOString(),
-        });
+        if (isNative) {
+          await firestoreService.updateTransaction(editingTransaction.id, {
+            type: resultType,
+            amount: amountValue,
+            netAmount: netAmount,
+            description: activityDescription,
+            notes: activityDescription,
+            gameType: gameType,
+            location: selectedLocation?.name || '',
+            locationId: selectedLocation?.id || '',
+            date: transactionDate,
+            transactionDate: transactionDate,
+            weekStart: weekStart.toISOString(),
+          });
+        } else {
+          const transactionRef = doc(db, 'transactions', editingTransaction.id);
+          await updateDoc(transactionRef, {
+            type: resultType,
+            amount: amountValue,
+            netAmount: netAmount,
+            description: activityDescription,
+            gameType: gameType,
+            location: selectedLocation?.name || '',
+            locationId: selectedLocation?.id || '',
+            transactionDate: Timestamp.fromDate(transactionDate),
+            weekStart: weekStart.toISOString(),
+          });
+        }
       } else {
         // Create a new transaction
-        await addDoc(collection(db, 'transactions'), {
-          userId,
-          type: resultType,
-          amount: amountValue,
-          netAmount: netAmount,
-          description: activityDescription,
-          gameType: gameType,
-          location: selectedLocation?.name || '',
-          locationId: selectedLocation?.id || '',
-          createdAt: serverTimestamp(),
-          transactionDate: Timestamp.fromDate(transactionDate),
-          weekStart: weekStart.toISOString(),
-        });
+        if (isNative) {
+          await firestoreService.createTransaction({
+            userId,
+            type: resultType,
+            amount: amountValue,
+            netAmount: netAmount,
+            description: activityDescription,
+            notes: activityDescription,
+            gameType: gameType,
+            location: selectedLocation?.name || '',
+            locationId: selectedLocation?.id || '',
+            date: transactionDate,
+            transactionDate: transactionDate,
+            weekStart: weekStart.toISOString(),
+          });
+        } else {
+          await addDoc(collection(db, 'transactions'), {
+            userId,
+            type: resultType,
+            amount: amountValue,
+            netAmount: netAmount,
+            description: activityDescription,
+            gameType: gameType,
+            location: selectedLocation?.name || '',
+            locationId: selectedLocation?.id || '',
+            createdAt: serverTimestamp(),
+            transactionDate: Timestamp.fromDate(transactionDate),
+            weekStart: weekStart.toISOString(),
+          });
+        }
       }
 
       onTransactionAdded();
@@ -223,7 +265,11 @@ export const TransactionManager: React.FC<TransactionManagerProps> = ({
     setError('');
     
     try {
-      await deleteDoc(doc(db, 'transactions', editingTransaction.id));
+      if (isNative) {
+        await firestoreService.deleteTransaction(editingTransaction.id);
+      } else {
+        await deleteDoc(doc(db, 'transactions', editingTransaction.id));
+      }
       onDelete(editingTransaction);
       handleClose();
     } catch (err) {

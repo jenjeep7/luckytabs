@@ -31,8 +31,10 @@ import ArchiveIcon from '@mui/icons-material/Archive';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import { collection, getDocs, doc, updateDoc, deleteDoc } from "firebase/firestore";
+import { Capacitor } from '@capacitor/core';
+import { doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../../firebase";
+import * as firestoreService from "../../services/firestoreService";
 import { CreateBoxForm } from "./AddBox";
 import NeonToggle from "../../components/NeonToggle";
 import CrystalBall from "../../components/CrystalBall";
@@ -155,38 +157,6 @@ export const Play: React.FC = () => {
     setGroupBoxes(filteredBoxes);
   }, []);
 
-  // Fetch inactive boxes for the current location and user
-  const fetchInactiveBoxes = useCallback(async () => {
-    if (selectedLocation && user) {
-      try {
-        const snapshot = await getDocs(collection(db, "boxes"));
-        const inactive: BoxItem[] = snapshot.docs
-          .map((doc) => {
-            const docData = doc.data();
-            return {
-              id: doc.id,
-              boxName: (docData.boxName as string) || '',
-              pricePerTicket: (docData.pricePerTicket as string) || '',
-              type: (docData.type as "wall" | "bar box") || 'wall',
-              locationId: (docData.locationId as string) || '',
-              ownerId: (docData.ownerId as string) || '',
-              isActive: docData.isActive !== false,
-              ...docData,
-            } as BoxItem;
-          })
-          .filter((box) => 
-            box.locationId === selectedLocation && 
-            !box.isActive && 
-            box.ownerId === user.uid
-          );
-        
-        setInactiveBoxes(inactive);
-      } catch (error) {
-        console.error("Error fetching inactive boxes:", error);
-      }
-    }
-  }, [selectedLocation, user]);
-
   const refreshBoxes = useCallback(async (boxIdToUpdate?: string) => {
     if (selectedLocation && user) {
       try {
@@ -225,8 +195,9 @@ export const Play: React.FC = () => {
         setMyBoxes(enrichedMyBoxes);
         setAllGroupBoxes(enrichedSharedBoxes);
         
-        // Fetch inactive boxes separately
-        await fetchInactiveBoxes();
+        // TODO: Fetch inactive boxes - boxService currently filters them out
+        // For now, inactive boxes section will be empty
+        setInactiveBoxes([]);
         
         // Initialize selected group on first load - find group with boxes
         if (!selectedGroupId && userGroups.length > 0) {
@@ -262,66 +233,33 @@ export const Play: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLocation, user, userData, userGroups, selectedGroupId]);
 
-  // Keep the old refresh method as fallback
+  // Keep the old refresh method as fallback (not actively used)
   const refreshBoxesOld = async (boxIdToUpdate?: string) => {
-    if (selectedLocation) {
-      try {
-        const snapshot = await getDocs(collection(db, "boxes"));
-        const data: BoxItem[] = snapshot.docs.map((doc) => {
-          const docData = doc.data();
-          return {
-            id: doc.id,
-            boxName: (docData.boxName as string) || '',
-            pricePerTicket: (docData.pricePerTicket as string) || '',
-            type: (docData.type as "wall" | "bar box") || 'wall',
-            locationId: (docData.locationId as string) || '',
-            ownerId: (docData.ownerId as string) || '',
-            isActive: docData.isActive !== false,
-            ...docData,
-          };
-        })
-        .filter((box) => box.locationId === selectedLocation);
-        
-        // Split into active and inactive boxes
-        const activeBoxes = data.filter(box => box.isActive);
-        const inactive = data.filter(box => !box.isActive && box.ownerId === user?.uid);
-        
-        // Split active boxes into my boxes and others
-        const userBoxes = activeBoxes.filter(box => box.ownerId === user?.uid);
-        const otherBoxes = activeBoxes.filter(box => box.ownerId !== user?.uid);
-        
-        setMyBoxes(userBoxes);
-        setGroupBoxes(otherBoxes);
-        setInactiveBoxes(inactive);
-        
-        // If dialog is open, update editBox with latest data
-        if (editBox && boxIdToUpdate) {
-          const updatedBox = data.find(b => b.id === boxIdToUpdate);
-          if (updatedBox) setEditBox(updatedBox);
-        }
-      } catch (error) {
-        console.error("Error fetching boxes:", error);
-      }
-    }
+    // This method is deprecated - use refreshBoxes instead
+    await refreshBoxes(boxIdToUpdate);
   };
 
   const refreshLocations = async () => {
     try {
-      const snapshot = await getDocs(collection(db, "locations"));
-      const data: Location[] = snapshot.docs.map((doc) => {
-        const docData = doc.data();
+      const locationDocs = await firestoreService.getLocations();
+      const data: Location[] = locationDocs.map((docData) => {
+        const coordinates = docData.coordinates as { latitude: number; longitude: number } | undefined;
+        const legacyCoords = docData.coordinates as any;
         return {
-          id: doc.id,
-          name: (docData.name as string) || '',
+          id: docData.id as string,
+          name: (docData.name ) || '',
           address: (docData.address as string) || '',
           type: (docData.type as "restaurant" | "bar") || 'bar',
           placeId: docData.placeId as string,
-          coordinates: docData.coordinates ? {
-            lat: docData.coordinates.lat || (docData.coordinates._lat as number),
-            lng: docData.coordinates.lng || (docData.coordinates._long as number)
-          } : (docData.geo ? {
-            lat: docData.geo.latitude,
-            lng: docData.geo.longitude
+          coordinates: coordinates ? {
+            lat: coordinates.latitude,
+            lng: coordinates.longitude
+          } : (legacyCoords?.lat ? {
+            lat: legacyCoords.lat || legacyCoords._lat,
+            lng: legacyCoords.lng || legacyCoords._long
+          } : (docData.geo as any)?.latitude ? {
+            lat: (docData.geo as any).latitude,
+            lng: (docData.geo as any).longitude
           } : undefined),
         };
       });
@@ -420,21 +358,25 @@ export const Play: React.FC = () => {
   useEffect(() => {
     const fetchLocations = async () => {
       try {
-        const snapshot = await getDocs(collection(db, "locations"));
-        const data: Location[] = snapshot.docs.map((doc) => {
-          const docData = doc.data();
+        const locationDocs = await firestoreService.getLocations();
+        const data: Location[] = locationDocs.map((docData) => {
+          const coordinates = docData.coordinates as { latitude: number; longitude: number } | undefined;
+          const legacyCoords = docData.coordinates as any;
           return {
-            id: doc.id,
-            name: (docData.name as string) || '',
+            id: docData.id as string,
+            name: (docData.name ) || '',
             address: (docData.address as string) || '',
             type: (docData.type as "restaurant" | "bar") || 'bar',
             placeId: docData.placeId as string,
-            coordinates: docData.coordinates ? {
-              lat: docData.coordinates.lat || (docData.coordinates._lat as number),
-              lng: docData.coordinates.lng || (docData.coordinates._long as number)
-            } : (docData.geo ? {
-              lat: docData.geo.latitude,
-              lng: docData.geo.longitude
+            coordinates: coordinates ? {
+              lat: coordinates.latitude,
+              lng: coordinates.longitude
+            } : (legacyCoords?.lat ? {
+              lat: legacyCoords.lat || legacyCoords._lat,
+              lng: legacyCoords.lng || legacyCoords._long
+            } : (docData.geo as any)?.latitude ? {
+              lat: (docData.geo as any).latitude,
+              lng: (docData.geo as any).longitude
             } : undefined),
           };
         });
@@ -575,10 +517,16 @@ export const Play: React.FC = () => {
     setIsClosingBox(true);
     try {
       // Update the box's isActive field to false
-      const boxRef = doc(db, 'boxes', boxToClose.id);
-      await updateDoc(boxRef, {
-        isActive: false
-      });
+      if (Capacitor.isNativePlatform()) {
+        await firestoreService.updateBox(boxToClose.id, {
+          isActive: false
+        });
+      } else {
+        const boxRef = doc(db, 'boxes', boxToClose.id);
+        await updateDoc(boxRef, {
+          isActive: false
+        });
+      }
       
       // Refresh the boxes list
       await refreshBoxes();
@@ -611,8 +559,12 @@ export const Play: React.FC = () => {
     setIsDeletingBox(true);
     try {
       // Permanently delete the box from Firestore
-      const boxRef = doc(db, 'boxes', boxToDelete.id);
-      await deleteDoc(boxRef);
+      if (Capacitor.isNativePlatform()) {
+        await firestoreService.deleteBox(boxToDelete.id);
+      } else {
+        const boxRef = doc(db, 'boxes', boxToDelete.id);
+        await deleteDoc(boxRef);
+      }
       
       // Refresh the boxes list
       await refreshBoxes();

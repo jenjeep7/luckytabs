@@ -339,3 +339,334 @@ export const uploadFlareSheet = functions.https.onRequest((req, res) => {
     }
   });
 });
+
+// ============================================================================
+// AUTHENTICATED FIRESTORE OPERATIONS FOR NATIVE PLATFORMS
+// These functions provide secure database access when direct Firestore SDK
+// auth sync is blocked (capacitor://localhost issue on iOS)
+// ============================================================================
+
+// Get user document
+export const getUser = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
+  }
+
+  const { userId } = data;
+  
+  // Users can only access their own data
+  if (userId !== context.auth.uid) {
+    throw new functions.https.HttpsError('permission-denied', 'Can only access your own user data');
+  }
+
+  try {
+    const userDoc = await db.collection('users').doc(userId).get();
+    
+    if (!userDoc.exists) {
+      return { exists: false, data: null };
+    }
+
+    return { exists: true, data: userDoc.data() };
+  } catch (error) {
+    console.error('Error getting user:', error);
+    throw new functions.https.HttpsError('internal', 'Failed to get user data');
+  }
+});
+
+// Update user document
+export const updateUser = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
+  }
+
+  const { userId, userData } = data;
+  
+  // Users can only update their own data
+  if (userId !== context.auth.uid) {
+    throw new functions.https.HttpsError('permission-denied', 'Can only update your own user data');
+  }
+
+  try {
+    await db.collection('users').doc(userId).set(userData, { merge: true });
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating user:', error);
+    throw new functions.https.HttpsError('internal', 'Failed to update user data');
+  }
+});
+
+// Query flares
+export const getFlares = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
+  }
+
+  const { filters } = data;
+
+  try {
+    let query: admin.firestore.Query = db.collection('flares');
+
+    // Apply filters if provided
+    if (filters) {
+      if (filters.userId) {
+        query = query.where('userId', '==', filters.userId);
+      }
+      if (filters.boxId) {
+        query = query.where('boxId', '==', filters.boxId);
+      }
+      if (filters.locationId) {
+        query = query.where('locationId', '==', filters.locationId);
+      }
+      if (filters.orderBy) {
+        query = query.orderBy(filters.orderBy.field, filters.orderBy.direction);
+      }
+      if (filters.limit) {
+        query = query.limit(filters.limit);
+      }
+    }
+
+    const snapshot = await query.get();
+    const flares = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    return { flares };
+  } catch (error) {
+    console.error('Error getting flares:', error);
+    throw new functions.https.HttpsError('internal', 'Failed to get flares');
+  }
+});
+
+// Get single flare
+export const getFlare = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
+  }
+
+  const { flareId } = data;
+
+  try {
+    const flareDoc = await db.collection('flares').doc(flareId).get();
+    
+    if (!flareDoc.exists) {
+      return { exists: false, data: null };
+    }
+
+    return { exists: true, data: { id: flareDoc.id, ...flareDoc.data() } };
+  } catch (error) {
+    console.error('Error getting flare:', error);
+    throw new functions.https.HttpsError('internal', 'Failed to get flare');
+  }
+});
+
+// Create flare
+export const createFlare = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
+  }
+
+  const { flareData } = data;
+
+  // Ensure userId matches authenticated user
+  if (flareData.userId !== context.auth.uid) {
+    throw new functions.https.HttpsError('permission-denied', 'Can only create flares for yourself');
+  }
+
+  try {
+    const flareRef = await db.collection('flares').add({
+      ...flareData,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return { success: true, flareId: flareRef.id };
+  } catch (error) {
+    console.error('Error creating flare:', error);
+    throw new functions.https.HttpsError('internal', 'Failed to create flare');
+  }
+});
+
+// Update flare
+export const updateFlare = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
+  }
+
+  const { flareId, flareData } = data;
+
+  try {
+    // Check ownership
+    const flareDoc = await db.collection('flares').doc(flareId).get();
+    
+    if (!flareDoc.exists) {
+      throw new functions.https.HttpsError('not-found', 'Flare not found');
+    }
+
+    const flareOwner = flareDoc.data()?.userId;
+    if (flareOwner !== context.auth.uid) {
+      throw new functions.https.HttpsError('permission-denied', 'Can only update your own flares');
+    }
+
+    await db.collection('flares').doc(flareId).update({
+      ...flareData,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating flare:', error);
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    }
+    throw new functions.https.HttpsError('internal', 'Failed to update flare');
+  }
+});
+
+// Delete flare
+export const deleteFlare = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
+  }
+
+  const { flareId } = data;
+
+  try {
+    // Check ownership
+    const flareDoc = await db.collection('flares').doc(flareId).get();
+    
+    if (!flareDoc.exists) {
+      throw new functions.https.HttpsError('not-found', 'Flare not found');
+    }
+
+    const flareOwner = flareDoc.data()?.userId;
+    if (flareOwner !== context.auth.uid) {
+      throw new functions.https.HttpsError('permission-denied', 'Can only delete your own flares');
+    }
+
+    await db.collection('flares').doc(flareId).delete();
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting flare:', error);
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    }
+    throw new functions.https.HttpsError('internal', 'Failed to delete flare');
+  }
+});
+
+// Get boxes (read-only)
+export const getBoxes = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
+  }
+
+  const { filters } = data;
+
+  try {
+    let query: admin.firestore.Query = db.collection('boxes');
+
+    // Apply filters if provided
+    if (filters) {
+      if (filters.locationId) {
+        query = query.where('locationId', '==', filters.locationId);
+      }
+      if (filters.orderBy) {
+        query = query.orderBy(filters.orderBy.field, filters.orderBy.direction);
+      }
+      if (filters.limit) {
+        query = query.limit(filters.limit);
+      }
+    }
+
+    const snapshot = await query.get();
+    const boxes = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    return { boxes };
+  } catch (error) {
+    console.error('Error getting boxes:', error);
+    throw new functions.https.HttpsError('internal', 'Failed to get boxes');
+  }
+});
+
+// Get single box (read-only)
+export const getBox = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
+  }
+
+  const { boxId } = data;
+
+  try {
+    const boxDoc = await db.collection('boxes').doc(boxId).get();
+    
+    if (!boxDoc.exists) {
+      return { exists: false, data: null };
+    }
+
+    return { exists: true, data: { id: boxDoc.id, ...boxDoc.data() } };
+  } catch (error) {
+    console.error('Error getting box:', error);
+    throw new functions.https.HttpsError('internal', 'Failed to get box');
+  }
+});
+
+// Get locations (read-only)
+export const getLocations = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
+  }
+
+  const { filters } = data;
+
+  try {
+    let query: admin.firestore.Query = db.collection('locations');
+
+    // Apply filters if provided
+    if (filters) {
+      if (filters.orderBy) {
+        query = query.orderBy(filters.orderBy.field, filters.orderBy.direction);
+      }
+      if (filters.limit) {
+        query = query.limit(filters.limit);
+      }
+    }
+
+    const snapshot = await query.get();
+    const locations = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    return { locations };
+  } catch (error) {
+    console.error('Error getting locations:', error);
+    throw new functions.https.HttpsError('internal', 'Failed to get locations');
+  }
+});
+
+// Get single location (read-only)
+export const getLocation = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be authenticated');
+  }
+
+  const { locationId } = data;
+
+  try {
+    const locationDoc = await db.collection('locations').doc(locationId).get();
+    
+    if (!locationDoc.exists) {
+      return { exists: false, data: null };
+    }
+
+    return { exists: true, data: { id: locationDoc.id, ...locationDoc.data() } };
+  } catch (error) {
+    console.error('Error getting location:', error);
+    throw new functions.https.HttpsError('internal', 'Failed to get location');
+  }
+});

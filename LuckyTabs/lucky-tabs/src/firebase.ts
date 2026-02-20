@@ -75,7 +75,7 @@ export async function syncNativeAuthWithFirestore() {
   } catch (error: any) {
     // Firebase blocks capacitor://localhost referer in some configurations
     // Log but don't throw - native auth should still work for most operations
-    if (error?.code === 'auth/requests-from-referer-capacitor://localhost-are-blocked.') {
+    if (typeof error === 'object' && error !== null && 'code' in error && (error as { code: string }).code === 'auth/requests-from-referer-capacitor://localhost-are-blocked.') {
       console.warn('[firebase.ts] Firebase blocking capacitor referer (expected), native auth will be used');
     } else {
       console.error('[firebase.ts] Failed to sync native auth with Firestore:', error);
@@ -107,6 +107,11 @@ export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const functions = getFunctions(app, 'us-central1'); // Specify region
 export { analytics };
+
+// On native platforms, wrap Firestore operations to use REST API
+if (Capacitor.isNativePlatform()) {
+  console.warn('[firebase.ts] Native platform detected - Firestore operations will use REST API to bypass auth sync issue');
+}
 
 // NOTE: Removed automatic auth sync on startup to avoid Firebase blocking errors
 // Auth sync now happens only when explicitly called via ensureAuthReady()
