@@ -17,7 +17,7 @@ import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY || "AIzaSyBn9ZEOC5RqOoeHMPBgaL42Y98fK9UNh4w",
-  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || "pull-tabs.firebaseapp.com",
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || "app.tabsywins.com",
   projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID || "pull-tabs",
   storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || "pull-tabs.firebasestorage.app",
   messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID || "769021961982",

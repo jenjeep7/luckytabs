@@ -27,9 +27,9 @@ import {
 import { LocationOn as LocationIcon } from '@mui/icons-material';
 import SafeDialog from '../../components/SafeDialog';
 import { getGoogleMapsLoader } from '../../utils/googleMapsLoader';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../../firebase';
+import { serverTimestamp } from 'firebase/firestore';
 import { useAuthStateCompat } from '../../services/useAuthStateCompat';
+import { createLocation } from '../../services/firestoreService';
 
 interface Location {
   id: string;
@@ -316,7 +316,7 @@ export const LocationManager: React.FC<LocationManagerProps> = ({
         createdAt: serverTimestamp(),
       };
 
-      await addDoc(collection(db, 'locations'), newLocation);
+      await createLocation(newLocation);
       
       // Reset form and clear autocomplete
       setSelectedPlace(null);

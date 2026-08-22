@@ -23,6 +23,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import * as firestoreRest from './firestoreRestClient';
+import { preparePayloadForWrite } from './firestoreWriteUtils';
 
 const isNative = Capacitor.isNativePlatform();
 
@@ -312,6 +313,22 @@ export async function getLocation(locationId: string): Promise<Location | null> 
     const locationDoc = await getDoc(doc(db, 'locations', locationId));
     return locationDoc.exists() ? ({ id: locationDoc.id, ...locationDoc.data() } as Location) : null;
   }
+}
+
+export function prepareLocationPayloadForWrite<T extends Record<string, unknown>>(payload: T, native = isNative): T {
+  return preparePayloadForWrite(payload, native);
+}
+
+export async function createLocation(locationData: Omit<Location, 'id'>): Promise<string> {
+  if (isNative) {
+    const locationId = `location_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    await firestoreRest.setDocument(`locations/${locationId}`, prepareLocationPayloadForWrite(locationData as Record<string, unknown>));
+    return locationId;
+  }
+
+  const locationRef = doc(collection(db, 'locations'));
+  await setDoc(locationRef, prepareLocationPayloadForWrite(locationData as Record<string, unknown>, false));
+  return locationRef.id;
 }
 // ============================================================================
 // GROUP OPERATIONS
